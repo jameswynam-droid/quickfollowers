@@ -57,6 +57,12 @@ export default {
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
         },
+        instagram: "hsl(var(--instagram))",
+        tiktok: "hsl(var(--tiktok))",
+        youtube: "hsl(var(--youtube))",
+        twitter: "hsl(var(--twitter))",
+        facebook: "hsl(var(--facebook))",
+        spotify: "hsl(var(--spotify))",
       },
       borderRadius: {
         lg: "var(--radius)",
