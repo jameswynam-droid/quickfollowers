@@ -49,29 +49,10 @@ const Dashboard = () => {
     },
   ];
 
-  const orders = [
-    {
-      id: "123456",
-      service: "Instagram Service",
-      link: "https://instagram.com/p/ABC123DEF/",
-      quantity: "1,000",
-      status: "Completed",
-      statusColor: "bg-green-100 text-green-700",
-    },
-    {
-      id: "123457",
-      service: "X Service",
-      link: "https://x.com/user/status/12345",
-      quantity: "2,000",
-      status: "In Progress",
-      statusColor: "bg-yellow-100 text-yellow-700",
-    },
-  ];
+  const orders: any[] = [];
 
   const handleOrder = (title: string) => {
-    toast.success(`Creating order for ${title}...`, {
-      description: "This is a demo. In production, this would open an order form.",
-    });
+    toast.success(`Creating order for ${title}...`);
   };
 
   return (
