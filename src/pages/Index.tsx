@@ -3,23 +3,16 @@ import { useNavigate } from "react-router-dom";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import ServiceCard from "@/components/ServiceCard";
-import AuthModal from "@/components/AuthModal";
 import { Button } from "@/components/ui/button";
 
 const Index = () => {
-  const [authModalOpen, setAuthModalOpen] = useState(false);
-  const [authType, setAuthType] = useState<"login" | "signup">("login");
   const navigate = useNavigate();
 
   const handleAuthClick = (type: "login" | "signup") => {
-    setAuthType(type);
-    setAuthModalOpen(true);
+    navigate("/auth");
   };
 
-  const handleAuthSubmit = (data: any) => {
-    console.log("Auth submitted:", data);
-    // In a real app, handle authentication here
-    setAuthModalOpen(false);
+  const handleAuthSubmit = () => {
     navigate("/dashboard");
   };
 
@@ -206,14 +199,6 @@ const Index = () => {
       </section>
 
       <Footer />
-
-      <AuthModal
-        isOpen={authModalOpen}
-        type={authType}
-        onClose={() => setAuthModalOpen(false)}
-        onSwitch={() => setAuthType(authType === "login" ? "signup" : "login")}
-        onSubmit={handleAuthSubmit}
-      />
     </div>
   );
 };

@@ -1,144 +1,93 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
-import ServiceCard from "@/components/ServiceCard";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
 
 const Dashboard = () => {
-  const [balance] = useState(0);
+  const [user, setUser] = useState<any>(null);
+  const [profile, setProfile] = useState<any>(null);
+  const [orders, setOrders] = useState<any[]>([]);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
+  const [paymentAmount, setPaymentAmount] = useState("");
+  const [bankDetails, setBankDetails] = useState("");
+  const [notes, setNotes] = useState("");
   const navigate = useNavigate();
 
-  const services = [
-    {
-      icon: "fa-brands fa-instagram",
-      iconColor: "text-pink-600",
-      title: "Instagram Service",
-      description: "High-quality real-looking engagement. Instant start, 30-day refill.",
-    },
-    {
-      icon: "fa-brands fa-tiktok",
-      iconColor: "text-black",
-      title: "TikTok Service",
-      description: "Fast worldwide engagement. Lifetime stable, no drop.",
-    },
-    {
-      icon: "fa-brands fa-youtube",
-      iconColor: "text-red-600",
-      title: "YouTube Service",
-      description: "Real engagement from active accounts. Monetization safe.",
-    },
-    {
-      icon: "fa-brands fa-x-twitter",
-      iconColor: "text-slate-900",
-      title: "X Service",
-      description: "Aged accounts interaction. Boost your reach organically.",
-    },
-    {
-      icon: "fa-brands fa-facebook",
-      iconColor: "text-blue-600",
-      title: "Facebook Service",
-      description: "Worldwide page interaction. No drop, refill guaranteed.",
-    },
-    {
-      icon: "fa-brands fa-spotify",
-      iconColor: "text-green-600",
-      title: "Spotify Service",
-      description: "Increase plays & ranking. Premium streams available.",
-    },
-  ];
+  useEffect(() => {
+    checkAuth();
+  }, []);
 
-  const orders: any[] = [];
-
-  const handleOrder = (title: string) => {
-    toast.success(`Creating order for ${title}...`);
+  const checkAuth = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      navigate("/auth");
+      return;
+    }
+    setUser(session.user);
+    fetchProfile(session.user.id);
+    fetchOrders(session.user.id);
+    checkAdminStatus(session.user.id);
   };
+
+  const fetchProfile = async (userId: string) => {
+    const { data } = await supabase.from("profiles").select("*").eq("id", userId).single();
+    if (data) setProfile(data);
+  };
+
+  const fetchOrders = async (userId: string) => {
+    const { data } = await supabase.from("orders").select("*, services(name)").eq("user_id", userId).order("created_at", { ascending: false }).limit(10);
+    setOrders(data || []);
+  };
+
+  const checkAdminStatus = async (userId: string) => {
+    const { data } = await supabase.from("user_roles").select("role").eq("user_id", userId).eq("role", "admin").maybeSingle();
+    setIsAdmin(!!data);
+  };
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    navigate("/");
+  };
+
+  const handlePaymentRequest = async () => {
+    if (!paymentAmount || !bankDetails) return toast.error("Fill all fields");
+    const { error } = await supabase.from("payments").insert({ user_id: user.id, amount: parseFloat(paymentAmount), bank_details: bankDetails, notes });
+    if (error) return toast.error("Failed to submit");
+    toast.success("Payment request submitted!");
+    setPaymentDialogOpen(false);
+  };
+
+  if (!profile) return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
 
   return (
     <div className="min-h-screen flex flex-col">
-      <Header isAuthenticated />
-
-      {/* Welcome / Balance Section */}
-      <section className="py-12">
-        <div className="max-w-4xl mx-auto px-4">
-          <div className="gradient-hero text-white rounded-2xl p-6 md:p-8 shadow-xl">
-            <h1 className="text-2xl md:text-3xl font-bold mb-2">Welcome back!</h1>
-            <p className="opacity-90 text-sm md:text-base">Your current balance:</p>
-            <div className="text-4xl md:text-5xl font-extrabold mt-2">${balance.toFixed(2)}</div>
-            <div className="mt-6 flex flex-wrap gap-3">
-              <Button
-                onClick={() => (window.location.href = "#deposit")}
-                variant="outline"
-                className="bg-white/20 border-white/30 text-white hover:bg-white/30 hover:text-white"
-              >
-                <i className="fa-solid fa-wallet mr-2"></i>
-                Deposit (Bank Transfer)
-              </Button>
-              <Button
-                onClick={() => (window.location.href = "#services")}
-                className="bg-white text-primary hover:bg-white/90 hover:text-primary"
-              >
-                <i className="fa-solid fa-plus mr-2"></i>
-                New Order
-              </Button>
-            </div>
+      <Header />
+      <main className="flex-grow container mx-auto px-4 py-8">
+        <div className="mb-8 flex justify-between items-center">
+          <h1 className="text-4xl font-bold">Dashboard</h1>
+          <div className="flex gap-2">
+            {isAdmin && <Button variant="outline" onClick={() => navigate("/admin")}>Admin</Button>}
+            <Button variant="outline" onClick={handleSignOut}>Sign Out</Button>
           </div>
         </div>
-      </section>
-
-      {/* New Order Section */}
-      <section id="services" className="py-8">
-        <div className="max-w-7xl mx-auto px-4">
-          <h2 className="text-2xl font-bold mb-8 text-center">Create New Order</h2>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {services.map((service, index) => (
-              <ServiceCard key={index} {...service} onOrder={() => handleOrder(service.title)} />
-            ))}
-          </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+          <Card><CardHeader><CardTitle>Balance</CardTitle></CardHeader><CardContent><div className="text-3xl font-bold">₦{parseFloat(profile.balance).toFixed(2)}</div><Button className="w-full mt-4" onClick={() => setPaymentDialogOpen(true)}>Add Funds</Button></CardContent></Card>
+          <Card><CardHeader><CardTitle>Orders</CardTitle></CardHeader><CardContent><div className="text-3xl font-bold">{orders.length}</div></CardContent></Card>
+          <Card><CardHeader><CardTitle>Quick Actions</CardTitle></CardHeader><CardContent><Button className="w-full" onClick={() => navigate("/services")}>Browse Services</Button></CardContent></Card>
         </div>
-      </section>
-
-      {/* My Orders Section */}
-      <section id="orders" className="py-12 bg-muted/30">
-        <div className="max-w-6xl mx-auto px-4">
-          <h2 className="text-2xl font-bold mb-6 text-center">My Orders</h2>
-          <div className="bg-card rounded-2xl shadow overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead className="bg-muted/50">
-                  <tr>
-                    <th className="px-4 py-3 text-left font-semibold">Order ID</th>
-                    <th className="px-4 py-3 text-left font-semibold">Service</th>
-                    <th className="px-4 py-3 text-left font-semibold">Link</th>
-                    <th className="px-4 py-3 text-left font-semibold">Quantity</th>
-                    <th className="px-4 py-3 text-left font-semibold">Status</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border">
-                  {orders.map((order) => (
-                    <tr key={order.id} className="hover:bg-muted/20 transition">
-                      <td className="px-4 py-3 font-mono">{order.id}</td>
-                      <td className="px-4 py-3">{order.service}</td>
-                      <td className="px-4 py-3 truncate max-w-xs" title={order.link}>
-                        {order.link}
-                      </td>
-                      <td className="px-4 py-3">{order.quantity}</td>
-                      <td className="px-4 py-3">
-                        <span className={`${order.statusColor} px-3 py-1 rounded-full text-xs font-medium`}>
-                          {order.status}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-      </section>
-
+        <Card><CardHeader><CardTitle>Recent Orders</CardTitle></CardHeader><CardContent>{orders.length === 0 ? <p className="text-center py-8">No orders yet</p> : <Table><TableHeader><TableRow><TableHead>Service</TableHead><TableHead>Quantity</TableHead><TableHead>Cost</TableHead><TableHead>Status</TableHead></TableRow></TableHeader><TableBody>{orders.map(o => <TableRow key={o.id}><TableCell>{o.services?.name}</TableCell><TableCell>{o.quantity}</TableCell><TableCell>₦{o.charge}</TableCell><TableCell>{o.status}</TableCell></TableRow>)}</TableBody></Table>}</CardContent></Card>
+      </main>
       <Footer />
+      <Dialog open={paymentDialogOpen} onOpenChange={setPaymentDialogOpen}><DialogContent><DialogHeader><DialogTitle>Bank Transfer</DialogTitle></DialogHeader><div className="space-y-4"><div><Label>Amount</Label><Input type="number" value={paymentAmount} onChange={e => setPaymentAmount(e.target.value)} /></div><div><Label>Bank Details</Label><Input value={bankDetails} onChange={e => setBankDetails(e.target.value)} /></div><div><Label>Notes</Label><Input value={notes} onChange={e => setNotes(e.target.value)} /></div><Button onClick={handlePaymentRequest} className="w-full">Submit</Button></div></DialogContent></Dialog>
     </div>
   );
 };
