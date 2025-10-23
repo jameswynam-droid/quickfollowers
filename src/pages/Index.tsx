@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import ServiceCard from "@/components/ServiceCard";
@@ -8,12 +9,17 @@ import { Button } from "@/components/ui/button";
 const Index = () => {
   const navigate = useNavigate();
 
+  useEffect(() => {
+    // Redirect authenticated users to dashboard
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) {
+        navigate("/dashboard");
+      }
+    });
+  }, [navigate]);
+
   const handleAuthClick = (type: "login" | "signup") => {
     navigate("/auth");
-  };
-
-  const handleAuthSubmit = () => {
-    navigate("/dashboard");
   };
 
   const services = [
