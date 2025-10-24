@@ -19,7 +19,7 @@ const Index = () => {
   }, [navigate]);
 
   const handleAuthClick = (type: "login" | "signup") => {
-    navigate("/auth");
+    navigate(`/auth?mode=${type}`);
   };
 
   const services = [
