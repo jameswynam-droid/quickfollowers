@@ -57,16 +57,25 @@ Deno.serve(async (req) => {
     console.log(`Fetched ${services.length} services`);
 
     // Transform and upsert services into database
-    const servicesData = services.map((service) => ({
-      id: service.service,
-      name: service.name,
-      type: service.type,
-      category: service.category,
-      rate: parseFloat(service.rate),
-      min_order: parseInt(service.min),
-      max_order: parseInt(service.max),
-      description: `${service.name} - Min: ${service.min}, Max: ${service.max}`,
-    }));
+    const servicesData = services.map((service) => {
+      // Convert rate - if it's too large, it's likely in kobo (smallest unit)
+      // Divide by 100 to convert to Naira
+      let rate = parseFloat(service.rate);
+      if (rate > 1000000) {
+        rate = rate / 100; // Convert from kobo to Naira
+      }
+      
+      return {
+        id: service.service,
+        name: service.name,
+        type: service.type,
+        category: service.category,
+        rate: rate,
+        min_order: parseInt(service.min),
+        max_order: parseInt(service.max),
+        description: `${service.name} - Min: ${service.min}, Max: ${service.max}`,
+      };
+    });
 
     // Upsert services in batches
     const batchSize = 100;
