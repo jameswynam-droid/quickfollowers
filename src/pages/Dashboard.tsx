@@ -73,7 +73,10 @@ const Dashboard = () => {
       <Header />
       <main className="flex-grow container mx-auto px-4 py-8">
         <div className="mb-8 flex justify-between items-center">
-          <h1 className="text-4xl font-bold">Dashboard</h1>
+          <div>
+            <h1 className="text-4xl font-bold">Dashboard</h1>
+            <p className="text-muted-foreground mt-2">Welcome, {profile.full_name || user.email}</p>
+          </div>
           <div className="flex gap-2">
             {isAdmin && <Button variant="outline" onClick={() => navigate("/admin")}>Admin</Button>}
             <Button variant="outline" onClick={handleSignOut}>Sign Out</Button>

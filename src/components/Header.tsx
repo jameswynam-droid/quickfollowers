@@ -50,6 +50,9 @@ const Header = ({ onAuthClick }: HeaderProps) => {
         <nav className="hidden md:flex items-center gap-6 text-sm font-medium">
           {isAuthenticated ? (
             <>
+              <Link to="/dashboard" className="text-foreground/80 hover:text-primary transition">
+                Dashboard
+              </Link>
               <a href="#services" className="text-foreground/80 hover:text-primary transition">
                 New Order
               </a>
@@ -115,6 +118,13 @@ const Header = ({ onAuthClick }: HeaderProps) => {
         <div className="md:hidden px-4 pb-4 space-y-2 border-t bg-card">
           {isAuthenticated ? (
             <>
+              <Link
+                to="/dashboard"
+                className="block py-2 text-foreground/80 hover:text-primary"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                Dashboard
+              </Link>
               <a
                 href="#services"
                 className="block py-2 text-foreground/80 hover:text-primary"
