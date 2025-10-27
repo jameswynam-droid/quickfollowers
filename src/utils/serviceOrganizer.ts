@@ -174,7 +174,7 @@ export const organizeServices = (rawServices: any[]): ServiceCategory[] => {
       originalCategory: service.category,
       rate: service.rate,
       markedUpRate,
-      pricePerThousand: `₦${(markedUpRate / 1000).toFixed(2)}`,
+      pricePerThousand: `₦${markedUpRate.toFixed(2)}`, // Rate is already per 1000 from API
       min_order: service.min_order,
       max_order: service.max_order,
       type: service.type,
