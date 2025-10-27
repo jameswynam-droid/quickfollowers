@@ -12,17 +12,13 @@ export interface OrganizedService {
 }
 
 export interface ServiceCategory {
-  platform: string;
-  subcategories: {
-    name: string;
-    services: OrganizedService[];
-  }[];
+  category: string;
+  services: OrganizedService[];
 }
 
 const MARKUP_RATES = {
-  standard: 0.15, // 15%
-  premium: 0.25, // 25%
-  minimum: 0.10, // 10%
+  standard: 0.10, // 10%
+  premium: 0.15, // 15%
 };
 
 const isPremiumService = (name: string, category: string): boolean => {
@@ -174,7 +170,7 @@ export const organizeServices = (rawServices: any[]): ServiceCategory[] => {
       originalCategory: service.category,
       rate: service.rate,
       markedUpRate,
-      pricePerThousand: `₦${markedUpRate.toFixed(2)}`, // Rate is already per 1000 from API
+      pricePerThousand: `₦${markedUpRate.toFixed(2)}`,
       min_order: service.min_order,
       max_order: service.max_order,
       type: service.type,
@@ -182,74 +178,23 @@ export const organizeServices = (rawServices: any[]): ServiceCategory[] => {
     };
   });
 
-  // Group by platform and subcategory
-  const platformMap = new Map<string, Map<string, OrganizedService[]>>();
+  // Group by original category
+  const categoryMap = new Map<string, OrganizedService[]>();
 
   organizedServices.forEach(service => {
-    const platform = getPlatformFromCategory(service.originalCategory, service.name);
-    const subcategory = getSubcategoryFromCategory(service.originalCategory, service.name);
-
-    if (!platformMap.has(platform)) {
-      platformMap.set(platform, new Map());
+    if (!categoryMap.has(service.originalCategory)) {
+      categoryMap.set(service.originalCategory, []);
     }
-
-    const subcategoryMap = platformMap.get(platform)!;
-    if (!subcategoryMap.has(subcategory)) {
-      subcategoryMap.set(subcategory, []);
-    }
-
-    subcategoryMap.get(subcategory)!.push(service);
+    categoryMap.get(service.originalCategory)!.push(service);
   });
 
-  // Convert to array structure
-  const result: ServiceCategory[] = [];
-  
-  // Sort platforms by priority
-  const platformOrder = [
-    'Instagram',
-    'TikTok',
-    'Twitter / X',
-    'YouTube',
-    'Facebook',
-    'Telegram',
-    'Spotify',
-    'WhatsApp',
-    'Other Services'
-  ];
-
-  platformOrder.forEach(platform => {
-    if (platformMap.has(platform)) {
-      const subcategoryMap = platformMap.get(platform)!;
-      const subcategories = Array.from(subcategoryMap.entries())
-        .map(([name, services]) => ({
-          name,
-          services: services.sort((a, b) => a.name.localeCompare(b.name))
-        }))
-        .sort((a, b) => a.name.localeCompare(b.name));
-
-      result.push({
-        platform,
-        subcategories
-      });
-    }
-  });
-
-  // Add remaining platforms not in priority list
-  platformMap.forEach((subcategoryMap, platform) => {
-    if (!platformOrder.includes(platform)) {
-      const subcategories = Array.from(subcategoryMap.entries())
-        .map(([name, services]) => ({
-          name,
-          services: services.sort((a, b) => a.name.localeCompare(b.name))
-        }))
-        .sort((a, b) => a.name.localeCompare(b.name));
-
-      result.push({
-        platform,
-        subcategories
-      });
-    }
-  });
+  // Convert to array and sort
+  const result: ServiceCategory[] = Array.from(categoryMap.entries())
+    .map(([category, services]) => ({
+      category,
+      services: services.sort((a, b) => a.name.localeCompare(b.name))
+    }))
+    .sort((a, b) => a.category.localeCompare(b.category));
 
   return result;
 };

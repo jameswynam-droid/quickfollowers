@@ -70,21 +70,19 @@ const Services = () => {
     let filtered = organizedCategories;
 
     if (selectedPlatform !== "all") {
-      filtered = filtered.filter(cat => cat.platform === selectedPlatform);
+      filtered = filtered.filter(cat => 
+        cat.category.toLowerCase().includes(selectedPlatform.toLowerCase())
+      );
     }
 
     if (searchQuery) {
       filtered = filtered.map(category => ({
         ...category,
-        subcategories: category.subcategories.map(sub => ({
-          ...sub,
-          services: sub.services.filter(service =>
-            service.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            sub.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            category.platform.toLowerCase().includes(searchQuery.toLowerCase())
-          )
-        })).filter(sub => sub.services.length > 0)
-      })).filter(cat => cat.subcategories.length > 0);
+        services: category.services.filter(service =>
+          service.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          category.category.toLowerCase().includes(searchQuery.toLowerCase())
+        )
+      })).filter(cat => cat.services.length > 0);
     }
 
     return filtered;
@@ -137,7 +135,9 @@ const Services = () => {
   }
 
   const filteredCategories = getFilteredCategories();
-  const platforms = organizedCategories.map(cat => cat.platform);
+  
+  // Extract unique platform keywords from categories
+  const platformKeywords = ['Instagram', 'TikTok', 'Twitter', 'YouTube', 'Facebook', 'Telegram', 'Spotify', 'Audiomack', 'Boomplay', 'SoundCloud', 'Discord', 'WhatsApp', 'Snapchat', 'LinkedIn', 'Threads'];
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
@@ -150,7 +150,7 @@ const Services = () => {
 
         <div className="flex flex-col md:flex-row gap-4 mb-8">
           <Input
-            placeholder="Search services, platforms, or categories..."
+            placeholder="Search services or categories..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="md:flex-1"
@@ -160,8 +160,8 @@ const Services = () => {
             onChange={(e) => setSelectedPlatform(e.target.value)}
             className="px-4 py-2 rounded-md border bg-background md:w-64"
           >
-            <option value="all">All Platforms</option>
-            {platforms.map((platform) => (
+            <option value="all">All Categories</option>
+            {platformKeywords.map((platform) => (
               <option key={platform} value={platform}>{platform}</option>
             ))}
           </select>
@@ -175,73 +175,53 @@ const Services = () => {
           <Accordion type="multiple" className="space-y-4">
             {filteredCategories.map((category) => (
               <AccordionItem
-                key={category.platform}
-                value={category.platform}
+                key={category.category}
+                value={category.category}
                 className="border rounded-lg overflow-hidden bg-card"
               >
                 <AccordionTrigger className="px-6 py-4 hover:no-underline hover:bg-accent/50">
                   <div className="flex items-center gap-3">
-                    <h2 className="text-2xl font-bold">{category.platform}</h2>
+                    <h2 className="text-lg font-semibold">{category.category}</h2>
                     <span className="text-sm text-muted-foreground">
-                      ({category.subcategories.reduce((acc, sub) => acc + sub.services.length, 0)} services)
+                      ({category.services.length} services)
                     </span>
                   </div>
                 </AccordionTrigger>
                 <AccordionContent className="px-6 pb-4">
-                  <Accordion type="multiple" className="space-y-2">
-                    {category.subcategories.map((subcategory) => (
-                      <AccordionItem
-                        key={`${category.platform}-${subcategory.name}`}
-                        value={subcategory.name}
-                        className="border-l-4 border-primary/20 pl-4"
-                      >
-                        <AccordionTrigger className="py-3 hover:no-underline text-left">
-                          <div className="flex items-center gap-2">
-                            <h3 className="text-lg font-semibold">{subcategory.name}</h3>
-                            <span className="text-xs text-muted-foreground">
-                              ({subcategory.services.length})
-                            </span>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {category.services.map((service) => (
+                      <Card key={service.id} className="hover:shadow-lg transition-shadow">
+                        <CardHeader className="pb-3">
+                          <CardTitle className="text-sm leading-tight line-clamp-2">
+                            {service.name.replace(/[🎉✨⚡️🔥💎🌟]/g, '').trim()}
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-3">
+                          <div className="space-y-1 text-sm">
+                            <div className="flex justify-between">
+                              <span className="text-muted-foreground">Price per 1000:</span>
+                              <span className="font-semibold text-primary">{service.pricePerThousand}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-muted-foreground">Min order:</span>
+                              <span>{service.min_order.toLocaleString()}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-muted-foreground">Max order:</span>
+                              <span>{service.max_order.toLocaleString()}</span>
+                            </div>
                           </div>
-                        </AccordionTrigger>
-                        <AccordionContent className="pt-2">
-                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                            {subcategory.services.map((service) => (
-                              <Card key={service.id} className="hover:shadow-lg transition-shadow">
-                                <CardHeader className="pb-3">
-                                  <CardTitle className="text-sm leading-tight line-clamp-2">
-                                    {service.name.replace(/[🎉✨⚡️🔥💎🌟]/g, '').trim()}
-                                  </CardTitle>
-                                </CardHeader>
-                                <CardContent className="space-y-3">
-                                  <div className="space-y-1 text-sm">
-                                    <div className="flex justify-between">
-                                      <span className="text-muted-foreground">Price per 1000:</span>
-                                      <span className="font-semibold text-primary">{service.pricePerThousand}</span>
-                                    </div>
-                                    <div className="flex justify-between">
-                                      <span className="text-muted-foreground">Min order:</span>
-                                      <span>{service.min_order.toLocaleString()}</span>
-                                    </div>
-                                    <div className="flex justify-between">
-                                      <span className="text-muted-foreground">Max order:</span>
-                                      <span>{service.max_order.toLocaleString()}</span>
-                                    </div>
-                                  </div>
-                                  <Button
-                                    onClick={() => handleOrderClick(service)}
-                                    className="w-full"
-                                    size="sm"
-                                  >
-                                    Order Now
-                                  </Button>
-                                </CardContent>
-                              </Card>
-                            ))}
-                          </div>
-                        </AccordionContent>
-                      </AccordionItem>
+                          <Button
+                            onClick={() => handleOrderClick(service)}
+                            className="w-full"
+                            size="sm"
+                          >
+                            Order Now
+                          </Button>
+                        </CardContent>
+                      </Card>
                     ))}
-                  </Accordion>
+                  </div>
                 </AccordionContent>
               </AccordionItem>
             ))}
