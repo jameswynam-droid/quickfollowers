@@ -6,21 +6,20 @@ import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { toast } from "sonner";
+import { organizeServices, OrganizedService, ServiceCategory } from "@/utils/serviceOrganizer";
 
 const Services = () => {
   const [user, setUser] = useState<any>(null);
-  const [services, setServices] = useState<any[]>([]);
-  const [filteredServices, setFilteredServices] = useState<any[]>([]);
-  const [categories, setCategories] = useState<string[]>([]);
-  const [selectedCategory, setSelectedCategory] = useState<string>("all");
+  const [organizedCategories, setOrganizedCategories] = useState<ServiceCategory[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedPlatform, setSelectedPlatform] = useState<string>("all");
   const [loading, setLoading] = useState(true);
   const [orderDialogOpen, setOrderDialogOpen] = useState(false);
-  const [selectedService, setSelectedService] = useState<any>(null);
+  const [selectedService, setSelectedService] = useState<OrganizedService | null>(null);
   const [orderLink, setOrderLink] = useState("");
   const [orderQuantity, setOrderQuantity] = useState("");
   const navigate = useNavigate();
@@ -49,22 +48,17 @@ const Services = () => {
     fetchServices();
   }, []);
 
-  useEffect(() => {
-    filterServices();
-  }, [services, selectedCategory, searchQuery]);
-
   const fetchServices = async () => {
     try {
       const { data, error } = await supabase
         .from("services")
         .select("*")
-        .order("category", { ascending: true });
+        .order("name", { ascending: true });
 
       if (error) throw error;
 
-      setServices(data || []);
-      const uniqueCategories = [...new Set((data || []).map(s => s.category))];
-      setCategories(uniqueCategories);
+      const organized = organizeServices(data || []);
+      setOrganizedCategories(organized);
     } catch (error: any) {
       toast.error("Failed to load services");
     } finally {
@@ -72,26 +66,35 @@ const Services = () => {
     }
   };
 
-  const filterServices = () => {
-    let filtered = services;
+  const getFilteredCategories = () => {
+    let filtered = organizedCategories;
 
-    if (selectedCategory !== "all") {
-      filtered = filtered.filter(s => s.category === selectedCategory);
+    if (selectedPlatform !== "all") {
+      filtered = filtered.filter(cat => cat.platform === selectedPlatform);
     }
 
     if (searchQuery) {
-      filtered = filtered.filter(s =>
-        s.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        s.category.toLowerCase().includes(searchQuery.toLowerCase())
-      );
+      filtered = filtered.map(category => ({
+        ...category,
+        subcategories: category.subcategories.map(sub => ({
+          ...sub,
+          services: sub.services.filter(service =>
+            service.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            sub.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            category.platform.toLowerCase().includes(searchQuery.toLowerCase())
+          )
+        })).filter(sub => sub.services.length > 0)
+      })).filter(cat => cat.subcategories.length > 0);
     }
 
-    setFilteredServices(filtered);
+    return filtered;
   };
 
-  const handleOrderClick = (service: any) => {
+  const handleOrderClick = (service: OrganizedService) => {
     setSelectedService(service);
     setOrderDialogOpen(true);
+    setOrderLink("");
+    setOrderQuantity("");
   };
 
   const handlePlaceOrder = async () => {
@@ -106,6 +109,8 @@ const Services = () => {
       return;
     }
 
+    const totalCost = (selectedService.markedUpRate * quantity).toFixed(2);
+
     try {
       const { data, error } = await supabase.functions.invoke("place-order", {
         body: {
@@ -117,7 +122,7 @@ const Services = () => {
 
       if (error) throw error;
 
-      toast.success("Order placed successfully!");
+      toast.success(`Order placed! Total cost: ₦${totalCost}`);
       setOrderDialogOpen(false);
       setOrderLink("");
       setOrderQuantity("");
@@ -131,64 +136,116 @@ const Services = () => {
     return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
   }
 
+  const filteredCategories = getFilteredCategories();
+  const platforms = organizedCategories.map(cat => cat.platform);
+
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col bg-background">
       <Header />
       <main className="flex-grow container mx-auto px-4 py-8">
         <div className="mb-8">
-          <h1 className="text-4xl font-bold mb-2">Our Services</h1>
-          <p className="text-muted-foreground">Browse and order from our extensive catalog</p>
+          <h1 className="text-4xl font-bold mb-2">SMM Services</h1>
+          <p className="text-muted-foreground">Professional social media marketing services organized by platform</p>
         </div>
 
-        <div className="flex flex-col md:flex-row gap-4 mb-6">
+        <div className="flex flex-col md:flex-row gap-4 mb-8">
           <Input
-            placeholder="Search services..."
+            placeholder="Search services, platforms, or categories..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="md:w-1/3"
+            className="md:flex-1"
           />
-          <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-            <SelectTrigger className="md:w-1/3">
-              <SelectValue placeholder="All Categories" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Categories</SelectItem>
-              {categories.map((cat) => (
-                <SelectItem key={cat} value={cat}>{cat}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <select
+            value={selectedPlatform}
+            onChange={(e) => setSelectedPlatform(e.target.value)}
+            className="px-4 py-2 rounded-md border bg-background md:w-64"
+          >
+            <option value="all">All Platforms</option>
+            {platforms.map((platform) => (
+              <option key={platform} value={platform}>{platform}</option>
+            ))}
+          </select>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredServices.map((service) => (
-            <Card key={service.id}>
-              <CardHeader>
-                <CardTitle className="text-lg">{service.name}</CardTitle>
-                <CardDescription>{service.category}</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                <div className="text-sm">
-                  <strong>Price:</strong> ₦{service.rate} per unit
-                </div>
-                <div className="text-sm">
-                  <strong>Min:</strong> {service.min_order} | <strong>Max:</strong> {service.max_order}
-                </div>
-                <Button
-                  onClick={() => handleOrderClick(service)}
-                  className="w-full mt-2"
-                >
-                  Order Now
-                </Button>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-
-        {filteredServices.length === 0 && (
+        {filteredCategories.length === 0 ? (
           <div className="text-center py-12">
-            <p className="text-muted-foreground">No services found</p>
+            <p className="text-muted-foreground text-lg">No services found matching your criteria</p>
           </div>
+        ) : (
+          <Accordion type="multiple" className="space-y-4">
+            {filteredCategories.map((category) => (
+              <AccordionItem
+                key={category.platform}
+                value={category.platform}
+                className="border rounded-lg overflow-hidden bg-card"
+              >
+                <AccordionTrigger className="px-6 py-4 hover:no-underline hover:bg-accent/50">
+                  <div className="flex items-center gap-3">
+                    <h2 className="text-2xl font-bold">{category.platform}</h2>
+                    <span className="text-sm text-muted-foreground">
+                      ({category.subcategories.reduce((acc, sub) => acc + sub.services.length, 0)} services)
+                    </span>
+                  </div>
+                </AccordionTrigger>
+                <AccordionContent className="px-6 pb-4">
+                  <Accordion type="multiple" className="space-y-2">
+                    {category.subcategories.map((subcategory) => (
+                      <AccordionItem
+                        key={`${category.platform}-${subcategory.name}`}
+                        value={subcategory.name}
+                        className="border-l-4 border-primary/20 pl-4"
+                      >
+                        <AccordionTrigger className="py-3 hover:no-underline text-left">
+                          <div className="flex items-center gap-2">
+                            <h3 className="text-lg font-semibold">{subcategory.name}</h3>
+                            <span className="text-xs text-muted-foreground">
+                              ({subcategory.services.length})
+                            </span>
+                          </div>
+                        </AccordionTrigger>
+                        <AccordionContent className="pt-2">
+                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                            {subcategory.services.map((service) => (
+                              <Card key={service.id} className="hover:shadow-lg transition-shadow">
+                                <CardHeader className="pb-3">
+                                  <CardTitle className="text-sm leading-tight line-clamp-2">
+                                    {service.name.replace(/[🎉✨⚡️🔥💎🌟]/g, '').trim()}
+                                  </CardTitle>
+                                </CardHeader>
+                                <CardContent className="space-y-3">
+                                  <div className="space-y-1 text-sm">
+                                    <div className="flex justify-between">
+                                      <span className="text-muted-foreground">Price per 1000:</span>
+                                      <span className="font-semibold text-primary">{service.pricePerThousand}</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                      <span className="text-muted-foreground">Min order:</span>
+                                      <span>{service.min_order.toLocaleString()}</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                      <span className="text-muted-foreground">Max order:</span>
+                                      <span>{service.max_order.toLocaleString()}</span>
+                                    </div>
+                                  </div>
+                                  <Button
+                                    onClick={() => handleOrderClick(service)}
+                                    className="w-full"
+                                    size="sm"
+                                  >
+                                    Order Now
+                                  </Button>
+                                </CardContent>
+                              </Card>
+                            ))}
+                          </div>
+                        </AccordionContent>
+                      </AccordionItem>
+                    ))}
+                  </Accordion>
+                </AccordionContent>
+              </AccordionItem>
+            ))}
+          </Accordion>
         )}
       </main>
       <Footer />
@@ -222,8 +279,15 @@ const Services = () => {
               />
             </div>
             {orderQuantity && selectedService && (
-              <div className="p-3 bg-muted rounded-md">
-                <strong>Total Cost:</strong> ₦{(selectedService.rate * parseInt(orderQuantity || "0")).toFixed(2)}
+              <div className="p-4 bg-primary/10 border border-primary/20 rounded-lg space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Rate per 1000:</span>
+                  <span className="font-medium">{selectedService.pricePerThousand}</span>
+                </div>
+                <div className="flex justify-between text-lg font-bold">
+                  <span>Total Cost:</span>
+                  <span className="text-primary">₦{(selectedService.markedUpRate * parseInt(orderQuantity || "0")).toFixed(2)}</span>
+                </div>
               </div>
             )}
             <Button onClick={handlePlaceOrder} className="w-full">
