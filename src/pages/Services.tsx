@@ -176,12 +176,7 @@ const Services = () => {
             {filteredCategories.map((category) => (
               <div key={category.category} className="border rounded-lg overflow-hidden bg-card">
                 <div className="px-6 py-4 bg-accent/50 border-b">
-                  <div className="flex items-center gap-3">
-                    <h2 className="text-lg font-semibold">{category.category}</h2>
-                    <span className="text-sm text-muted-foreground">
-                      ({category.services.length} services)
-                    </span>
-                  </div>
+                  <h2 className="text-lg font-semibold">{category.category}</h2>
                 </div>
                 <div className="px-6 py-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
