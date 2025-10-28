@@ -192,11 +192,14 @@ export const organizeServices = (rawServices: any[]): ServiceCategory[] => {
   const result: ServiceCategory[] = Array.from(categoryMap.entries())
     .map(([category, services]) => ({
       category,
-      // Sort services: free first, then by price (lower = more popular), then by name
+      // Sort services: "Free" services first, then by price (lower = more popular), then by name
       services: services.sort((a, b) => {
-        // Free services first (rate < 1)
-        if (a.markedUpRate < 1 && b.markedUpRate >= 1) return -1;
-        if (b.markedUpRate < 1 && a.markedUpRate >= 1) return 1;
+        const aIsFree = a.name.toLowerCase().includes('free');
+        const bIsFree = b.name.toLowerCase().includes('free');
+        
+        // Services with "Free" in name first
+        if (aIsFree && !bIsFree) return -1;
+        if (bIsFree && !aIsFree) return 1;
         
         // Then sort by price (lower price = more popular/accessible)
         if (a.markedUpRate !== b.markedUpRate) {
@@ -207,10 +210,10 @@ export const organizeServices = (rawServices: any[]): ServiceCategory[] => {
         return a.name.localeCompare(b.name);
       })
     }))
-    // Sort categories: those with free services first, then alphabetically
+    // Sort categories: those with "Free" services first, then alphabetically
     .sort((a, b) => {
-      const aHasFree = a.services.some(s => s.markedUpRate < 1);
-      const bHasFree = b.services.some(s => s.markedUpRate < 1);
+      const aHasFree = a.services.some(s => s.name.toLowerCase().includes('free'));
+      const bHasFree = b.services.some(s => s.name.toLowerCase().includes('free'));
       
       if (aHasFree && !bHasFree) return -1;
       if (bHasFree && !aHasFree) return 1;
