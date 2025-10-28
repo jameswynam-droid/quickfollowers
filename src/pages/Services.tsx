@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+
 import { toast } from "sonner";
 import { organizeServices, OrganizedService, ServiceCategory } from "@/utils/serviceOrganizer";
 
@@ -172,27 +172,23 @@ const Services = () => {
             <p className="text-muted-foreground text-lg">No services found matching your criteria</p>
           </div>
         ) : (
-          <Accordion type="multiple" className="space-y-4">
+          <div className="space-y-8">
             {filteredCategories.map((category) => (
-              <AccordionItem
-                key={category.category}
-                value={category.category}
-                className="border rounded-lg overflow-hidden bg-card"
-              >
-                <AccordionTrigger className="px-6 py-4 hover:no-underline hover:bg-accent/50">
+              <div key={category.category} className="border rounded-lg overflow-hidden bg-card">
+                <div className="px-6 py-4 bg-accent/50 border-b">
                   <div className="flex items-center gap-3">
                     <h2 className="text-lg font-semibold">{category.category}</h2>
                     <span className="text-sm text-muted-foreground">
                       ({category.services.length} services)
                     </span>
                   </div>
-                </AccordionTrigger>
-                <AccordionContent className="px-6 pb-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                </div>
+                <div className="px-6 py-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                     {category.services.map((service) => (
                       <Card key={service.id} className="hover:shadow-lg transition-shadow">
                         <CardHeader className="pb-3">
-                          <CardTitle className="text-sm leading-tight line-clamp-2">
+                          <CardTitle className="text-sm leading-tight line-clamp-2 min-h-[2.5rem]">
                             {service.name.replace(/[🎉✨⚡️🔥💎🌟]/g, '').trim()}
                           </CardTitle>
                         </CardHeader>
@@ -222,10 +218,10 @@ const Services = () => {
                       </Card>
                     ))}
                   </div>
-                </AccordionContent>
-              </AccordionItem>
+                </div>
+              </div>
             ))}
-          </Accordion>
+          </div>
         )}
       </main>
       <Footer />
