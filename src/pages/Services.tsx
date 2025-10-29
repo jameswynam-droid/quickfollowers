@@ -107,7 +107,7 @@ const Services = () => {
       return;
     }
 
-    const totalCost = (selectedService.markedUpRate * quantity).toFixed(2);
+    const totalCost = ((quantity / 1000) * selectedService.markedUpRate).toFixed(2);
 
     try {
       const { data, error } = await supabase.functions.invoke("place-order", {
@@ -257,7 +257,7 @@ const Services = () => {
                 </div>
                 <div className="flex justify-between text-lg font-bold">
                   <span>Total Cost:</span>
-                  <span className="text-primary">₦{(selectedService.markedUpRate * parseInt(orderQuantity || "0")).toFixed(2)}</span>
+                  <span className="text-primary">₦{((parseInt(orderQuantity || "0") / 1000) * selectedService.markedUpRate).toFixed(2)}</span>
                 </div>
               </div>
             )}
