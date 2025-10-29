@@ -6,7 +6,7 @@ const corsHeaders = {
 };
 
 interface OrderRequest {
-  service_id: number;
+  service_id: string;
   link: string;
   quantity: number;
 }
@@ -41,7 +41,7 @@ Deno.serve(async (req) => {
       throw new Error('Missing required fields');
     }
 
-    // Get service details
+    // Get service details including provider
     const { data: service, error: serviceError } = await supabaseClient
       .from('services')
       .select('*')
@@ -51,6 +51,10 @@ Deno.serve(async (req) => {
     if (serviceError || !service) {
       throw new Error('Service not found');
     }
+
+    // Extract provider and actual service ID from composite ID
+    const provider = service.provider;
+    const actualServiceId = service_id.split('-')[1];
 
     // Calculate charge
     const charge = (service.rate * quantity).toFixed(2);
@@ -70,11 +74,27 @@ Deno.serve(async (req) => {
       throw new Error('Insufficient balance');
     }
 
-    // Place order with The Owlet API
-    const apiKey = Deno.env.get('OWLET_API_KEY');
-    console.log('Placing order with The Owlet API...');
+    // Determine API endpoint and key based on provider
+    let apiUrl: string;
+    let apiKey: string | undefined;
+
+    if (provider === 'owlet') {
+      apiUrl = 'https://therealowlet.com/api/v2';
+      apiKey = Deno.env.get('OWLET_API_KEY');
+    } else if (provider === 'followspanel') {
+      apiUrl = 'https://followspanel.com/api/v2';
+      apiKey = Deno.env.get('FOLLOWSPANEL_API_KEY');
+    } else {
+      throw new Error(`Unknown provider: ${provider}`);
+    }
+
+    if (!apiKey) {
+      throw new Error(`API key not configured for provider: ${provider}`);
+    }
+
+    console.log(`Placing order with ${provider} API...`);
     
-    const apiResponse = await fetch('https://therealowlet.com/api/v2', {
+    const apiResponse = await fetch(apiUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -82,7 +102,7 @@ Deno.serve(async (req) => {
       body: JSON.stringify({
         key: apiKey,
         action: 'add',
-        service: service_id,
+        service: parseInt(actualServiceId),
         link: link,
         quantity: quantity,
       }),
@@ -94,7 +114,7 @@ Deno.serve(async (req) => {
       throw new Error(apiResult.error || 'Failed to place order with API');
     }
 
-    console.log('Order placed successfully with API:', apiResult.order);
+    console.log(`Order placed successfully with ${provider} API:`, apiResult.order);
 
     // Create order record
     const { data: order, error: orderError } = await supabaseClient

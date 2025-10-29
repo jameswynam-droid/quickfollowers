@@ -1,5 +1,5 @@
 export interface OrganizedService {
-  id: number;
+  id: string;
   name: string;
   originalCategory: string;
   rate: number;
@@ -9,6 +9,7 @@ export interface OrganizedService {
   max_order: number;
   type: string;
   description?: string;
+  provider: string;
 }
 
 export interface ServiceCategory {
@@ -175,6 +176,7 @@ export const organizeServices = (rawServices: any[]): ServiceCategory[] => {
       max_order: service.max_order,
       type: service.type,
       description: service.description,
+      provider: service.provider || 'owlet',
     };
   });
 

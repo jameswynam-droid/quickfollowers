@@ -167,6 +167,7 @@ export type Database = {
           max_order: number
           min_order: number
           name: string
+          provider: string
           rate: number
           type: string
           updated_at: string
@@ -179,6 +180,7 @@ export type Database = {
           max_order: number
           min_order: number
           name: string
+          provider?: string
           rate: number
           type: string
           updated_at?: string
@@ -191,6 +193,7 @@ export type Database = {
           max_order?: number
           min_order?: number
           name?: string
+          provider?: string
           rate?: number
           type?: string
           updated_at?: string

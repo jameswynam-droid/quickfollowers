@@ -5,7 +5,7 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-interface OwletService {
+interface SMMService {
   service: number;
   name: string;
   type: string;
@@ -16,6 +16,12 @@ interface OwletService {
   dripfeed?: boolean;
   refill?: boolean;
   cancel?: boolean;
+}
+
+interface Provider {
+  name: string;
+  url: string;
+  apiKey: string;
 }
 
 Deno.serve(async (req) => {
@@ -29,58 +35,94 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
     );
 
-    // Get API credentials from secrets
-    const apiKey = Deno.env.get('OWLET_API_KEY');
-    if (!apiKey) {
-      throw new Error('API key not configured');
-    }
-
-    console.log('Fetching services from The Owlet API...');
-    
-    // Call The Owlet API to get services
-    const response = await fetch('https://therealowlet.com/api/v2', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
+    // Define providers
+    const providers: Provider[] = [
+      {
+        name: 'owlet',
+        url: 'https://therealowlet.com/api/v2',
+        apiKey: Deno.env.get('OWLET_API_KEY') || '',
       },
-      body: JSON.stringify({
-        key: apiKey,
-        action: 'services',
-      }),
-    });
+      {
+        name: 'followspanel',
+        url: 'https://followspanel.com/api/v2',
+        apiKey: Deno.env.get('FOLLOWSPANEL_API_KEY') || '',
+      },
+    ];
 
-    if (!response.ok) {
-      throw new Error(`API request failed: ${response.statusText}`);
+    // Validate API keys
+    for (const provider of providers) {
+      if (!provider.apiKey) {
+        console.error(`${provider.name} API key not configured`);
+      }
     }
 
-    const services = await response.json() as OwletService[];
-    console.log(`Fetched ${services.length} services`);
+    let allServicesData: any[] = [];
 
-    // Transform and upsert services into database
-    const servicesData = services.map((service) => {
-      // Convert rate - if it's too large, it's likely in kobo (smallest unit)
-      // Divide by 100 to convert to Naira
-      let rate = parseFloat(service.rate);
-      if (rate > 1000000) {
-        rate = rate / 100; // Convert from kobo to Naira
+    // Fetch services from each provider
+    for (const provider of providers) {
+      if (!provider.apiKey) {
+        console.log(`Skipping ${provider.name} - no API key`);
+        continue;
       }
+
+      console.log(`Fetching services from ${provider.name}...`);
       
-      return {
-        id: service.service,
-        name: service.name,
-        type: service.type,
-        category: service.category,
-        rate: rate,
-        min_order: parseInt(service.min),
-        max_order: parseInt(service.max),
-        description: `${service.name} - Min: ${service.min}, Max: ${service.max}`,
-      };
-    });
+      try {
+        const response = await fetch(provider.url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            key: provider.apiKey,
+            action: 'services',
+          }),
+        });
+
+        if (!response.ok) {
+          console.error(`${provider.name} API request failed: ${response.statusText}`);
+          continue;
+        }
+
+        const services = await response.json() as SMMService[];
+        console.log(`Fetched ${services.length} services from ${provider.name}`);
+
+        // Transform services with provider info
+        const providerServicesData = services.map((service) => {
+          let rate = parseFloat(service.rate);
+          if (rate > 1000000) {
+            rate = rate / 100;
+          }
+          
+          return {
+            id: `${provider.name}-${service.service}`,
+            name: service.name,
+            type: service.type,
+            category: service.category,
+            rate: rate,
+            min_order: parseInt(service.min),
+            max_order: parseInt(service.max),
+            description: `${service.name} - Min: ${service.min}, Max: ${service.max}`,
+            provider: provider.name,
+          };
+        });
+
+        allServicesData = allServicesData.concat(providerServicesData);
+      } catch (error) {
+        console.error(`Error fetching from ${provider.name}:`, error);
+      }
+    }
+
+    if (allServicesData.length === 0) {
+      throw new Error('No services fetched from any provider');
+    }
+
+    console.log(`Total services to upsert: ${allServicesData.length}`);
 
     // Upsert services in batches
     const batchSize = 100;
-    for (let i = 0; i < servicesData.length; i += batchSize) {
-      const batch = servicesData.slice(i, i + batchSize);
+    for (let i = 0; i < allServicesData.length; i += batchSize) {
+      const batch = allServicesData.slice(i, i + batchSize);
       const { error } = await supabaseClient
         .from('services')
         .upsert(batch, { onConflict: 'id' });
@@ -96,8 +138,8 @@ Deno.serve(async (req) => {
     return new Response(
       JSON.stringify({ 
         success: true, 
-        count: services.length,
-        message: 'Services synced successfully'
+        count: allServicesData.length,
+        message: 'Services synced successfully from all providers'
       }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
