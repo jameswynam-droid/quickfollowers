@@ -183,18 +183,9 @@ const Services = () => {
                     {category.services.map((service) => (
                       <Card key={service.id} className="hover:shadow-lg transition-shadow">
                         <CardHeader className="pb-3">
-                          <div className="flex items-start justify-between gap-2">
-                            <CardTitle className="text-sm leading-tight line-clamp-2 min-h-[2.5rem] flex-1">
-                              {service.name.replace(/[🎉✨⚡️🔥💎🌟]/g, '').trim()}
-                            </CardTitle>
-                            <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold shrink-0 ${
-                              service.provider === 'owlet' 
-                                ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300' 
-                                : 'bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300'
-                            }`}>
-                              {service.provider === 'owlet' ? 'Owlet' : 'FollowsPanel'}
-                            </span>
-                          </div>
+                          <CardTitle className="text-sm leading-tight line-clamp-2">
+                            {service.name.replace(/[🎉✨⚡️🔥💎🌟]/g, '').trim()}
+                          </CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-3">
                           <div className="space-y-1 text-sm">
