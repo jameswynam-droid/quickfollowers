@@ -8,7 +8,8 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { ChevronDown } from "lucide-react";
 import { toast } from "sonner";
 import { organizeServices, OrganizedService, ServiceCategory } from "@/utils/serviceOrganizer";
 
@@ -22,7 +23,20 @@ const Services = () => {
   const [selectedService, setSelectedService] = useState<OrganizedService | null>(null);
   const [orderLink, setOrderLink] = useState("");
   const [orderQuantity, setOrderQuantity] = useState("");
+  const [openCategories, setOpenCategories] = useState<Set<string>>(new Set());
   const navigate = useNavigate();
+
+  const toggleCategory = (category: string) => {
+    setOpenCategories(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(category)) {
+        newSet.delete(category);
+      } else {
+        newSet.add(category);
+      }
+      return newSet;
+    });
+  };
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -199,53 +213,69 @@ const Services = () => {
             <p className="text-sm text-muted-foreground">Try adjusting your search or filter</p>
           </div>
         ) : (
-          <div className="space-y-6">
+          <div className="space-y-4">
             {filteredCategories.map((category) => (
-              <div key={category.category} className="rounded-xl overflow-hidden border bg-card shadow-sm">
-                <div className="px-6 py-4 bg-gradient-to-r from-primary/10 to-primary/5 border-b">
-                  <div className="flex items-center justify-between">
-                    <h2 className="text-lg font-semibold text-card-foreground">{category.category}</h2>
-                    <span className="text-sm text-muted-foreground">{category.services.length} services</span>
+              <Collapsible 
+                key={category.category} 
+                open={openCategories.has(category.category)}
+                onOpenChange={() => toggleCategory(category.category)}
+                className="rounded-xl overflow-hidden border bg-card shadow-sm"
+              >
+                <CollapsibleTrigger className="w-full">
+                  <div className="px-6 py-4 bg-gradient-to-r from-primary/10 to-primary/5 border-b hover:from-primary/15 hover:to-primary/10 transition-colors">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <ChevronDown 
+                          className={`h-5 w-5 text-primary transition-transform duration-200 ${
+                            openCategories.has(category.category) ? 'rotate-180' : ''
+                          }`} 
+                        />
+                        <h2 className="text-lg font-semibold text-card-foreground">{category.category}</h2>
+                      </div>
+                      <span className="text-sm text-muted-foreground">{category.services.length} services</span>
+                    </div>
                   </div>
-                </div>
-                <div className="p-6">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                    {category.services.map((service) => (
-                      <Card key={service.id} className="group hover:shadow-xl hover:border-primary/50 transition-all duration-300 hover:-translate-y-1">
-                        <CardHeader className="pb-3 space-y-2">
-                          <CardTitle className="text-sm leading-tight line-clamp-2 group-hover:text-primary transition-colors">
-                            {service.name.replace(/[🎉✨⚡️🔥💎🌟]/g, '').trim()}
-                          </CardTitle>
-                          <div className="flex items-center gap-2">
-                            <span className="text-xs px-2 py-1 rounded-full bg-primary/10 text-primary font-medium">
-                              {service.pricePerThousand}
-                            </span>
-                          </div>
-                        </CardHeader>
-                        <CardContent className="space-y-3">
-                          <div className="space-y-2 text-xs">
-                            <div className="flex justify-between items-center p-2 rounded-md bg-muted/50">
-                              <span className="text-muted-foreground">Min order:</span>
-                              <span className="font-medium">{service.min_order.toLocaleString()}</span>
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                  <div className="p-6">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                      {category.services.map((service) => (
+                        <Card key={service.id} className="group hover:shadow-xl hover:border-primary/50 transition-all duration-300 hover:-translate-y-1">
+                          <CardHeader className="pb-3 space-y-2">
+                            <CardTitle className="text-sm leading-tight line-clamp-2 group-hover:text-primary transition-colors">
+                              {service.name.replace(/[🎉✨⚡️🔥💎🌟]/g, '').trim()}
+                            </CardTitle>
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs px-2 py-1 rounded-full bg-primary/10 text-primary font-medium">
+                                {service.pricePerThousand}
+                              </span>
                             </div>
-                            <div className="flex justify-between items-center p-2 rounded-md bg-muted/50">
-                              <span className="text-muted-foreground">Max order:</span>
-                              <span className="font-medium">{service.max_order.toLocaleString()}</span>
+                          </CardHeader>
+                          <CardContent className="space-y-3">
+                            <div className="space-y-2 text-xs">
+                              <div className="flex justify-between items-center p-2 rounded-md bg-muted/50">
+                                <span className="text-muted-foreground">Min order:</span>
+                                <span className="font-medium">{service.min_order.toLocaleString()}</span>
+                              </div>
+                              <div className="flex justify-between items-center p-2 rounded-md bg-muted/50">
+                                <span className="text-muted-foreground">Max order:</span>
+                                <span className="font-medium">{service.max_order.toLocaleString()}</span>
+                              </div>
                             </div>
-                          </div>
-                          <Button
-                            onClick={() => handleOrderClick(service)}
-                            className="w-full group-hover:bg-primary group-hover:text-primary-foreground"
-                            size="sm"
-                          >
-                            Order Now
-                          </Button>
-                        </CardContent>
-                      </Card>
-                    ))}
+                            <Button
+                              onClick={() => handleOrderClick(service)}
+                              className="w-full group-hover:bg-primary group-hover:text-primary-foreground"
+                              size="sm"
+                            >
+                              Order Now
+                            </Button>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
                   </div>
-                </div>
-              </div>
+                </CollapsibleContent>
+              </Collapsible>
             ))}
           </div>
         )}

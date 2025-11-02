@@ -167,13 +167,14 @@ export const organizeServices = (rawServices: any[]): ServiceCategory[] => {
     return true;
   });
 
-  // Deduplicate by service ID (keep first occurrence)
-  const seenIds = new Set<string>();
+  // Deduplicate by service name + rate (keep first occurrence)
+  const seenServices = new Map<string, boolean>();
   const deduplicatedServices = validServices.filter(service => {
-    if (seenIds.has(service.id)) {
+    const key = `${service.name.trim().toLowerCase()}-${service.rate}`;
+    if (seenServices.has(key)) {
       return false;
     }
-    seenIds.add(service.id);
+    seenServices.set(key, true);
     return true;
   });
 
