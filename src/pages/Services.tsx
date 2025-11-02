@@ -57,9 +57,16 @@ const Services = () => {
 
       if (error) throw error;
 
+      console.log("Raw services fetched:", data?.length || 0);
+      console.log("Sample service:", data?.[0]);
+
       const organized = organizeServices(data || []);
+      console.log("Organized categories:", organized.length);
+      console.log("Sample category:", organized[0]);
+      
       setOrganizedCategories(organized);
     } catch (error: any) {
+      console.error("Error loading services:", error);
       toast.error("Failed to load services");
     } finally {
       setLoading(false);
