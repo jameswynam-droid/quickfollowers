@@ -23,7 +23,7 @@ export type Database = {
           link: string
           quantity: number
           remains: number | null
-          service_id: number
+          service_id: string
           start_count: number | null
           status: Database["public"]["Enums"]["order_status"]
           updated_at: string
@@ -37,7 +37,7 @@ export type Database = {
           link: string
           quantity: number
           remains?: number | null
-          service_id: number
+          service_id: string
           start_count?: number | null
           status?: Database["public"]["Enums"]["order_status"]
           updated_at?: string
@@ -51,7 +51,7 @@ export type Database = {
           link?: string
           quantity?: number
           remains?: number | null
-          service_id?: number
+          service_id?: string
           start_count?: number | null
           status?: Database["public"]["Enums"]["order_status"]
           updated_at?: string
@@ -163,7 +163,7 @@ export type Database = {
           category: string
           created_at: string
           description: string | null
-          id: number
+          id: string
           max_order: number
           min_order: number
           name: string
@@ -176,7 +176,7 @@ export type Database = {
           category: string
           created_at?: string
           description?: string | null
-          id: number
+          id: string
           max_order: number
           min_order: number
           name: string
@@ -189,7 +189,7 @@ export type Database = {
           category?: string
           created_at?: string
           description?: string | null
-          id?: number
+          id?: string
           max_order?: number
           min_order?: number
           name?: string
