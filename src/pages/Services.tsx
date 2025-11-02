@@ -191,43 +191,51 @@ const Services = () => {
         </div>
 
         {filteredCategories.length === 0 ? (
-          <div className="text-center py-12">
-            <p className="text-muted-foreground text-lg">No services found matching your criteria</p>
+          <div className="text-center py-16">
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-muted mb-4">
+              <span className="text-2xl">🔍</span>
+            </div>
+            <p className="text-muted-foreground text-lg mb-2">No services found</p>
+            <p className="text-sm text-muted-foreground">Try adjusting your search or filter</p>
           </div>
         ) : (
-          <div className="space-y-8">
+          <div className="space-y-6">
             {filteredCategories.map((category) => (
-              <div key={category.category} className="border rounded-lg overflow-hidden bg-card">
-                <div className="px-6 py-4 bg-accent/50 border-b">
-                  <h2 className="text-lg font-semibold">{category.category}</h2>
+              <div key={category.category} className="rounded-xl overflow-hidden border bg-card shadow-sm">
+                <div className="px-6 py-4 bg-gradient-to-r from-primary/10 to-primary/5 border-b">
+                  <div className="flex items-center justify-between">
+                    <h2 className="text-lg font-semibold text-card-foreground">{category.category}</h2>
+                    <span className="text-sm text-muted-foreground">{category.services.length} services</span>
+                  </div>
                 </div>
-                <div className="px-6 py-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                <div className="p-6">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                     {category.services.map((service) => (
-                      <Card key={service.id} className="hover:shadow-lg transition-shadow">
-                        <CardHeader className="pb-3">
-                          <CardTitle className="text-sm leading-tight line-clamp-2">
+                      <Card key={service.id} className="group hover:shadow-xl hover:border-primary/50 transition-all duration-300 hover:-translate-y-1">
+                        <CardHeader className="pb-3 space-y-2">
+                          <CardTitle className="text-sm leading-tight line-clamp-2 group-hover:text-primary transition-colors">
                             {service.name.replace(/[🎉✨⚡️🔥💎🌟]/g, '').trim()}
                           </CardTitle>
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs px-2 py-1 rounded-full bg-primary/10 text-primary font-medium">
+                              {service.pricePerThousand}
+                            </span>
+                          </div>
                         </CardHeader>
                         <CardContent className="space-y-3">
-                          <div className="space-y-1 text-sm">
-                            <div className="flex justify-between">
-                              <span className="text-muted-foreground">Price per 1000:</span>
-                              <span className="font-semibold text-primary">{service.pricePerThousand}</span>
-                            </div>
-                            <div className="flex justify-between">
+                          <div className="space-y-2 text-xs">
+                            <div className="flex justify-between items-center p-2 rounded-md bg-muted/50">
                               <span className="text-muted-foreground">Min order:</span>
-                              <span>{service.min_order.toLocaleString()}</span>
+                              <span className="font-medium">{service.min_order.toLocaleString()}</span>
                             </div>
-                            <div className="flex justify-between">
+                            <div className="flex justify-between items-center p-2 rounded-md bg-muted/50">
                               <span className="text-muted-foreground">Max order:</span>
-                              <span>{service.max_order.toLocaleString()}</span>
+                              <span className="font-medium">{service.max_order.toLocaleString()}</span>
                             </div>
                           </div>
                           <Button
                             onClick={() => handleOrderClick(service)}
-                            className="w-full"
+                            className="w-full group-hover:bg-primary group-hover:text-primary-foreground"
                             size="sm"
                           >
                             Order Now
@@ -280,7 +288,7 @@ const Services = () => {
                 </div>
                 <div className="flex justify-between text-lg font-bold">
                   <span>Total Cost:</span>
-                  <span className="text-primary">₦{((parseInt(orderQuantity || "0") / 1000) * selectedService.markedUpRate).toFixed(2)}</span>
+                  <span className="text-primary">₦{((parseInt(orderQuantity || "0") / 1000) * selectedService.markedUpRate).toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                 </div>
               </div>
             )}

@@ -145,6 +145,13 @@ const getSubcategoryFromCategory = (category: string, name: string): string => {
   return 'Other';
 };
 
+const formatPrice = (price: number): string => {
+  return price.toLocaleString('en-NG', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  });
+};
+
 export const organizeServices = (rawServices: any[]): ServiceCategory[] => {
   // Filter valid services
   const validServices = rawServices.filter(service => {
@@ -160,8 +167,18 @@ export const organizeServices = (rawServices: any[]): ServiceCategory[] => {
     return true;
   });
 
+  // Deduplicate by service ID (keep first occurrence)
+  const seenIds = new Set<string>();
+  const deduplicatedServices = validServices.filter(service => {
+    if (seenIds.has(service.id)) {
+      return false;
+    }
+    seenIds.add(service.id);
+    return true;
+  });
+
   // Transform services with markup
-  const organizedServices: OrganizedService[] = validServices.map(service => {
+  const organizedServices: OrganizedService[] = deduplicatedServices.map(service => {
     const isPremium = isPremiumService(service.name, service.category);
     const markedUpRate = calculateMarkup(service.rate, isPremium);
     
@@ -171,7 +188,7 @@ export const organizeServices = (rawServices: any[]): ServiceCategory[] => {
       originalCategory: service.category,
       rate: service.rate,
       markedUpRate,
-      pricePerThousand: `₦${markedUpRate.toFixed(2)}`,
+      pricePerThousand: `₦${formatPrice(markedUpRate)}`,
       min_order: service.min_order,
       max_order: service.max_order,
       type: service.type,
