@@ -49,21 +49,37 @@ const Services = () => {
   }, []);
 
   const fetchServices = async () => {
+    const pageSize = 1000; // PostgREST default page size cap
+    let page = 0;
+    let all: any[] = [];
+
     try {
-      const { data, error } = await supabase
-        .from("services")
-        .select("*")
-        .order("name", { ascending: true });
+      while (true) {
+        const from = page * pageSize;
+        const to = from + pageSize - 1;
+        const { data, error } = await supabase
+          .from("services")
+          .select("*")
+          .order("name", { ascending: true })
+          .range(from, to);
 
-      if (error) throw error;
+        if (error) throw error;
 
-      console.log("Raw services fetched:", data?.length || 0);
-      console.log("Sample service:", data?.[0]);
+        const batch = data || [];
+        all = all.concat(batch);
+        console.log(`Fetched batch ${page + 1}:`, batch.length, `Total so far:`, all.length);
 
-      const organized = organizeServices(data || []);
+        if (batch.length < pageSize) break; // no more pages
+        page++;
+      }
+
+      console.log("Total raw services fetched:", all.length);
+      console.log("Sample service:", all[0]);
+
+      const organized = organizeServices(all);
       console.log("Organized categories:", organized.length);
       console.log("Sample category:", organized[0]);
-      
+
       setOrganizedCategories(organized);
     } catch (error: any) {
       console.error("Error loading services:", error);
