@@ -39,23 +39,16 @@ const Services = () => {
   };
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    const checkAuth = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
         navigate("/auth");
-      } else {
-        setUser(session.user);
+        return;
       }
-    });
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_, session) => {
-      if (!session) {
-        navigate("/auth");
-      } else {
-        setUser(session.user);
-      }
-    });
-
-    return () => subscription.unsubscribe();
+      setUser(session.user);
+    };
+    
+    checkAuth();
   }, [navigate]);
 
   useEffect(() => {

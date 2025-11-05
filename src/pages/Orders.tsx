@@ -20,13 +20,18 @@ const Orders = () => {
   }, []);
 
   const checkAuth = async () => {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        navigate("/auth");
+        return;
+      }
+      setUser(session.user);
+      await fetchOrders(session.user.id);
+    } catch (error) {
+      console.error("Auth check error:", error);
       navigate("/auth");
-      return;
     }
-    setUser(session.user);
-    fetchOrders(session.user.id);
   };
 
   const fetchOrders = async (userId: string) => {
