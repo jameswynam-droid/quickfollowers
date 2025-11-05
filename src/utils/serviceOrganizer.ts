@@ -145,7 +145,7 @@ const getSubcategoryFromCategory = (category: string, name: string): string => {
   return 'Other';
 };
 
-const formatPrice = (price: number): string => {
+export const formatPrice = (price: number): string => {
   return price.toLocaleString('en-NG', {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2

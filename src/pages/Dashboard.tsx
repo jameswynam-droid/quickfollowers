@@ -84,8 +84,8 @@ const Dashboard = () => {
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
           <Card><CardHeader><CardTitle>Balance</CardTitle></CardHeader><CardContent><div className="text-3xl font-bold">₦{parseFloat(profile.balance).toFixed(2)}</div><Button className="w-full mt-4" onClick={() => setPaymentDialogOpen(true)}>Add Funds</Button></CardContent></Card>
-          <Card><CardHeader><CardTitle>Orders</CardTitle></CardHeader><CardContent><div className="text-3xl font-bold">{orders.length}</div></CardContent></Card>
-          <Card><CardHeader><CardTitle>Quick Actions</CardTitle></CardHeader><CardContent><Button className="w-full" onClick={() => navigate("/services")}>Browse Services</Button></CardContent></Card>
+          <Card><CardHeader><CardTitle>Orders</CardTitle></CardHeader><CardContent><div className="text-3xl font-bold">{orders.length}</div><Button className="w-full mt-4" onClick={() => navigate("/orders")}>View All Orders</Button></CardContent></Card>
+          <Card><CardHeader><CardTitle>Quick Actions</CardTitle></CardHeader><CardContent><Button className="w-full" onClick={() => navigate("/services")}>New Order</Button></CardContent></Card>
         </div>
         <Card><CardHeader><CardTitle>Recent Orders</CardTitle></CardHeader><CardContent>{orders.length === 0 ? <p className="text-center py-8">No orders yet</p> : <Table><TableHeader><TableRow><TableHead>Service</TableHead><TableHead>Quantity</TableHead><TableHead>Cost</TableHead><TableHead>Status</TableHead></TableRow></TableHeader><TableBody>{orders.map(o => <TableRow key={o.id}><TableCell>{o.services?.name}</TableCell><TableCell>{o.quantity}</TableCell><TableCell>₦{o.charge}</TableCell><TableCell>{o.status}</TableCell></TableRow>)}</TableBody></Table>}</CardContent></Card>
       </main>
