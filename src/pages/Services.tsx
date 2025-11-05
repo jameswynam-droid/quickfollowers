@@ -52,8 +52,23 @@ const Services = () => {
   }, [navigate]);
 
   useEffect(() => {
-    fetchServices();
+    syncAndFetchServices();
   }, []);
+
+  const syncAndFetchServices = async () => {
+    setLoading(true);
+    try {
+      toast.info("Syncing latest services...");
+      const { error } = await supabase.functions.invoke("sync-services");
+      if (error) throw error;
+      toast.success("Services synced. Loading data...");
+    } catch (e) {
+      console.warn("Sync failed or unavailable, loading existing data", e);
+      toast.message("Showing existing prices", { description: "Could not sync now." });
+    } finally {
+      await fetchServices();
+    }
+  };
 
   const fetchServices = async () => {
     const pageSize = 1000; // PostgREST default page size cap
@@ -95,7 +110,6 @@ const Services = () => {
       setLoading(false);
     }
   };
-
   const getFilteredCategories = () => {
     let filtered = organizedCategories;
 
