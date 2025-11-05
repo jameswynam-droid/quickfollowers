@@ -53,12 +53,12 @@ const Header = ({ onAuthClick }: HeaderProps) => {
               <Link to="/dashboard" className="text-foreground/80 hover:text-primary transition">
                 Dashboard
               </Link>
-              <a href="#services" className="text-foreground/80 hover:text-primary transition">
+              <Link to="/services" className="text-foreground/80 hover:text-primary transition">
                 New Order
-              </a>
-              <a href="#orders" className="text-foreground/80 hover:text-primary transition">
+              </Link>
+              <Link to="/orders" className="text-foreground/80 hover:text-primary transition">
                 Orders
-              </a>
+              </Link>
               <a
                 href="https://wa.me/+2349112484106"
                 target="_blank"
@@ -125,20 +125,20 @@ const Header = ({ onAuthClick }: HeaderProps) => {
               >
                 Dashboard
               </Link>
-              <a
-                href="#services"
+              <Link
+                to="/services"
                 className="block py-2 text-foreground/80 hover:text-primary"
                 onClick={() => setMobileMenuOpen(false)}
               >
                 New Order
-              </a>
-              <a
-                href="#orders"
+              </Link>
+              <Link
+                to="/orders"
                 className="block py-2 text-foreground/80 hover:text-primary"
                 onClick={() => setMobileMenuOpen(false)}
               >
                 Orders
-              </a>
+              </Link>
               <a
                 href="https://wa.me/+2349112484106"
                 target="_blank"
