@@ -39,15 +39,17 @@ const Header = ({ onAuthClick }: HeaderProps) => {
   };
 
   return (
-    <header className="sticky top-0 z-40 bg-card/90 backdrop-blur-lg shadow-sm border-b">
-      <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
-        <Link to="/" className="flex items-center gap-2">
-          <i className="fa-solid fa-bolt text-primary text-2xl"></i>
-          <span className="text-2xl font-bold text-foreground">QuickFollowers</span>
+    <header className="sticky top-0 z-50 glass-effect shadow-lg border-b">
+      <div className="max-w-7xl mx-auto px-4 py-5 flex items-center justify-between">
+        <Link to="/" className="flex items-center gap-3 group">
+          <div className="w-10 h-10 rounded-xl bg-gradient-primary flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
+            <i className="fa-solid fa-bolt text-white text-xl"></i>
+          </div>
+          <span className="text-2xl font-black bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">QuickFollowers</span>
         </Link>
 
         {/* Desktop Navigation */}
-        <nav className="hidden md:flex items-center gap-6 text-sm font-medium">
+        <nav className="hidden md:flex items-center gap-8 text-sm font-semibold">
           {isAuthenticated ? (
             <>
               <Link to="/dashboard" className="text-foreground/80 hover:text-primary transition">
@@ -89,16 +91,18 @@ const Header = ({ onAuthClick }: HeaderProps) => {
         {/* Auth Buttons */}
         <div className="hidden md:flex items-center gap-3">
           {isAuthenticated ? (
-            <Button onClick={handleLogout} variant="outline" className="btn-pulse">
+            <Button onClick={handleLogout} variant="outline">
+              <i className="fa-solid fa-right-from-bracket mr-2"></i>
               Log out
             </Button>
           ) : (
             <>
-              <Button onClick={() => onAuthClick?.("login")} variant="outline" className="btn-pulse">
+              <Button onClick={() => onAuthClick?.("login")} variant="ghost">
                 Login
               </Button>
-              <Button onClick={() => onAuthClick?.("signup")} className="btn-pulse">
+              <Button onClick={() => onAuthClick?.("signup")} variant="premium" className="shadow-lg">
                 Sign Up
+                <i className="fa-solid fa-arrow-right ml-2"></i>
               </Button>
             </>
           )}
