@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import Header from "@/components/Header";
@@ -6,8 +6,62 @@ import Footer from "@/components/Footer";
 import ServiceCard from "@/components/ServiceCard";
 import { Button } from "@/components/ui/button";
 
+interface Service {
+  id: string;
+  name: string;
+  category: string;
+  rate: number;
+  min_order: number;
+  max_order: number;
+  description: string | null;
+}
+
 const Index = () => {
   const navigate = useNavigate();
+  const [services, setServices] = useState([
+    {
+      icon: "fa-brands fa-instagram",
+      iconColor: "text-pink-600",
+      title: "Instagram Services",
+      description: "Loading...",
+      price: "₦0",
+    },
+    {
+      icon: "fa-brands fa-tiktok",
+      iconColor: "text-black",
+      title: "TikTok Services",
+      description: "Loading...",
+      price: "₦0",
+    },
+    {
+      icon: "fa-brands fa-youtube",
+      iconColor: "text-red-600",
+      title: "YouTube Services",
+      description: "Loading...",
+      price: "₦0",
+    },
+    {
+      icon: "fa-brands fa-x-twitter",
+      iconColor: "text-slate-900",
+      title: "X Services",
+      description: "Loading...",
+      price: "₦0",
+    },
+    {
+      icon: "fa-brands fa-facebook",
+      iconColor: "text-blue-600",
+      title: "Facebook Services",
+      description: "Loading...",
+      price: "₦0",
+    },
+    {
+      icon: "fa-brands fa-spotify",
+      iconColor: "text-green-600",
+      title: "Spotify Services",
+      description: "Loading...",
+      price: "₦0",
+    },
+  ]);
 
   useEffect(() => {
     // Redirect authenticated users to dashboard
@@ -18,48 +72,60 @@ const Index = () => {
     });
   }, [navigate]);
 
+  useEffect(() => {
+    fetchServices();
+  }, []);
+
+  const fetchServices = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("services")
+        .select("*")
+        .order("rate", { ascending: true });
+
+      if (error) throw error;
+
+      if (data) {
+        const platformMap: { [key: string]: { icon: string; color: string; keyword: string } } = {
+          instagram: { icon: "fa-brands fa-instagram", color: "text-pink-600", keyword: "Instagram" },
+          tiktok: { icon: "fa-brands fa-tiktok", color: "text-black", keyword: "TikTok" },
+          youtube: { icon: "fa-brands fa-youtube", color: "text-red-600", keyword: "YouTube" },
+          twitter: { icon: "fa-brands fa-x-twitter", color: "text-slate-900", keyword: "Twitter" },
+          facebook: { icon: "fa-brands fa-facebook", color: "text-blue-600", keyword: "Facebook" },
+          spotify: { icon: "fa-brands fa-spotify", color: "text-green-600", keyword: "Spotify" },
+        };
+
+        const updatedServices = Object.entries(platformMap).map(([platform, config]) => {
+          const platformServices = data.filter(
+            (s: Service) =>
+              s.category.toLowerCase().includes(platform) ||
+              s.name.toLowerCase().includes(config.keyword.toLowerCase())
+          );
+
+          const cheapestService = platformServices[0];
+          const serviceCount = platformServices.length;
+
+          return {
+            icon: config.icon,
+            iconColor: config.color,
+            title: `${config.keyword} Services`,
+            description: cheapestService
+              ? `${serviceCount}+ services available. Starting from ₦${Number(cheapestService.rate).toFixed(2)} per 1000`
+              : "Services coming soon",
+            price: cheapestService ? `From ₦${Number(cheapestService.rate).toFixed(2)}` : "N/A",
+          };
+        });
+
+        setServices(updatedServices);
+      }
+    } catch (error) {
+      console.error("Error fetching services:", error);
+    }
+  };
+
   const handleAuthClick = (type: "login" | "signup") => {
     navigate(`/auth?mode=${type}`);
   };
-
-  const services = [
-    {
-      icon: "fa-brands fa-instagram",
-      iconColor: "text-pink-600",
-      title: "Instagram Service",
-      description: "High-quality real-looking engagement. Instant start, 30-day refill.",
-    },
-    {
-      icon: "fa-brands fa-tiktok",
-      iconColor: "text-black",
-      title: "TikTok Service",
-      description: "Fast worldwide engagement. Lifetime stable, no drop.",
-    },
-    {
-      icon: "fa-brands fa-youtube",
-      iconColor: "text-red-600",
-      title: "YouTube Service",
-      description: "Real engagement from active accounts. Monetization safe.",
-    },
-    {
-      icon: "fa-brands fa-x-twitter",
-      iconColor: "text-slate-900",
-      title: "X Service",
-      description: "Aged accounts interaction. Boost your reach organically.",
-    },
-    {
-      icon: "fa-brands fa-facebook",
-      iconColor: "text-blue-600",
-      title: "Facebook Service",
-      description: "Worldwide page interaction. No drop, refill guaranteed.",
-    },
-    {
-      icon: "fa-brands fa-spotify",
-      iconColor: "text-green-600",
-      title: "Spotify Service",
-      description: "Increase plays & ranking. Premium streams available.",
-    },
-  ];
 
   return (
     <div className="min-h-screen flex flex-col">
