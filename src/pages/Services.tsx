@@ -9,16 +9,19 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { organizeServices, OrganizedService, ServiceCategory } from "@/utils/serviceOrganizer";
 
 const Services = () => {
   const [user, setUser] = useState<any>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [organizedCategories, setOrganizedCategories] = useState<ServiceCategory[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedPlatform, setSelectedPlatform] = useState<string>("all");
   const [loading, setLoading] = useState(true);
+  const [syncing, setSyncing] = useState(false);
+  const [lastSyncTime, setLastSyncTime] = useState<Date | null>(null);
   const [orderDialogOpen, setOrderDialogOpen] = useState(false);
   const [selectedService, setSelectedService] = useState<OrganizedService | null>(null);
   const [orderLink, setOrderLink] = useState("");
@@ -46,28 +49,64 @@ const Services = () => {
         return;
       }
       setUser(session.user);
+      
+      // Check if user is admin
+      const { data: roles } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", session.user.id)
+        .eq("role", "admin")
+        .maybeSingle();
+      
+      setIsAdmin(!!roles);
     };
     
     checkAuth();
   }, [navigate]);
 
   useEffect(() => {
-    syncAndFetchServices();
+    const storedSyncTime = localStorage.getItem('lastSyncTime');
+    if (storedSyncTime) {
+      setLastSyncTime(new Date(storedSyncTime));
+    }
+    fetchServices();
   }, []);
 
-  const syncAndFetchServices = async () => {
-    setLoading(true);
+  const syncAndFetchServices = async (isManual = false) => {
+    if (isManual) {
+      setSyncing(true);
+    } else {
+      setLoading(true);
+    }
+    
     try {
-      toast.info("Syncing latest services...");
+      if (isManual) toast.info("Syncing latest services...");
       const { error } = await supabase.functions.invoke("sync-services");
       if (error) throw error;
-      toast.success("Services synced. Loading data...");
-    } catch (e) {
-      console.warn("Sync failed or unavailable, loading existing data", e);
-      toast.message("Showing existing prices", { description: "Could not sync now." });
-    } finally {
+      
+      const syncTime = new Date();
+      setLastSyncTime(syncTime);
+      localStorage.setItem('lastSyncTime', syncTime.toISOString());
+      
+      toast.success("Services synced successfully!");
       await fetchServices();
+    } catch (e) {
+      console.error("Sync failed:", e);
+      toast.error("Failed to sync services");
+      if (!isManual) {
+        await fetchServices();
+      }
+    } finally {
+      if (isManual) {
+        setSyncing(false);
+      } else {
+        setLoading(false);
+      }
     }
+  };
+  
+  const handleManualSync = () => {
+    syncAndFetchServices(true);
   };
 
   const fetchServices = async () => {
@@ -188,8 +227,31 @@ const Services = () => {
       <Header />
       <main className="flex-grow container mx-auto px-4 py-8">
         <div className="mb-8">
-          <h1 className="text-4xl font-bold mb-2">SMM Services</h1>
-          <p className="text-muted-foreground">Professional social media marketing services organized by platform</p>
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h1 className="text-4xl font-bold mb-2">SMM Services</h1>
+              <p className="text-muted-foreground">Professional social media marketing services organized by platform</p>
+            </div>
+            {isAdmin && (
+              <div className="flex flex-col items-end gap-2">
+                <Button 
+                  onClick={handleManualSync} 
+                  disabled={syncing}
+                  variant="outline"
+                  size="sm"
+                  className="gap-2"
+                >
+                  <RefreshCw className={`h-4 w-4 ${syncing ? 'animate-spin' : ''}`} />
+                  {syncing ? 'Syncing...' : 'Sync Now'}
+                </Button>
+                {lastSyncTime && (
+                  <p className="text-xs text-muted-foreground">
+                    Last synced: {lastSyncTime.toLocaleString()}
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
         </div>
 
         <div className="flex flex-col md:flex-row gap-4 mb-8">
