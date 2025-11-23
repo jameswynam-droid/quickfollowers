@@ -196,7 +196,7 @@ const Index = () => {
               Premium Services
             </div>
             <h2 className="text-4xl md:text-5xl font-black mb-4">Choose Your Platform</h2>
-            <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
+            <p className="text-foreground/80 text-lg max-w-2xl mx-auto">
               High-quality engagement delivered instantly. All services come with a 30-day refill guarantee.
             </p>
           </div>
@@ -217,7 +217,7 @@ const Index = () => {
         <div className="max-w-6xl mx-auto px-4">
           <div className="text-center mb-16">
             <h2 className="text-4xl md:text-5xl font-black mb-4">How It Works</h2>
-            <p className="text-muted-foreground text-lg">Start growing in minutes with our simple process</p>
+            <p className="text-foreground/80 text-lg">Start growing in minutes with our simple process</p>
           </div>
           <div className="grid md:grid-cols-3 gap-8">
             <div className="relative p-8 bg-gradient-card rounded-2xl border border-border/50 shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-2">
@@ -229,7 +229,7 @@ const Index = () => {
                   <i className="fa-solid fa-user-plus text-primary text-2xl"></i>
                 </div>
                 <h3 className="text-2xl font-bold mb-3 text-center">Create Account</h3>
-                <p className="text-muted-foreground text-center leading-relaxed">Quick registration with email verification. Get started in under 60 seconds.</p>
+                <p className="text-foreground/80 text-center leading-relaxed">Quick registration with email verification. Get started in under 60 seconds.</p>
               </div>
             </div>
             <div className="relative p-8 bg-gradient-card rounded-2xl border border-border/50 shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-2">
@@ -241,7 +241,7 @@ const Index = () => {
                   <i className="fa-solid fa-wallet text-success text-2xl"></i>
                 </div>
                 <h3 className="text-2xl font-bold mb-3 text-center">Add Funds</h3>
-                <p className="text-muted-foreground text-center leading-relaxed">Secure bank transfer deposit. Funds credited instantly to your account.</p>
+                <p className="text-foreground/80 text-center leading-relaxed">Secure bank transfer deposit. Funds credited instantly to your account.</p>
               </div>
             </div>
             <div className="relative p-8 bg-gradient-card rounded-2xl border border-border/50 shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-2">
@@ -253,7 +253,7 @@ const Index = () => {
                   <i className="fa-solid fa-rocket text-secondary text-2xl"></i>
                 </div>
                 <h3 className="text-2xl font-bold mb-3 text-center">Place Order</h3>
-                <p className="text-muted-foreground text-center leading-relaxed">Choose service, paste link, and watch your growth skyrocket instantly.</p>
+                <p className="text-foreground/80 text-center leading-relaxed">Choose service, paste link, and watch your growth skyrocket instantly.</p>
               </div>
             </div>
           </div>
@@ -268,7 +268,7 @@ const Index = () => {
               FAQ
             </div>
             <h2 className="text-4xl md:text-5xl font-black mb-4">Frequently Asked Questions</h2>
-            <p className="text-muted-foreground text-lg">Everything you need to know about our services</p>
+            <p className="text-foreground/80 text-lg">Everything you need to know about our services</p>
           </div>
           <div className="space-y-4">
             <details className="group bg-card rounded-2xl shadow-lg px-8 py-6 open:shadow-xl transition-all border border-border/50 hover:border-primary/50">
@@ -276,7 +276,7 @@ const Index = () => {
                 Are the followers real?
                 <i className="fa-solid fa-chevron-down text-primary group-open:rotate-180 transition-transform"></i>
               </summary>
-              <p className="text-muted-foreground mt-4 leading-relaxed">
+              <p className="text-foreground/80 mt-4 leading-relaxed">
                 We deliver a mix of real and high-quality accounts that look authentic. Drops are rare, but we
                 offer 30-day refill on eligible services.
               </p>
@@ -286,7 +286,7 @@ const Index = () => {
                 How long does it take to start?
                 <i className="fa-solid fa-chevron-down text-primary group-open:rotate-180 transition-transform"></i>
               </summary>
-              <p className="text-muted-foreground mt-4 leading-relaxed">
+              <p className="text-foreground/80 mt-4 leading-relaxed">
                 Most orders start within 30-60 seconds. Larger campaigns may take up to 12 hours to ramp up
                 gradually.
               </p>
@@ -296,7 +296,7 @@ const Index = () => {
                 What payment methods do you accept?
                 <i className="fa-solid fa-chevron-down text-primary group-open:rotate-180 transition-transform"></i>
               </summary>
-              <p className="text-muted-foreground mt-4 leading-relaxed">
+              <p className="text-foreground/80 mt-4 leading-relaxed">
                 Bank Transfer only. We credit instantly once confirmed.
               </p>
             </details>
@@ -305,7 +305,7 @@ const Index = () => {
                 Can I resell your services?
                 <i className="fa-solid fa-chevron-down text-primary group-open:rotate-180 transition-transform"></i>
               </summary>
-              <p className="text-muted-foreground mt-4 leading-relaxed">
+              <p className="text-foreground/80 mt-4 leading-relaxed">
                 Absolutely. Open a sub-account and set your own prices. We keep no branding on delivered
                 engagement.
               </p>
