@@ -158,7 +158,7 @@ const Index = () => {
             Instagram • TikTok • YouTube • X • Facebook • Spotify
           </p>
           
-          <div className="mt-12 flex flex-col sm:flex-row gap-4 justify-center items-center">
+          <div className="mt-12 flex justify-center">
             <Button 
               size="lg" 
               onClick={() => (window.location.href = "#services")} 
@@ -167,15 +167,6 @@ const Index = () => {
             >
               <i className="fa-solid fa-rocket mr-2"></i>
               Browse Services
-            </Button>
-            <Button 
-              size="lg" 
-              variant="outline" 
-              onClick={() => (window.location.href = "#how")}
-              className="text-white border-white hover:bg-white/10 hover:text-white text-lg font-semibold"
-            >
-              How It Works
-              <i className="fa-solid fa-arrow-right ml-2"></i>
             </Button>
           </div>
           
@@ -339,7 +330,7 @@ const Index = () => {
           <p className="text-xl text-white/90 mb-10 max-w-2xl mx-auto leading-relaxed">
             Create your account now and get instant access to premium social media growth services.
           </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+          <div className="flex justify-center">
             <Button 
               size="lg" 
               onClick={() => handleAuthClick("signup")} 
@@ -347,15 +338,6 @@ const Index = () => {
             >
               <i className="fa-solid fa-user-plus mr-2"></i>
               Create Free Account
-            </Button>
-            <Button 
-              size="lg" 
-              variant="outline"
-              onClick={() => handleAuthClick("login")}
-              className="text-white border-white/30 hover:bg-white/10 text-lg"
-            >
-              Sign In
-              <i className="fa-solid fa-arrow-right ml-2"></i>
             </Button>
           </div>
         </div>
