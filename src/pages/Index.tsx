@@ -172,7 +172,7 @@ const Index = () => {
               size="lg" 
               variant="outline" 
               onClick={() => (window.location.href = "#how")}
-              className="text-white border-white/30 hover:bg-white/10 text-lg"
+              className="text-white border-white hover:bg-white/10 hover:text-white text-lg font-semibold"
             >
               How It Works
               <i className="fa-solid fa-arrow-right ml-2"></i>
@@ -180,18 +180,18 @@ const Index = () => {
           </div>
           
           {/* Stats */}
-          <div className="mt-20 grid grid-cols-3 gap-8 max-w-3xl mx-auto">
-            <div className="stat-card p-6 bg-white/10 backdrop-blur-sm rounded-2xl border border-white/20">
-              <div className="text-4xl md:text-5xl font-black mb-2">11M+</div>
-              <div className="text-white/80 text-sm font-medium">Orders Delivered</div>
+          <div className="mt-20 grid grid-cols-3 gap-3 md:gap-8 max-w-3xl mx-auto">
+            <div className="stat-card p-3 md:p-6 bg-white/10 backdrop-blur-sm rounded-xl md:rounded-2xl border border-white/20">
+              <div className="text-2xl md:text-4xl lg:text-5xl font-black mb-1 md:mb-2">11M+</div>
+              <div className="text-white/80 text-xs md:text-sm font-medium">Orders Delivered</div>
             </div>
-            <div className="stat-card p-6 bg-white/10 backdrop-blur-sm rounded-2xl border border-white/20">
-              <div className="text-4xl md:text-5xl font-black mb-2">&lt;1min</div>
-              <div className="text-white/80 text-sm font-medium">Avg. Start Time</div>
+            <div className="stat-card p-3 md:p-6 bg-white/10 backdrop-blur-sm rounded-xl md:rounded-2xl border border-white/20">
+              <div className="text-2xl md:text-4xl lg:text-5xl font-black mb-1 md:mb-2">&lt;1min</div>
+              <div className="text-white/80 text-xs md:text-sm font-medium">Avg. Start Time</div>
             </div>
-            <div className="stat-card p-6 bg-white/10 backdrop-blur-sm rounded-2xl border border-white/20">
-              <div className="text-4xl md:text-5xl font-black mb-2">24/7</div>
-              <div className="text-white/80 text-sm font-medium">Live Support</div>
+            <div className="stat-card p-3 md:p-6 bg-white/10 backdrop-blur-sm rounded-xl md:rounded-2xl border border-white/20">
+              <div className="text-2xl md:text-4xl lg:text-5xl font-black mb-1 md:mb-2">24/7</div>
+              <div className="text-white/80 text-xs md:text-sm font-medium">Live Support</div>
             </div>
           </div>
         </div>
