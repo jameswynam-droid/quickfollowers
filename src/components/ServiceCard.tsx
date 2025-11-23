@@ -10,7 +10,7 @@ interface ServiceCardProps {
 
 const ServiceCard = ({ icon, iconColor, title, description, onOrder }: ServiceCardProps) => {
   return (
-    <div className="group relative bg-card rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-500 p-6 flex flex-col border border-border hover:border-primary/50 overflow-hidden">
+    <div className="group relative bg-card rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-500 p-6 flex flex-col border border-border/50 hover:border-primary/50 overflow-hidden">
       {/* Background gradient effect */}
       <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
       

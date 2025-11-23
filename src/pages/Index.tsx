@@ -140,7 +140,7 @@ const Index = () => {
         </div>
 
         <div className="relative max-w-7xl mx-auto px-4 py-32 text-center">
-          <div className="inline-block mb-6 px-4 py-2 bg-card text-primary rounded-full text-sm font-semibold border border-border shadow-sm">
+          <div className="inline-block mb-6 px-4 py-2 bg-white/10 backdrop-blur-sm rounded-full text-sm font-semibold border border-white/20">
             🚀 Trusted by 500K+ Content Creators
           </div>
           
@@ -180,18 +180,18 @@ const Index = () => {
           </div>
           
           {/* Stats */}
-          <div className="mt-20 grid grid-cols-1 sm:grid-cols-3 gap-6 md:gap-8 max-w-3xl mx-auto">
-            <div className="stat-card p-6 bg-card rounded-2xl border border-border shadow-xl">
-              <div className="text-4xl md:text-5xl font-black mb-2 text-primary">11M+</div>
-              <div className="text-muted-foreground text-sm font-medium">Orders Delivered</div>
+          <div className="mt-20 grid grid-cols-3 gap-8 max-w-3xl mx-auto">
+            <div className="stat-card p-6 bg-white/10 backdrop-blur-sm rounded-2xl border border-white/20">
+              <div className="text-4xl md:text-5xl font-black mb-2">11M+</div>
+              <div className="text-white/80 text-sm font-medium">Orders Delivered</div>
             </div>
-            <div className="stat-card p-6 bg-card rounded-2xl border border-border shadow-xl">
-              <div className="text-4xl md:text-5xl font-black mb-2 text-primary">&lt;1min</div>
-              <div className="text-muted-foreground text-sm font-medium">Avg. Start Time</div>
+            <div className="stat-card p-6 bg-white/10 backdrop-blur-sm rounded-2xl border border-white/20">
+              <div className="text-4xl md:text-5xl font-black mb-2">&lt;1min</div>
+              <div className="text-white/80 text-sm font-medium">Avg. Start Time</div>
             </div>
-            <div className="stat-card p-6 bg-card rounded-2xl border border-border shadow-xl">
-              <div className="text-4xl md:text-5xl font-black mb-2 text-primary">24/7</div>
-              <div className="text-muted-foreground text-sm font-medium">Live Support</div>
+            <div className="stat-card p-6 bg-white/10 backdrop-blur-sm rounded-2xl border border-white/20">
+              <div className="text-4xl md:text-5xl font-black mb-2">24/7</div>
+              <div className="text-white/80 text-sm font-medium">Live Support</div>
             </div>
           </div>
         </div>
@@ -229,7 +229,7 @@ const Index = () => {
             <p className="text-muted-foreground text-lg">Start growing in minutes with our simple process</p>
           </div>
           <div className="grid md:grid-cols-3 gap-8">
-            <div className="relative p-8 bg-card rounded-2xl border border-border shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-2">
+            <div className="relative p-8 bg-gradient-card rounded-2xl border border-border/50 shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-2">
               <div className="absolute -top-4 left-8 w-12 h-12 rounded-xl bg-gradient-primary flex items-center justify-center text-white text-xl font-black shadow-lg">
                 1
               </div>
@@ -241,7 +241,7 @@ const Index = () => {
                 <p className="text-muted-foreground text-center leading-relaxed">Quick registration with email verification. Get started in under 60 seconds.</p>
               </div>
             </div>
-            <div className="relative p-8 bg-card rounded-2xl border border-border shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-2">
+            <div className="relative p-8 bg-gradient-card rounded-2xl border border-border/50 shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-2">
               <div className="absolute -top-4 left-8 w-12 h-12 rounded-xl bg-gradient-primary flex items-center justify-center text-white text-xl font-black shadow-lg">
                 2
               </div>
@@ -253,7 +253,7 @@ const Index = () => {
                 <p className="text-muted-foreground text-center leading-relaxed">Secure bank transfer deposit. Funds credited instantly to your account.</p>
               </div>
             </div>
-            <div className="relative p-8 bg-card rounded-2xl border border-border shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-2">
+            <div className="relative p-8 bg-gradient-card rounded-2xl border border-border/50 shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-2">
               <div className="absolute -top-4 left-8 w-12 h-12 rounded-xl bg-gradient-primary flex items-center justify-center text-white text-xl font-black shadow-lg">
                 3
               </div>
