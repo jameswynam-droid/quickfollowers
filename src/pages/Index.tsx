@@ -140,7 +140,7 @@ const Index = () => {
         </div>
 
         <div className="relative max-w-7xl mx-auto px-4 py-32 text-center">
-          <div className="inline-block mb-6 px-4 py-2 bg-white/10 backdrop-blur-sm rounded-full text-sm font-semibold border border-white/20">
+          <div className="inline-block mb-6 px-4 py-2 bg-card text-primary rounded-full text-sm font-semibold border border-border shadow-sm">
             🚀 Trusted by 500K+ Content Creators
           </div>
           
@@ -180,18 +180,18 @@ const Index = () => {
           </div>
           
           {/* Stats */}
-          <div className="mt-20 grid grid-cols-3 gap-8 max-w-3xl mx-auto">
-            <div className="stat-card p-6 bg-white/10 backdrop-blur-sm rounded-2xl border border-white/20">
-              <div className="text-4xl md:text-5xl font-black mb-2">11M+</div>
-              <div className="text-white/80 text-sm font-medium">Orders Delivered</div>
+          <div className="mt-20 grid grid-cols-1 sm:grid-cols-3 gap-6 md:gap-8 max-w-3xl mx-auto">
+            <div className="stat-card p-6 bg-card rounded-2xl border border-border shadow-xl">
+              <div className="text-4xl md:text-5xl font-black mb-2 text-primary">11M+</div>
+              <div className="text-muted-foreground text-sm font-medium">Orders Delivered</div>
             </div>
-            <div className="stat-card p-6 bg-white/10 backdrop-blur-sm rounded-2xl border border-white/20">
-              <div className="text-4xl md:text-5xl font-black mb-2">&lt;1min</div>
-              <div className="text-white/80 text-sm font-medium">Avg. Start Time</div>
+            <div className="stat-card p-6 bg-card rounded-2xl border border-border shadow-xl">
+              <div className="text-4xl md:text-5xl font-black mb-2 text-primary">&lt;1min</div>
+              <div className="text-muted-foreground text-sm font-medium">Avg. Start Time</div>
             </div>
-            <div className="stat-card p-6 bg-white/10 backdrop-blur-sm rounded-2xl border border-white/20">
-              <div className="text-4xl md:text-5xl font-black mb-2">24/7</div>
-              <div className="text-white/80 text-sm font-medium">Live Support</div>
+            <div className="stat-card p-6 bg-card rounded-2xl border border-border shadow-xl">
+              <div className="text-4xl md:text-5xl font-black mb-2 text-primary">24/7</div>
+              <div className="text-muted-foreground text-sm font-medium">Live Support</div>
             </div>
           </div>
         </div>
