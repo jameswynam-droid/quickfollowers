@@ -229,7 +229,7 @@ const Index = () => {
             <p className="text-muted-foreground text-lg">Start growing in minutes with our simple process</p>
           </div>
           <div className="grid md:grid-cols-3 gap-8">
-            <div className="relative p-8 bg-gradient-card rounded-2xl border border-border/50 shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-2">
+            <div className="relative p-8 bg-card rounded-2xl border border-border shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-2">
               <div className="absolute -top-4 left-8 w-12 h-12 rounded-xl bg-gradient-primary flex items-center justify-center text-white text-xl font-black shadow-lg">
                 1
               </div>
@@ -241,7 +241,7 @@ const Index = () => {
                 <p className="text-muted-foreground text-center leading-relaxed">Quick registration with email verification. Get started in under 60 seconds.</p>
               </div>
             </div>
-            <div className="relative p-8 bg-gradient-card rounded-2xl border border-border/50 shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-2">
+            <div className="relative p-8 bg-card rounded-2xl border border-border shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-2">
               <div className="absolute -top-4 left-8 w-12 h-12 rounded-xl bg-gradient-primary flex items-center justify-center text-white text-xl font-black shadow-lg">
                 2
               </div>
@@ -253,7 +253,7 @@ const Index = () => {
                 <p className="text-muted-foreground text-center leading-relaxed">Secure bank transfer deposit. Funds credited instantly to your account.</p>
               </div>
             </div>
-            <div className="relative p-8 bg-gradient-card rounded-2xl border border-border/50 shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-2">
+            <div className="relative p-8 bg-card rounded-2xl border border-border shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-2">
               <div className="absolute -top-4 left-8 w-12 h-12 rounded-xl bg-gradient-primary flex items-center justify-center text-white text-xl font-black shadow-lg">
                 3
               </div>
