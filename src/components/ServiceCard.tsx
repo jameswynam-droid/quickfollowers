@@ -26,7 +26,7 @@ const ServiceCard = ({ icon, iconColor, title, description, onOrder }: ServiceCa
         <Button 
           onClick={onOrder} 
           className="w-full mt-auto group-hover:scale-105 transition-transform" 
-          variant="premium"
+          variant="default"
         >
           Order Now
           <i className="fa-solid fa-arrow-right ml-2 group-hover:translate-x-1 transition-transform"></i>
