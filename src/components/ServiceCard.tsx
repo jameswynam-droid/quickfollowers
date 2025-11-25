@@ -22,7 +22,7 @@ const ServiceCard = ({ icon, iconColor, title, description, onOrder }: ServiceCa
           </div>
           <h3 className="text-xl font-bold text-card-foreground group-hover:text-primary transition-colors">{title}</h3>
         </div>
-        <p className="text-sm text-foreground/80 mb-6 flex-grow leading-relaxed">{description}</p>
+        <p className="text-sm text-foreground mb-6 flex-grow leading-relaxed">{description}</p>
         <Button 
           onClick={onOrder} 
           className="w-full mt-auto group-hover:scale-105 transition-transform" 
