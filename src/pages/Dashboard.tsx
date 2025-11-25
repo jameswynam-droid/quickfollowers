@@ -9,7 +9,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { AddFundsModal } from "@/components/AddFundsModal";
 import { toast } from "sonner";
+import { Wallet } from "lucide-react";
 
 const Dashboard = () => {
   const [user, setUser] = useState<any>(null);
@@ -20,10 +22,19 @@ const Dashboard = () => {
   const [paymentAmount, setPaymentAmount] = useState("");
   const [bankDetails, setBankDetails] = useState("");
   const [notes, setNotes] = useState("");
+  const [addFundsOpen, setAddFundsOpen] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
     checkAuth();
+    
+    // Check for payment success
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('payment') === 'success') {
+      toast.success("Payment successful! Your balance has been updated.");
+      // Clean up URL
+      window.history.replaceState({}, '', '/dashboard');
+    }
   }, []);
 
   const checkAuth = async () => {
@@ -83,13 +94,14 @@ const Dashboard = () => {
           </div>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-          <Card><CardHeader><CardTitle>Balance</CardTitle></CardHeader><CardContent><div className="text-3xl font-bold">₦{parseFloat(profile.balance).toFixed(2)}</div><Button className="w-full mt-4" onClick={() => setPaymentDialogOpen(true)}>Add Funds</Button></CardContent></Card>
+          <Card><CardHeader><CardTitle>Balance</CardTitle></CardHeader><CardContent><div className="text-3xl font-bold">₦{parseFloat(profile.balance).toFixed(2)}</div><Button className="w-full mt-4" onClick={() => setAddFundsOpen(true)}><Wallet className="mr-2 h-4 w-4" />Add Funds</Button></CardContent></Card>
           <Card><CardHeader><CardTitle>Orders</CardTitle></CardHeader><CardContent><div className="text-3xl font-bold">{orders.length}</div><Button className="w-full mt-4" onClick={() => navigate("/orders")}>View All Orders</Button></CardContent></Card>
           <Card><CardHeader><CardTitle>Quick Actions</CardTitle></CardHeader><CardContent><Button className="w-full" onClick={() => navigate("/services")}>New Order</Button></CardContent></Card>
         </div>
         <Card><CardHeader><CardTitle>Recent Orders</CardTitle></CardHeader><CardContent>{orders.length === 0 ? <p className="text-center py-8">No orders yet</p> : <Table><TableHeader><TableRow><TableHead>Service</TableHead><TableHead>Quantity</TableHead><TableHead>Cost</TableHead><TableHead>Status</TableHead></TableRow></TableHeader><TableBody>{orders.map(o => <TableRow key={o.id}><TableCell>{o.services?.name}</TableCell><TableCell>{o.quantity}</TableCell><TableCell>₦{o.charge}</TableCell><TableCell>{o.status}</TableCell></TableRow>)}</TableBody></Table>}</CardContent></Card>
       </main>
       <Footer />
+      <AddFundsModal open={addFundsOpen} onOpenChange={setAddFundsOpen} />
       <Dialog open={paymentDialogOpen} onOpenChange={setPaymentDialogOpen}><DialogContent><DialogHeader><DialogTitle>Bank Transfer</DialogTitle></DialogHeader><div className="space-y-4"><div><Label>Amount</Label><Input type="number" value={paymentAmount} onChange={e => setPaymentAmount(e.target.value)} /></div><div><Label>Bank Details</Label><Input value={bankDetails} onChange={e => setBankDetails(e.target.value)} /></div><div><Label>Notes</Label><Input value={notes} onChange={e => setNotes(e.target.value)} /></div><Button onClick={handlePaymentRequest} className="w-full">Submit</Button></div></DialogContent></Dialog>
     </div>
   );
