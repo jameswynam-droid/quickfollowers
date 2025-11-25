@@ -2,3 +2,6 @@ project_id = "ckradhwidegrbmdiynts"
 
 [functions.sync-services]
 verify_jwt = false
+
+[functions.verify-payment]
+verify_jwt = false
