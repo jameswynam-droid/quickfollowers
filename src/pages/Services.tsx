@@ -201,7 +201,17 @@ const Services = () => {
         },
       });
 
-      if (error) throw error;
+      if (error) {
+        // Extract the actual error message from the edge function response
+        const errorMessage = error.message || error.error || "Failed to place order";
+        toast.error(errorMessage);
+        return;
+      }
+
+      if (data?.error) {
+        toast.error(data.error);
+        return;
+      }
 
       toast.success(`Order placed! Total cost: ₦${totalCost}`);
       setOrderDialogOpen(false);
@@ -209,7 +219,8 @@ const Services = () => {
       setOrderQuantity("");
       navigate("/dashboard");
     } catch (error: any) {
-      toast.error(error.message || "Failed to place order");
+      const errorMessage = error?.message || error?.error || "Failed to place order";
+      toast.error(errorMessage);
     }
   };
 
