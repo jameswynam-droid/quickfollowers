@@ -49,10 +49,13 @@ serve(async (req) => {
 
     if (transaction.status !== 'success') {
       console.log('Payment not successful:', transaction.status);
-      return new Response(
-        JSON.stringify({ error: 'Payment not successful', status: transaction.status }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      // Redirect to dashboard with error
+      return new Response(null, {
+        status: 302,
+        headers: {
+          'Location': `${Deno.env.get('VITE_SUPABASE_URL')?.replace('.supabase.co', '.lovable.app') || 'http://localhost:5173'}/dashboard?payment=failed`,
+        },
+      });
     }
 
     // Use service role key to update database
@@ -62,7 +65,8 @@ serve(async (req) => {
     );
 
     const userId = transaction.metadata.user_id;
-    const amount = transaction.amount / 100; // Convert from kobo to main currency
+    const baseAmount = transaction.metadata.base_amount || (transaction.amount / 100); // Use base amount from metadata
+    const totalPaid = transaction.amount / 100; // Convert from kobo to naira
 
     // Get current balance
     const { data: profile, error: profileError } = await supabaseAdmin
@@ -79,7 +83,8 @@ serve(async (req) => {
       );
     }
 
-    const newBalance = Number(profile.balance) + amount;
+    // Credit the base amount to user (not including fees)
+    const newBalance = Number(profile.balance) + baseAmount;
 
     // Update user balance
     const { error: updateError } = await supabaseAdmin
@@ -89,10 +94,13 @@ serve(async (req) => {
 
     if (updateError) {
       console.error('Balance update error:', updateError);
-      return new Response(
-        JSON.stringify({ error: 'Failed to update balance' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      // Redirect to dashboard with error
+      return new Response(null, {
+        status: 302,
+        headers: {
+          'Location': `${Deno.env.get('VITE_SUPABASE_URL')?.replace('.supabase.co', '.lovable.app') || 'http://localhost:5173'}/dashboard?payment=failed`,
+        },
+      });
     }
 
     // Create transaction record
@@ -101,9 +109,9 @@ serve(async (req) => {
       .insert({
         user_id: userId,
         type: 'deposit',
-        amount: amount,
+        amount: baseAmount,
         balance_after: newBalance,
-        description: `Paystack deposit - ${reference}`,
+        description: `Paystack deposit - ${reference} (Paid: ₦${totalPaid.toFixed(2)})`,
         reference_id: reference,
       });
 
@@ -113,7 +121,8 @@ serve(async (req) => {
 
     console.log('Payment verified and balance updated:', {
       userId,
-      amount,
+      baseAmount,
+      totalPaid,
       newBalance,
       reference,
     });

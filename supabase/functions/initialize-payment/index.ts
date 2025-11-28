@@ -41,6 +41,21 @@ serve(async (req) => {
       );
     }
 
+    // Calculate Paystack fee (local card: 1.5% + ₦100, waive ₦100 if < ₦2,500)
+    const baseAmount = parseFloat(amount);
+    const percentageFee = baseAmount * 0.015; // 1.5% for local cards
+    const fixedFee = baseAmount < 2500 ? 0 : 100; // Waive ₦100 if under ₦2,500
+    const totalFee = percentageFee + fixedFee;
+    const totalAmount = baseAmount + totalFee;
+
+    console.log('Payment calculation:', {
+      baseAmount,
+      percentageFee,
+      fixedFee,
+      totalFee,
+      totalAmount
+    });
+
     // Get user profile for email
     const { data: profile, error: profileError } = await supabaseClient
       .from('profiles')
@@ -65,15 +80,23 @@ serve(async (req) => {
       },
       body: JSON.stringify({
         email: profile.email,
-        amount: Math.round(amount * 100), // Convert to kobo (smallest currency unit)
+        amount: Math.round(totalAmount * 100), // Convert to kobo (smallest currency unit)
+        currency: 'NGN',
         callback_url: `${Deno.env.get('SUPABASE_URL')}/functions/v1/verify-payment`,
         metadata: {
           user_id: user.id,
+          base_amount: baseAmount,
+          fee_amount: totalFee,
           custom_fields: [
             {
               display_name: "User ID",
               variable_name: "user_id",
               value: user.id
+            },
+            {
+              display_name: "Base Amount",
+              variable_name: "base_amount",
+              value: baseAmount
             }
           ]
         }
@@ -90,13 +113,19 @@ serve(async (req) => {
       );
     }
 
-    console.log('Payment initialized:', paystackData);
+    console.log('Payment initialized successfully:', {
+      reference: paystackData.data.reference,
+      amount: totalAmount
+    });
 
     return new Response(
       JSON.stringify({
         authorization_url: paystackData.data.authorization_url,
         access_code: paystackData.data.access_code,
         reference: paystackData.data.reference,
+        totalAmount,
+        fee: totalFee,
+        baseAmount
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
