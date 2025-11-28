@@ -28,11 +28,14 @@ const Dashboard = () => {
   useEffect(() => {
     checkAuth();
     
-    // Check for payment success
+    // Check for payment status
     const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.get('payment') === 'success') {
+    const paymentStatus = urlParams.get('payment');
+    if (paymentStatus === 'success') {
       toast.success("Payment successful! Your balance has been updated.");
-      // Clean up URL
+      window.history.replaceState({}, '', '/dashboard');
+    } else if (paymentStatus === 'failed') {
+      toast.error("Payment failed. Please try again.");
       window.history.replaceState({}, '', '/dashboard');
     }
   }, []);
