@@ -28,12 +28,6 @@ Deno.serve(async (req) => {
       { global: { headers: { Authorization: authHeader } } }
     );
 
-    // Get authenticated user
-    const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
-    if (userError || !user) {
-      throw new Error('Unauthorized');
-    }
-
     const { service_id, link, quantity }: OrderRequest = await req.json();
 
     // Validate input
@@ -59,11 +53,10 @@ Deno.serve(async (req) => {
     // Calculate charge
     const charge = (service.rate * quantity).toFixed(2);
 
-    // Check user balance
+    // Check user balance (RLS ensures this is the current user)
     const { data: profile, error: profileError } = await supabaseClient
       .from('profiles')
-      .select('balance')
-      .eq('id', user.id)
+      .select('id, balance')
       .single();
 
     if (profileError || !profile) {
@@ -120,7 +113,7 @@ Deno.serve(async (req) => {
     const { data: order, error: orderError } = await supabaseClient
       .from('orders')
       .insert({
-        user_id: user.id,
+        user_id: profile.id,
         service_id: service_id,
         link: link,
         quantity: quantity,
@@ -140,7 +133,7 @@ Deno.serve(async (req) => {
     const { error: updateError } = await supabaseClient
       .from('profiles')
       .update({ balance: newBalance })
-      .eq('id', user.id);
+      .eq('id', profile.id);
 
     if (updateError) {
       throw updateError;
@@ -150,7 +143,7 @@ Deno.serve(async (req) => {
     const { error: txError } = await supabaseClient
       .from('transactions')
       .insert({
-        user_id: user.id,
+        user_id: profile.id,
         amount: -parseFloat(charge),
         type: 'order',
         reference_id: order.id,
