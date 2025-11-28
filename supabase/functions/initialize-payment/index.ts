@@ -22,15 +22,6 @@ serve(async (req) => {
       }
     );
 
-    const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
-    
-    if (userError || !user) {
-      console.error('Authentication error:', userError);
-      return new Response(
-        JSON.stringify({ error: 'Unauthorized' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
 
     const { amount } = await req.json();
 
@@ -56,17 +47,16 @@ serve(async (req) => {
       totalAmount
     });
 
-    // Get user profile for email
+    // Get user profile for email (RLS ensures this is the current user)
     const { data: profile, error: profileError } = await supabaseClient
       .from('profiles')
-      .select('email')
-      .eq('id', user.id)
+      .select('id, email')
       .single();
 
     if (profileError || !profile) {
       console.error('Profile fetch error:', profileError);
       return new Response(
-        JSON.stringify({ error: 'Profile not found' }),
+        JSON.stringify({ error: 'Profile not found or unauthorized' }),
         { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -84,14 +74,14 @@ serve(async (req) => {
         currency: 'NGN',
         callback_url: `${Deno.env.get('SUPABASE_URL')}/functions/v1/verify-payment`,
         metadata: {
-          user_id: user.id,
+          user_id: profile.id,
           base_amount: baseAmount,
           fee_amount: totalFee,
           custom_fields: [
             {
               display_name: "User ID",
               variable_name: "user_id",
-              value: user.id
+              value: profile.id
             },
             {
               display_name: "Base Amount",
@@ -115,7 +105,8 @@ serve(async (req) => {
 
     console.log('Payment initialized successfully:', {
       reference: paystackData.data.reference,
-      amount: totalAmount
+      amount: totalAmount,
+      userId: profile.id,
     });
 
     return new Response(
@@ -125,7 +116,7 @@ serve(async (req) => {
         reference: paystackData.data.reference,
         totalAmount,
         fee: totalFee,
-        baseAmount
+        baseAmount,
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
