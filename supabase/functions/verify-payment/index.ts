@@ -112,7 +112,7 @@ serve(async (req) => {
         amount: baseAmount,
         balance_after: newBalance,
         description: `Paystack deposit - ${reference} (Paid: ₦${totalPaid.toFixed(2)})`,
-        reference_id: reference,
+        reference_id: null,
       });
 
     if (transactionError) {
