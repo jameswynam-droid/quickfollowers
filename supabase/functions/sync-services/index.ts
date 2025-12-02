@@ -119,34 +119,51 @@ Deno.serve(async (req) => {
 
     console.log(`Total services to upsert: ${allServicesData.length}`);
 
-    // First, delete all existing services to ensure clean sync
-    const { error: deleteError } = await supabaseClient
-      .from('services')
-      .delete()
-      .neq('id', '');  // Delete all services
-
-    if (deleteError) {
-      console.error('Error deleting old services:', deleteError);
-      throw deleteError;
-    }
-
-    console.log('Deleted old services, now inserting fresh data...');
-
-    // Insert services in batches
+    // Use upsert to handle services that may be referenced by orders
+    // This avoids foreign key constraint violations
     const batchSize = 100;
+    let successCount = 0;
+    
     for (let i = 0; i < allServicesData.length; i += batchSize) {
       const batch = allServicesData.slice(i, i + batchSize);
       const { error } = await supabaseClient
         .from('services')
-        .insert(batch);
+        .upsert(batch, { onConflict: 'id' });
 
       if (error) {
-        console.error('Error inserting batch:', error);
+        console.error('Error upserting batch:', error);
         throw error;
+      }
+      successCount += batch.length;
+    }
+
+    // Delete services that no longer exist in any provider
+    // Get all current service IDs from providers
+    const currentServiceIds = allServicesData.map(s => s.id);
+    
+    // Delete services not in the current list, but only if they're not referenced by orders
+    const { data: orphanedServices, error: orphanError } = await supabaseClient
+      .from('services')
+      .select('id')
+      .not('id', 'in', `(${currentServiceIds.join(',')})`);
+    
+    if (!orphanError && orphanedServices && orphanedServices.length > 0) {
+      console.log(`Found ${orphanedServices.length} orphaned services to clean up`);
+      
+      for (const service of orphanedServices) {
+        // Try to delete, but ignore foreign key errors (service is still in use)
+        const { error: delError } = await supabaseClient
+          .from('services')
+          .delete()
+          .eq('id', service.id);
+        
+        if (delError && delError.code !== '23503') {
+          console.error(`Error deleting orphaned service ${service.id}:`, delError);
+        }
       }
     }
 
-    console.log('Services synced successfully');
+    console.log(`Services synced successfully. Updated ${successCount} services.`);
 
     return new Response(
       JSON.stringify({ 
