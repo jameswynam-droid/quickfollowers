@@ -119,16 +119,29 @@ Deno.serve(async (req) => {
 
     console.log(`Total services to upsert: ${allServicesData.length}`);
 
-    // Upsert services in batches
+    // First, delete all existing services to ensure clean sync
+    const { error: deleteError } = await supabaseClient
+      .from('services')
+      .delete()
+      .neq('id', '');  // Delete all services
+
+    if (deleteError) {
+      console.error('Error deleting old services:', deleteError);
+      throw deleteError;
+    }
+
+    console.log('Deleted old services, now inserting fresh data...');
+
+    // Insert services in batches
     const batchSize = 100;
     for (let i = 0; i < allServicesData.length; i += batchSize) {
       const batch = allServicesData.slice(i, i + batchSize);
       const { error } = await supabaseClient
         .from('services')
-        .upsert(batch, { onConflict: 'id' });
+        .insert(batch);
 
       if (error) {
-        console.error('Error upserting batch:', error);
+        console.error('Error inserting batch:', error);
         throw error;
       }
     }
