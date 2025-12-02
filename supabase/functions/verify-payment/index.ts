@@ -50,10 +50,12 @@ serve(async (req) => {
     if (transaction.status !== 'success') {
       console.log('Payment not successful:', transaction.status);
       // Redirect to dashboard with error
+      const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
+      const appUrl = supabaseUrl.replace('.supabase.co', '.lovable.app');
       return new Response(null, {
         status: 302,
         headers: {
-          'Location': `${Deno.env.get('VITE_SUPABASE_URL')?.replace('.supabase.co', '.lovable.app') || 'http://localhost:5173'}/dashboard?payment=failed`,
+          'Location': `${appUrl}/dashboard?payment=failed`,
         },
       });
     }
@@ -95,10 +97,12 @@ serve(async (req) => {
     if (updateError) {
       console.error('Balance update error:', updateError);
       // Redirect to dashboard with error
+      const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
+      const appUrl = supabaseUrl.replace('.supabase.co', '.lovable.app');
       return new Response(null, {
         status: 302,
         headers: {
-          'Location': `${Deno.env.get('VITE_SUPABASE_URL')?.replace('.supabase.co', '.lovable.app') || 'http://localhost:5173'}/dashboard?payment=failed`,
+          'Location': `${appUrl}/dashboard?payment=failed`,
         },
       });
     }
@@ -127,11 +131,17 @@ serve(async (req) => {
       reference,
     });
 
+    // Get the app URL from the Supabase URL
+    const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
+    const appUrl = supabaseUrl.replace('.supabase.co', '.lovable.app');
+    
+    console.log('Redirecting to:', `${appUrl}/dashboard?payment=success`);
+
     // Redirect to dashboard with success message
     return new Response(null, {
       status: 302,
       headers: {
-        'Location': `${Deno.env.get('VITE_SUPABASE_URL')?.replace('.supabase.co', '.lovable.app') || 'http://localhost:5173'}/dashboard?payment=success`,
+        'Location': `${appUrl}/dashboard?payment=success`,
       },
     });
 
