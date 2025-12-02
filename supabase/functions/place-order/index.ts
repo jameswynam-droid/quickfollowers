@@ -50,8 +50,8 @@ Deno.serve(async (req) => {
     const provider = service.provider;
     const actualServiceId = service_id.split('-')[1];
 
-    // Calculate charge
-    const charge = (service.rate * quantity).toFixed(2);
+    // Calculate charge (rate is per 1000 units - SMM panel standard)
+    const charge = ((service.rate * quantity) / 1000).toFixed(2);
 
     // Check user balance (RLS ensures this is the current user)
     const { data: profile, error: profileError } = await supabaseClient
