@@ -122,17 +122,32 @@ Deno.serve(async (req) => {
     // Create a Set of current service IDs for fast lookup
     const currentServiceIds = new Set(allServicesData.map(s => s.id));
 
-    // Get all existing service IDs from database
-    const { data: existingServices, error: fetchError } = await supabaseClient
-      .from('services')
-      .select('id');
+    // Get ALL existing service IDs from database (handle pagination)
+    let existingServiceIds: string[] = [];
+    let hasMore = true;
+    let offset = 0;
+    const pageSize = 1000;
 
-    if (fetchError) {
-      console.error('Error fetching existing services:', fetchError);
-      throw fetchError;
+    while (hasMore) {
+      const { data: existingServices, error: fetchError } = await supabaseClient
+        .from('services')
+        .select('id')
+        .range(offset, offset + pageSize - 1);
+
+      if (fetchError) {
+        console.error('Error fetching existing services:', fetchError);
+        throw fetchError;
+      }
+
+      if (existingServices && existingServices.length > 0) {
+        existingServiceIds = existingServiceIds.concat(existingServices.map(s => s.id));
+        offset += pageSize;
+        hasMore = existingServices.length === pageSize;
+      } else {
+        hasMore = false;
+      }
     }
-
-    const existingServiceIds = existingServices?.map(s => s.id) || [];
+    
     console.log(`Existing services in database: ${existingServiceIds.length}`);
 
     // Find services to delete (exist in DB but not in current fetch)
