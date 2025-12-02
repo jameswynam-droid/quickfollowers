@@ -50,19 +50,35 @@ const Admin = () => {
 
   const fetchPendingPayments = async () => {
     try {
-      const { data, error } = await supabase
+      // First get payments
+      const { data: paymentsData, error: paymentsError } = await supabase
         .from("payments")
-        .select(`
-          *,
-          profiles!inner(email, full_name)
-        `)
+        .select("*")
         .eq("status", "pending")
         .order("created_at", { ascending: false });
 
-      if (error) throw error;
-      setPayments(data || []);
+      if (paymentsError) throw paymentsError;
+
+      // Then get profiles for each payment
+      const paymentsWithProfiles = await Promise.all(
+        (paymentsData || []).map(async (payment) => {
+          const { data: profile } = await supabase
+            .from("profiles")
+            .select("email, full_name")
+            .eq("id", payment.user_id)
+            .maybeSingle();
+          
+          return {
+            ...payment,
+            profiles: profile || { email: "Unknown", full_name: null }
+          };
+        })
+      );
+
+      setPayments(paymentsWithProfiles);
     } catch (error: any) {
-      toast.error("Failed to load payments");
+      console.error("Error loading payments:", error);
+      toast.error("Failed to load payments: " + error.message);
     } finally {
       setLoading(false);
     }
