@@ -117,10 +117,50 @@ Deno.serve(async (req) => {
       throw new Error('No services fetched from any provider');
     }
 
-    console.log(`Total services to upsert: ${allServicesData.length}`);
+    console.log(`Total services fetched: ${allServicesData.length}`);
 
-    // Use upsert to handle services that may be referenced by orders
-    // This avoids foreign key constraint violations
+    // Create a Set of current service IDs for fast lookup
+    const currentServiceIds = new Set(allServicesData.map(s => s.id));
+
+    // Get all existing service IDs from database
+    const { data: existingServices, error: fetchError } = await supabaseClient
+      .from('services')
+      .select('id');
+
+    if (fetchError) {
+      console.error('Error fetching existing services:', fetchError);
+      throw fetchError;
+    }
+
+    const existingServiceIds = existingServices?.map(s => s.id) || [];
+    console.log(`Existing services in database: ${existingServiceIds.length}`);
+
+    // Find services to delete (exist in DB but not in current fetch)
+    const servicesToDelete = existingServiceIds.filter(id => !currentServiceIds.has(id));
+    console.log(`Services to delete: ${servicesToDelete.length}`);
+
+    // Delete orphaned services one by one (ignoring foreign key errors)
+    let deletedCount = 0;
+    for (const serviceId of servicesToDelete) {
+      const { error: delError } = await supabaseClient
+        .from('services')
+        .delete()
+        .eq('id', serviceId);
+      
+      if (delError) {
+        if (delError.code === '23503') {
+          // Foreign key constraint - service is still referenced by orders, skip
+          console.log(`Skipping delete for ${serviceId} - referenced by orders`);
+        } else {
+          console.error(`Error deleting service ${serviceId}:`, delError);
+        }
+      } else {
+        deletedCount++;
+      }
+    }
+    console.log(`Successfully deleted ${deletedCount} orphaned services`);
+
+    // Upsert all current services
     const batchSize = 100;
     let successCount = 0;
     
@@ -137,38 +177,13 @@ Deno.serve(async (req) => {
       successCount += batch.length;
     }
 
-    // Delete services that no longer exist in any provider
-    // Get all current service IDs from providers
-    const currentServiceIds = allServicesData.map(s => s.id);
-    
-    // Delete services not in the current list, but only if they're not referenced by orders
-    const { data: orphanedServices, error: orphanError } = await supabaseClient
-      .from('services')
-      .select('id')
-      .not('id', 'in', `(${currentServiceIds.join(',')})`);
-    
-    if (!orphanError && orphanedServices && orphanedServices.length > 0) {
-      console.log(`Found ${orphanedServices.length} orphaned services to clean up`);
-      
-      for (const service of orphanedServices) {
-        // Try to delete, but ignore foreign key errors (service is still in use)
-        const { error: delError } = await supabaseClient
-          .from('services')
-          .delete()
-          .eq('id', service.id);
-        
-        if (delError && delError.code !== '23503') {
-          console.error(`Error deleting orphaned service ${service.id}:`, delError);
-        }
-      }
-    }
-
-    console.log(`Services synced successfully. Updated ${successCount} services.`);
+    console.log(`Services synced successfully. Upserted ${successCount}, deleted ${deletedCount} services.`);
 
     return new Response(
       JSON.stringify({ 
         success: true, 
         count: allServicesData.length,
+        deleted: deletedCount,
         message: 'Services synced successfully from all providers'
       }),
       { 

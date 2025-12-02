@@ -8,11 +8,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { formatPrice } from "@/utils/serviceOrganizer";
+import { RefreshCw } from "lucide-react";
+import { toast } from "sonner";
 
 const Orders = () => {
   const [user, setUser] = useState<any>(null);
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [syncing, setSyncing] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -27,10 +30,39 @@ const Orders = () => {
         return;
       }
       setUser(session.user);
+      // Sync order statuses first, then fetch orders
+      await syncOrderStatuses();
       await fetchOrders(session.user.id);
     } catch (error) {
       console.error("Auth check error:", error);
       navigate("/auth");
+    }
+  };
+
+  const syncOrderStatuses = async () => {
+    try {
+      const { data, error } = await supabase.functions.invoke('sync-order-status');
+      if (error) {
+        console.error("Error syncing order statuses:", error);
+      } else {
+        console.log("Order status sync:", data);
+      }
+    } catch (error) {
+      console.error("Error syncing order statuses:", error);
+    }
+  };
+
+  const handleRefresh = async () => {
+    if (!user) return;
+    setSyncing(true);
+    try {
+      await syncOrderStatuses();
+      await fetchOrders(user.id);
+      toast.success("Orders refreshed");
+    } catch (error) {
+      toast.error("Failed to refresh orders");
+    } finally {
+      setSyncing(false);
     }
   };
 
@@ -79,7 +111,13 @@ const Orders = () => {
             <h1 className="text-4xl font-bold">Order History</h1>
             <p className="text-muted-foreground mt-2">View all your past orders</p>
           </div>
-          <Button onClick={() => navigate("/services")}>New Order</Button>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={handleRefresh} disabled={syncing}>
+              <RefreshCw className={`h-4 w-4 mr-2 ${syncing ? 'animate-spin' : ''}`} />
+              {syncing ? 'Syncing...' : 'Refresh Status'}
+            </Button>
+            <Button onClick={() => navigate("/services")}>New Order</Button>
+          </div>
         </div>
 
         {orders.length === 0 ? (

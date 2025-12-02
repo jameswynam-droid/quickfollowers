@@ -11,6 +11,31 @@ interface OrderRequest {
   quantity: number;
 }
 
+// Markup calculation - must match frontend serviceOrganizer.ts
+const MARKUP_RATES = {
+  standard: 0.10, // 10%
+  premium: 0.15, // 15%
+};
+
+const isPremiumService = (name: string, category: string): boolean => {
+  const premiumKeywords = [
+    'nigerian', 'nigeria', '🇳🇬',
+    'share', 'shares',
+    'save', 'saves',
+    'recovery', 'disabled',
+    'premium', 'verified', 'bluetick',
+    'boost', 'no drop', 'non drop'
+  ];
+  
+  const text = `${name} ${category}`.toLowerCase();
+  return premiumKeywords.some(keyword => text.includes(keyword));
+};
+
+const calculateMarkup = (rate: number, isPremium: boolean): number => {
+  const markup = isPremium ? MARKUP_RATES.premium : MARKUP_RATES.standard;
+  return rate * (1 + markup);
+};
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -50,8 +75,14 @@ Deno.serve(async (req) => {
     const provider = service.provider;
     const actualServiceId = service_id.split('-')[1];
 
-    // Calculate charge (rate is per 1000 units - SMM panel standard)
-    const charge = ((service.rate * quantity) / 1000).toFixed(2);
+    // Apply markup to calculate the user charge (same as frontend)
+    const isPremium = isPremiumService(service.name, service.category);
+    const markedUpRate = calculateMarkup(service.rate, isPremium);
+    
+    // Calculate charge with markup (rate is per 1000 units - SMM panel standard)
+    const charge = parseFloat(((markedUpRate * quantity) / 1000).toFixed(2));
+
+    console.log(`Service: ${service.name}, Original rate: ${service.rate}, Marked up rate: ${markedUpRate}, Quantity: ${quantity}, Charge: ${charge}`);
 
     // Check user balance (RLS ensures this is the current user)
     const { data: profile, error: profileError } = await supabaseClient
@@ -63,8 +94,8 @@ Deno.serve(async (req) => {
       throw new Error('Profile not found');
     }
 
-    if (parseFloat(profile.balance) < parseFloat(charge)) {
-      throw new Error('Insufficient balance');
+    if (profile.balance < charge) {
+      throw new Error(`Insufficient balance. Required: ₦${charge.toFixed(2)}, Available: ₦${parseFloat(profile.balance).toFixed(2)}`);
     }
 
     // Determine API endpoint and key based on provider
@@ -109,7 +140,7 @@ Deno.serve(async (req) => {
 
     console.log(`Order placed successfully with ${provider} API:`, apiResult.order);
 
-    // Create order record
+    // Create order record with marked up charge
     const { data: order, error: orderError } = await supabaseClient
       .from('orders')
       .insert({
@@ -117,7 +148,7 @@ Deno.serve(async (req) => {
         service_id: service_id,
         link: link,
         quantity: quantity,
-        charge: parseFloat(charge),
+        charge: charge,
         status: 'processing',
         api_order_id: apiResult.order.toString(),
       })
@@ -129,7 +160,7 @@ Deno.serve(async (req) => {
     }
 
     // Deduct balance
-    const newBalance = parseFloat(profile.balance) - parseFloat(charge);
+    const newBalance = parseFloat(profile.balance) - charge;
     const { error: updateError } = await supabaseClient
       .from('profiles')
       .update({ balance: newBalance })
@@ -144,7 +175,7 @@ Deno.serve(async (req) => {
       .from('transactions')
       .insert({
         user_id: profile.id,
-        amount: -parseFloat(charge),
+        amount: -charge,
         type: 'order',
         reference_id: order.id,
         description: `Order: ${service.name}`,
