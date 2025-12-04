@@ -43,8 +43,11 @@ export const AddFundsModal = ({ open, onOpenChange }: AddFundsModalProps) => {
     setLoading(true);
 
     try {
+      // Pass the current origin as redirect URL so we come back to the right place
+      const redirect_url = window.location.origin;
+      
       const { data, error } = await supabase.functions.invoke('initialize-payment', {
-        body: { amount: amountNum },
+        body: { amount: amountNum, redirect_url },
       });
 
       if (error) throw error;

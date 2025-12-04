@@ -22,8 +22,7 @@ serve(async (req) => {
       }
     );
 
-
-    const { amount } = await req.json();
+    const { amount, redirect_url } = await req.json();
 
     if (!amount || amount <= 0) {
       return new Response(
@@ -44,7 +43,8 @@ serve(async (req) => {
       percentageFee,
       fixedFee,
       totalFee,
-      totalAmount
+      totalAmount,
+      redirect_url
     });
 
     // Get user profile for email (RLS ensures this is the current user)
@@ -60,6 +60,9 @@ serve(async (req) => {
         { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+
+    // Use the redirect_url from frontend or default to Supabase URL construction
+    const callbackBaseUrl = redirect_url || `${Deno.env.get('SUPABASE_URL')?.replace('.supabase.co', '.lovable.app')}`;
 
     // Initialize Paystack transaction
     const paystackResponse = await fetch('https://api.paystack.co/transaction/initialize', {
@@ -77,6 +80,7 @@ serve(async (req) => {
           user_id: profile.id,
           base_amount: baseAmount,
           fee_amount: totalFee,
+          redirect_url: callbackBaseUrl,
           custom_fields: [
             {
               display_name: "User ID",

@@ -46,16 +46,17 @@ serve(async (req) => {
     }
 
     const transaction = paystackData.data;
+    
+    // Get redirect URL from metadata or construct default
+    const redirectUrl = transaction.metadata?.redirect_url || 'https://id-preview--92633b06-ce4f-4cc5-accd-124a59937de2.lovable.app';
+    console.log('Using redirect URL:', redirectUrl);
 
     if (transaction.status !== 'success') {
       console.log('Payment not successful:', transaction.status);
-      // Redirect to dashboard with error
-      const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
-      const appUrl = supabaseUrl.replace('.supabase.co', '.lovable.app');
       return new Response(null, {
         status: 302,
         headers: {
-          'Location': `${appUrl}/dashboard?payment=failed`,
+          'Location': `${redirectUrl}/dashboard?payment=failed`,
         },
       });
     }
@@ -70,6 +71,8 @@ serve(async (req) => {
     const baseAmount = transaction.metadata.base_amount || (transaction.amount / 100); // Use base amount from metadata
     const totalPaid = transaction.amount / 100; // Convert from kobo to naira
 
+    console.log('Processing payment for user:', userId, 'Amount:', baseAmount);
+
     // Get current balance
     const { data: profile, error: profileError } = await supabaseAdmin
       .from('profiles')
@@ -79,14 +82,20 @@ serve(async (req) => {
 
     if (profileError || !profile) {
       console.error('Profile fetch error:', profileError);
-      return new Response(
-        JSON.stringify({ error: 'User profile not found' }),
-        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return new Response(null, {
+        status: 302,
+        headers: {
+          'Location': `${redirectUrl}/dashboard?payment=failed&error=profile_not_found`,
+        },
+      });
     }
 
+    console.log('Current balance:', profile.balance);
+
     // Credit the base amount to user (not including fees)
-    const newBalance = Number(profile.balance) + baseAmount;
+    const newBalance = Number(profile.balance) + Number(baseAmount);
+
+    console.log('New balance will be:', newBalance);
 
     // Update user balance
     const { error: updateError } = await supabaseAdmin
@@ -96,16 +105,15 @@ serve(async (req) => {
 
     if (updateError) {
       console.error('Balance update error:', updateError);
-      // Redirect to dashboard with error
-      const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
-      const appUrl = supabaseUrl.replace('.supabase.co', '.lovable.app');
       return new Response(null, {
         status: 302,
         headers: {
-          'Location': `${appUrl}/dashboard?payment=failed`,
+          'Location': `${redirectUrl}/dashboard?payment=failed&error=balance_update_failed`,
         },
       });
     }
+
+    console.log('Balance updated successfully');
 
     // Create transaction record
     const { error: transactionError } = await supabaseAdmin
@@ -131,17 +139,13 @@ serve(async (req) => {
       reference,
     });
 
-    // Get the app URL from the Supabase URL
-    const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
-    const appUrl = supabaseUrl.replace('.supabase.co', '.lovable.app');
-    
-    console.log('Redirecting to:', `${appUrl}/dashboard?payment=success`);
+    console.log('Redirecting to:', `${redirectUrl}/dashboard?payment=success`);
 
     // Redirect to dashboard with success message
     return new Response(null, {
       status: 302,
       headers: {
-        'Location': `${appUrl}/dashboard?payment=success`,
+        'Location': `${redirectUrl}/dashboard?payment=success`,
       },
     });
 
