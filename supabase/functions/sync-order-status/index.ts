@@ -24,10 +24,10 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
     );
 
-    // Get all non-completed orders
+    // Get all non-completed orders with charge and user_id for potential refunds
     const { data: pendingOrders, error: ordersError } = await supabaseClient
       .from('orders')
-      .select('id, api_order_id, service_id, status')
+      .select('id, api_order_id, service_id, status, charge, user_id, quantity')
       .in('status', ['pending', 'processing']);
 
     if (ordersError) {
@@ -48,6 +48,7 @@ Deno.serve(async (req) => {
     const followspanelApiKey = Deno.env.get('FOLLOWSPANEL_API_KEY');
 
     let updatedCount = 0;
+    let refundedCount = 0;
 
     for (const order of pendingOrders) {
       if (!order.api_order_id) {
@@ -141,6 +142,12 @@ Deno.serve(async (req) => {
           } else {
             console.log(`Order ${order.id} status updated: ${order.status} -> ${newStatus}`);
             updatedCount++;
+
+            // Process refund for cancelled or failed orders
+            if (newStatus === 'cancelled' || newStatus === 'failed') {
+              await processRefund(supabaseClient, order);
+              refundedCount++;
+            }
           }
         }
       } catch (error) {
@@ -148,13 +155,14 @@ Deno.serve(async (req) => {
       }
     }
 
-    console.log(`Order status sync complete. Updated ${updatedCount} orders.`);
+    console.log(`Order status sync complete. Updated ${updatedCount} orders, refunded ${refundedCount}.`);
 
     return new Response(
       JSON.stringify({ 
         success: true, 
         message: `Synced ${pendingOrders.length} orders`,
-        updated: updatedCount
+        updated: updatedCount,
+        refunded: refundedCount
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
     );
@@ -167,3 +175,63 @@ Deno.serve(async (req) => {
     );
   }
 });
+
+async function processRefund(supabaseClient: any, order: any) {
+  try {
+    const refundAmount = parseFloat(order.charge);
+    
+    if (isNaN(refundAmount) || refundAmount <= 0) {
+      console.log(`Invalid refund amount for order ${order.id}: ${order.charge}`);
+      return;
+    }
+
+    console.log(`Processing refund of ${refundAmount} for order ${order.id} to user ${order.user_id}`);
+
+    // Get current user balance
+    const { data: profile, error: profileError } = await supabaseClient
+      .from('profiles')
+      .select('balance')
+      .eq('id', order.user_id)
+      .single();
+
+    if (profileError) {
+      console.error(`Error fetching profile for refund:`, profileError);
+      return;
+    }
+
+    const currentBalance = parseFloat(profile.balance) || 0;
+    const newBalance = currentBalance + refundAmount;
+
+    // Update user balance
+    const { error: updateError } = await supabaseClient
+      .from('profiles')
+      .update({ balance: newBalance, updated_at: new Date().toISOString() })
+      .eq('id', order.user_id);
+
+    if (updateError) {
+      console.error(`Error updating balance for refund:`, updateError);
+      return;
+    }
+
+    // Create refund transaction record
+    const { error: transactionError } = await supabaseClient
+      .from('transactions')
+      .insert({
+        user_id: order.user_id,
+        type: 'refund',
+        amount: refundAmount,
+        balance_after: newBalance,
+        description: `Refund for cancelled order #${order.id.slice(0, 8)}`,
+        reference_id: order.id,
+      });
+
+    if (transactionError) {
+      console.error(`Error creating refund transaction:`, transactionError);
+      return;
+    }
+
+    console.log(`Refund of ${refundAmount} processed successfully for order ${order.id}. New balance: ${newBalance}`);
+  } catch (error) {
+    console.error(`Error processing refund for order ${order.id}:`, error);
+  }
+}
