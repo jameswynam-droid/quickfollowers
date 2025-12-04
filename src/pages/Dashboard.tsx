@@ -17,6 +17,7 @@ const Dashboard = () => {
   const [user, setUser] = useState<any>(null);
   const [profile, setProfile] = useState<any>(null);
   const [orders, setOrders] = useState<any[]>([]);
+  const [totalOrders, setTotalOrders] = useState(0);
   const [isAdmin, setIsAdmin] = useState(false);
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
   const [paymentAmount, setPaymentAmount] = useState("");
@@ -58,8 +59,13 @@ const Dashboard = () => {
   };
 
   const fetchOrders = async (userId: string) => {
+    // Fetch recent orders for display
     const { data } = await supabase.from("orders").select("*, services(name)").eq("user_id", userId).order("created_at", { ascending: false }).limit(10);
     setOrders(data || []);
+    
+    // Fetch total order count separately
+    const { count } = await supabase.from("orders").select("*", { count: "exact", head: true }).eq("user_id", userId);
+    setTotalOrders(count || 0);
   };
 
   const checkAdminStatus = async (userId: string) => {
@@ -96,9 +102,10 @@ const Dashboard = () => {
             <Button variant="outline" onClick={handleSignOut}>Sign Out</Button>
           </div>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
           <Card><CardHeader><CardTitle>Balance</CardTitle></CardHeader><CardContent><div className="text-3xl font-bold">₦{parseFloat(profile.balance).toFixed(2)}</div><Button className="w-full mt-4" onClick={() => setAddFundsOpen(true)}><Wallet className="mr-2 h-4 w-4" />Add Funds</Button></CardContent></Card>
-          <Card><CardHeader><CardTitle>Orders</CardTitle></CardHeader><CardContent><div className="text-3xl font-bold">{orders.length}</div><Button className="w-full mt-4" onClick={() => navigate("/orders")}>View All Orders</Button></CardContent></Card>
+          <Card><CardHeader><CardTitle>Orders</CardTitle></CardHeader><CardContent><div className="text-3xl font-bold">{totalOrders}</div><Button className="w-full mt-4" onClick={() => navigate("/orders")}>View All Orders</Button></CardContent></Card>
+          <Card><CardHeader><CardTitle>Transactions</CardTitle></CardHeader><CardContent><p className="text-muted-foreground text-sm mb-4">View deposits, orders & refunds</p><Button className="w-full" variant="outline" onClick={() => navigate("/transactions")}>View History</Button></CardContent></Card>
           <Card><CardHeader><CardTitle>Quick Actions</CardTitle></CardHeader><CardContent><Button className="w-full" onClick={() => navigate("/services")}>New Order</Button></CardContent></Card>
         </div>
         <Card><CardHeader><CardTitle>Recent Orders</CardTitle></CardHeader><CardContent>{orders.length === 0 ? <p className="text-center py-8">No orders yet</p> : <Table><TableHeader><TableRow><TableHead>Service</TableHead><TableHead>Quantity</TableHead><TableHead>Cost</TableHead><TableHead>Status</TableHead></TableRow></TableHeader><TableBody>{orders.map(o => <TableRow key={o.id}><TableCell>{o.services?.name}</TableCell><TableCell>{o.quantity}</TableCell><TableCell>₦{o.charge}</TableCell><TableCell>{o.status}</TableCell></TableRow>)}</TableBody></Table>}</CardContent></Card>
