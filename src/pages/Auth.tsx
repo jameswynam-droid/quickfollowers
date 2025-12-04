@@ -61,7 +61,6 @@ const Auth = () => {
           email,
           password,
           options: {
-            emailRedirectTo: `${window.location.origin}/dashboard`,
             data: {
               full_name: fullName,
             },
@@ -69,7 +68,8 @@ const Auth = () => {
         });
 
         if (error) throw error;
-        toast.success("Account created! Please check your email to verify your account.");
+        toast.success("Account created! Please check your email for the verification code.");
+        navigate(`/verify-otp?email=${encodeURIComponent(email)}`);
       }
     } catch (error: any) {
       console.error("Auth error:", error);
