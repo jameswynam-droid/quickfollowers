@@ -8,3 +8,25 @@ verify_jwt = false
 
 [functions.sync-order-status]
 verify_jwt = false
+
+[auth]
+site_url = "https://id-preview--92633b06-ce4f-4cc5-accd-124a59937de2.lovable.app"
+
+[auth.email]
+enable_signup = true
+double_confirm_changes = true
+enable_confirmations = true
+otp_length = 6
+otp_expiry = 3600
+
+[auth.email.template.confirmation]
+subject = "Your Verification Code"
+content_path = "./templates/confirmation.html"
+
+[auth.email.template.recovery]
+subject = "Reset Your Password"
+content_path = "./templates/recovery.html"
+
+[auth.email.template.magic_link]
+subject = "Your Login Code"
+content_path = "./templates/magic_link.html"
