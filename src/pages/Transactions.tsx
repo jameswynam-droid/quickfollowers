@@ -36,6 +36,7 @@ const Transactions = () => {
       .from("transactions")
       .select("*")
       .eq("user_id", userId)
+      .in("type", ["deposit", "refund"])
       .order("created_at", { ascending: false });
     
     if (!error && data) {
@@ -48,8 +49,6 @@ const Transactions = () => {
     switch (type) {
       case "deposit":
         return <ArrowDownCircle className="h-4 w-4 text-green-500" />;
-      case "order":
-        return <ArrowUpCircle className="h-4 w-4 text-red-500" />;
       case "refund":
         return <RotateCcw className="h-4 w-4 text-blue-500" />;
       default:
@@ -61,8 +60,6 @@ const Transactions = () => {
     switch (type) {
       case "deposit":
         return <Badge variant="default" className="bg-green-500/10 text-green-500 hover:bg-green-500/20">Deposit</Badge>;
-      case "order":
-        return <Badge variant="default" className="bg-red-500/10 text-red-500 hover:bg-red-500/20">Order</Badge>;
       case "refund":
         return <Badge variant="default" className="bg-blue-500/10 text-blue-500 hover:bg-blue-500/20">Refund</Badge>;
       default:
@@ -70,9 +67,8 @@ const Transactions = () => {
     }
   };
 
-  const formatAmount = (amount: number, type: string) => {
-    const prefix = type === "order" ? "-" : "+";
-    return `${prefix}₦${parseFloat(String(amount)).toFixed(2)}`;
+  const formatAmount = (amount: number) => {
+    return `+₦${parseFloat(String(amount)).toFixed(2)}`;
   };
 
   if (loading) {
@@ -95,7 +91,7 @@ const Transactions = () => {
 
         <Card>
           <CardHeader>
-            <CardTitle>All Transactions</CardTitle>
+            <CardTitle>Deposits & Refunds</CardTitle>
           </CardHeader>
           <CardContent>
             {transactions.length === 0 ? (
@@ -124,8 +120,8 @@ const Transactions = () => {
                         </div>
                       </TableCell>
                       <TableCell className="max-w-[300px] truncate">{tx.description}</TableCell>
-                      <TableCell className={tx.type === "order" ? "text-red-500" : "text-green-500"}>
-                        {formatAmount(tx.amount, tx.type)}
+                      <TableCell className="text-green-500">
+                        {formatAmount(tx.amount)}
                       </TableCell>
                       <TableCell>₦{parseFloat(tx.balance_after).toFixed(2)}</TableCell>
                       <TableCell>{format(new Date(tx.created_at), "MMM d, yyyy h:mm a")}</TableCell>
