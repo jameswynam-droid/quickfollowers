@@ -143,6 +143,13 @@ const Header = ({ onAuthClick }: HeaderProps) => {
               >
                 Orders
               </Link>
+              <Link
+                to="/transactions"
+                className="block py-2 text-foreground/80 hover:text-primary"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                Transactions
+              </Link>
               <a
                 href="https://wa.me/+2349112484106"
                 target="_blank"

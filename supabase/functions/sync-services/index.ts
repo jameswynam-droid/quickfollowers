@@ -24,6 +24,142 @@ interface Provider {
   apiKey: string;
 }
 
+// Generate meaningful descriptions based on service name and category
+function generateDescription(name: string, category: string, min: string, max: string): string {
+  const nameLower = name.toLowerCase();
+  const categoryLower = category.toLowerCase();
+  
+  let description = '';
+  
+  // Platform detection
+  const platforms: { [key: string]: string } = {
+    'instagram': 'Instagram',
+    'tiktok': 'TikTok',
+    'facebook': 'Facebook',
+    'youtube': 'YouTube',
+    'twitter': 'Twitter/X',
+    'spotify': 'Spotify',
+    'telegram': 'Telegram',
+    'linkedin': 'LinkedIn',
+    'pinterest': 'Pinterest',
+    'snapchat': 'Snapchat',
+    'twitch': 'Twitch',
+    'discord': 'Discord',
+    'soundcloud': 'SoundCloud',
+    'threads': 'Threads',
+  };
+  
+  let platform = '';
+  for (const [key, value] of Object.entries(platforms)) {
+    if (nameLower.includes(key) || categoryLower.includes(key)) {
+      platform = value;
+      break;
+    }
+  }
+  
+  // Service type detection
+  const serviceTypes: { [key: string]: string } = {
+    'followers': 'Increase your follower count with high-quality followers.',
+    'likes': 'Boost engagement with authentic likes on your content.',
+    'views': 'Increase visibility with real views on your content.',
+    'comments': 'Enhance engagement with relevant comments.',
+    'shares': 'Expand your reach with shares and reposts.',
+    'subscribers': 'Grow your subscriber base organically.',
+    'plays': 'Increase play count for your tracks or videos.',
+    'saves': 'Boost saves to improve algorithm ranking.',
+    'impressions': 'Increase impressions for better visibility.',
+    'reach': 'Expand your content reach to new audiences.',
+    'members': 'Grow your group or channel membership.',
+    'reactions': 'Get more reactions on your posts.',
+    'reposts': 'Increase reposts for wider distribution.',
+    'story views': 'Boost story engagement with more views.',
+    'live viewers': 'Get more live stream viewers.',
+    'dm': 'Direct message marketing service.',
+    'poll votes': 'Increase votes on your polls.',
+    'review': 'Get reviews for your business or product.',
+  };
+  
+  let serviceType = '';
+  for (const [key, value] of Object.entries(serviceTypes)) {
+    if (nameLower.includes(key)) {
+      serviceType = value;
+      break;
+    }
+  }
+  
+  // Quality indicators
+  const qualityIndicators: string[] = [];
+  if (nameLower.includes('hq') || nameLower.includes('high quality')) qualityIndicators.push('High Quality');
+  if (nameLower.includes('real')) qualityIndicators.push('Real Users');
+  if (nameLower.includes('premium')) qualityIndicators.push('Premium');
+  if (nameLower.includes('instant')) qualityIndicators.push('Instant Start');
+  if (nameLower.includes('fast')) qualityIndicators.push('Fast Delivery');
+  if (nameLower.includes('lifetime') || nameLower.includes('non drop')) qualityIndicators.push('Lifetime Guarantee');
+  if (nameLower.includes('refill')) qualityIndicators.push('Refill Included');
+  if (nameLower.includes('no drop')) qualityIndicators.push('No Drop');
+  if (nameLower.includes('organic')) qualityIndicators.push('Organic Growth');
+  if (nameLower.includes('active')) qualityIndicators.push('Active Users');
+  
+  // Country detection
+  const countries: { [key: string]: string } = {
+    'usa': 'USA',
+    'uk': 'UK',
+    'nigeria': 'Nigeria',
+    'nigerian': 'Nigeria',
+    'worldwide': 'Worldwide',
+    'global': 'Global',
+    'brazil': 'Brazil',
+    'india': 'India',
+    'arab': 'Arab Region',
+    'turkey': 'Turkey',
+    'germany': 'Germany',
+    'france': 'France',
+    'canada': 'Canada',
+    'australia': 'Australia',
+    'russia': 'Russia',
+    'spain': 'Spain',
+    'italy': 'Italy',
+    'mexico': 'Mexico',
+    'indonesia': 'Indonesia',
+    'japan': 'Japan',
+    'korea': 'Korea',
+  };
+  
+  let country = '';
+  for (const [key, value] of Object.entries(countries)) {
+    if (nameLower.includes(key)) {
+      country = value;
+      break;
+    }
+  }
+  
+  // Build description
+  if (platform && serviceType) {
+    description = `${platform} service. ${serviceType}`;
+  } else if (serviceType) {
+    description = serviceType;
+  } else if (platform) {
+    description = `${platform} growth service.`;
+  } else {
+    description = 'Social media marketing service.';
+  }
+  
+  // Add quality indicators
+  if (qualityIndicators.length > 0) {
+    description += ` ${qualityIndicators.slice(0, 3).join(' • ')}.`;
+  }
+  
+  // Add country targeting
+  if (country) {
+    description += ` Targeted: ${country}.`;
+  }
+  
+  // Add order limits
+  description += ` Order range: ${min} - ${max}.`;
+  
+  return description;
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -126,7 +262,7 @@ Deno.serve(async (req) => {
           rate: rate,
           min_order: parseInt(service.min),
           max_order: parseInt(service.max),
-          description: `${service.name} - Min: ${service.min}, Max: ${service.max}`,
+          description: generateDescription(service.name, service.category, service.min, service.max),
           provider: provider.name,
         };
       });
@@ -135,7 +271,6 @@ Deno.serve(async (req) => {
     }
 
     // Don't proceed with deletion if we got significantly fewer services than expected
-    // This prevents accidental mass deletion when APIs are having issues
     if (allServicesData.length === 0) {
       throw new Error('No services fetched from any provider');
     }
@@ -179,7 +314,6 @@ Deno.serve(async (req) => {
     console.log(`Services to potentially delete: ${servicesToDelete.length}`);
 
     // Safety check: Don't delete more than 20% of existing services in one sync
-    // This prevents accidental mass deletion if an API returns incomplete data
     const maxDeletePercentage = 0.2;
     const maxDeletions = Math.floor(existingServiceIds.length * maxDeletePercentage);
     
@@ -189,7 +323,6 @@ Deno.serve(async (req) => {
     if (servicesToDelete.length > maxDeletions && existingServiceIds.length > 100) {
       console.warn(`WARNING: Attempting to delete ${servicesToDelete.length} services (>${maxDeletePercentage * 100}% of ${existingServiceIds.length}). Limiting to ${maxDeletions} deletions for safety.`);
       
-      // Only delete up to maxDeletions
       for (const serviceId of servicesToDelete.slice(0, maxDeletions)) {
         const { error: delError } = await supabaseClient
           .from('services')
@@ -208,7 +341,6 @@ Deno.serve(async (req) => {
         }
       }
     } else {
-      // Delete orphaned services one by one (ignoring foreign key errors)
       for (const serviceId of servicesToDelete) {
         const { error: delError } = await supabaseClient
           .from('services')

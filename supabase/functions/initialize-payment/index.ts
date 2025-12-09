@@ -47,16 +47,28 @@ serve(async (req) => {
       redirect_url
     });
 
-    // Get user profile for email (RLS ensures this is the current user)
+    // Get current user from auth
+    const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
+    
+    if (userError || !user) {
+      console.error('Auth error:', userError);
+      return new Response(
+        JSON.stringify({ error: 'Not authenticated' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Get user profile for email
     const { data: profile, error: profileError } = await supabaseClient
       .from('profiles')
       .select('id, email')
+      .eq('id', user.id)
       .single();
 
     if (profileError || !profile) {
       console.error('Profile fetch error:', profileError);
       return new Response(
-        JSON.stringify({ error: 'Profile not found or unauthorized' }),
+        JSON.stringify({ error: 'Profile not found' }),
         { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
