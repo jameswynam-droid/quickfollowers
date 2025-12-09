@@ -57,7 +57,7 @@ const Auth = () => {
         if (error) throw error;
         toast.success("Welcome back!");
       } else {
-        const { error } = await supabase.auth.signUp({
+        const { data, error } = await supabase.auth.signUp({
           email,
           password,
           options: {
@@ -68,6 +68,12 @@ const Auth = () => {
         });
 
         if (error) throw error;
+        
+        // Check if user already exists (Supabase returns user with identities = [] for existing email)
+        if (data.user && data.user.identities && data.user.identities.length === 0) {
+          throw new Error("An account with this email already exists. Please sign in instead.");
+        }
+        
         toast.success("Account created! Please check your email for the verification code.");
         navigate(`/verify-otp?email=${encodeURIComponent(email)}`);
       }

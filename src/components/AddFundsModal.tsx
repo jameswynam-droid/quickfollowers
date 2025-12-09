@@ -31,10 +31,10 @@ export const AddFundsModal = ({ open, onOpenChange }: AddFundsModalProps) => {
   const handleAddFunds = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!amountNum || amountNum <= 0) {
+    if (!amountNum || amountNum < 100) {
       toast({
         title: "Invalid Amount",
-        description: "Please enter a valid amount",
+        description: "Minimum deposit is ₦100",
         variant: "destructive",
       });
       return;
@@ -87,8 +87,8 @@ export const AddFundsModal = ({ open, onOpenChange }: AddFundsModalProps) => {
               id="amount"
               type="number"
               step="0.01"
-              min="0"
-              placeholder="Enter amount"
+              min="100"
+              placeholder="Minimum ₦100"
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
               required
