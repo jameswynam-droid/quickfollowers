@@ -1,15 +1,17 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
+import { z } from 'https://deno.land/x/zod@v3.22.4/mod.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-interface OrderRequest {
-  service_id: string;
-  link: string;
-  quantity: number;
-}
+// Input validation schema
+const orderSchema = z.object({
+  service_id: z.string().min(1, 'Service ID is required'),
+  link: z.string().url('Invalid URL format').max(500, 'URL too long'),
+  quantity: z.number().int('Quantity must be an integer').positive('Quantity must be positive')
+});
 
 // Markup calculation - must match frontend serviceOrganizer.ts
 const MARKUP_RATES = {
@@ -53,12 +55,16 @@ Deno.serve(async (req) => {
       { global: { headers: { Authorization: authHeader } } }
     );
 
-    const { service_id, link, quantity }: OrderRequest = await req.json();
+    const rawInput = await req.json();
 
-    // Validate input
-    if (!service_id || !link || !quantity) {
-      throw new Error('Missing required fields');
+    // Validate input with Zod schema
+    const parseResult = orderSchema.safeParse(rawInput);
+    if (!parseResult.success) {
+      const errorMessage = parseResult.error.errors.map(e => e.message).join(', ');
+      throw new Error(`Invalid input: ${errorMessage}`);
     }
+    
+    const { service_id, link, quantity } = parseResult.data;
 
     // Get service details including provider
     const { data: service, error: serviceError } = await supabaseClient
@@ -69,6 +75,11 @@ Deno.serve(async (req) => {
 
     if (serviceError || !service) {
       throw new Error('Service not found');
+    }
+
+    // Enforce quantity limits server-side
+    if (quantity < service.min_order || quantity > service.max_order) {
+      throw new Error(`Quantity must be between ${service.min_order} and ${service.max_order}`);
     }
 
     // Extract provider and actual service ID from composite ID

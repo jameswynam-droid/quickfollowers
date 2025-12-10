@@ -166,6 +166,37 @@ Deno.serve(async (req) => {
   }
 
   try {
+    // Verify authentication and admin role
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      throw new Error('Authorization required');
+    }
+
+    const supabaseAuth = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      { global: { headers: { Authorization: authHeader } } }
+    );
+
+    const { data: { user }, error: userError } = await supabaseAuth.auth.getUser();
+    if (userError || !user) {
+      throw new Error('Invalid authentication');
+    }
+
+    // Check admin role
+    const { data: adminRole, error: roleError } = await supabaseAuth
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', user.id)
+      .eq('role', 'admin')
+      .maybeSingle();
+
+    if (roleError || !adminRole) {
+      throw new Error('Admin access required');
+    }
+
+    console.log(`Sync initiated by admin user: ${user.id}`);
+
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
