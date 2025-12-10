@@ -93,8 +93,14 @@ Deno.serve(async (req) => {
           continue;
         }
 
-        const result = await response.json() as OrderStatusResponse;
-        console.log(`Order ${order.id} API status:`, result);
+        const result = await response.json();
+        console.log(`Order ${order.id} API response:`, result);
+        
+        // Check if response is an error object
+        if (result && typeof result === 'object' && 'error' in result) {
+          console.error(`API error for order ${order.id}:`, result.error);
+          continue;
+        }
 
         // Map API status to our status enum
         let newStatus: string;

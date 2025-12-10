@@ -232,7 +232,33 @@ Deno.serve(async (req) => {
             break;
           }
 
-          services = await response.json() as SMMService[];
+          const responseData = await response.json();
+          
+          // Check if response is an error object
+          if (responseData && typeof responseData === 'object' && 'error' in responseData) {
+            console.error(`${provider.name} API returned error:`, responseData.error);
+            retries--;
+            if (retries > 0) {
+              console.log(`Retrying ${provider.name}... (${retries} attempts left)`);
+              await new Promise(r => setTimeout(r, 1000));
+              continue;
+            }
+            break;
+          }
+          
+          // Validate that we got an array of services
+          if (!Array.isArray(responseData)) {
+            console.error(`${provider.name} returned unexpected response format:`, typeof responseData);
+            retries--;
+            if (retries > 0) {
+              console.log(`Retrying ${provider.name}... (${retries} attempts left)`);
+              await new Promise(r => setTimeout(r, 1000));
+              continue;
+            }
+            break;
+          }
+          
+          services = responseData as SMMService[];
           console.log(`Fetched ${services.length} services from ${provider.name}`);
           break;
         } catch (error) {
