@@ -64,6 +64,7 @@ const Auth = () => {
             data: {
               full_name: fullName,
             },
+            emailRedirectTo: `${window.location.origin}/dashboard`,
           },
         });
 
@@ -74,8 +75,7 @@ const Auth = () => {
           throw new Error("An account with this email already exists. Please sign in instead.");
         }
         
-        toast.success("Account created! Please check your email for the verification code.");
-        navigate(`/verify-otp?email=${encodeURIComponent(email)}`);
+        toast.success("Account created! Check your email and click the verification link to continue.");
       }
     } catch (error: any) {
       console.error("Auth error:", error);
