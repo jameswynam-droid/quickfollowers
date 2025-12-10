@@ -69,6 +69,7 @@ const Services = () => {
     if (storedSyncTime) {
       setLastSyncTime(new Date(storedSyncTime));
     }
+    // Only fetch services from database, don't auto-sync from API
     fetchServices();
   }, []);
 
