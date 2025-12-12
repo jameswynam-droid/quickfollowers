@@ -195,7 +195,7 @@ Deno.serve(async (req) => {
     let allServicesData: any[] = [];
     const providerResults: { [key: string]: number } = {};
 
-    // Fetch services from each provider with retries
+    // Fetch services from each provider with retries and delays to avoid rate limiting
     for (const provider of providers) {
       if (!provider.apiKey) {
         console.log(`Skipping ${provider.name} - no API key`);
@@ -206,10 +206,21 @@ Deno.serve(async (req) => {
       console.log(`Fetching services from ${provider.name}...`);
       
       let services: SMMService[] = [];
-      let retries = 3;
+      let retries = 5; // Increased retries
+      let lastError = '';
       
       while (retries > 0) {
         try {
+          // Add delay between retries to avoid rate limiting
+          if (retries < 5) {
+            const delay = (5 - retries) * 2000; // 2s, 4s, 6s, 8s delays
+            console.log(`Waiting ${delay}ms before retry...`);
+            await new Promise(r => setTimeout(r, delay));
+          }
+
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s timeout
+
           const response = await fetch(provider.url, {
             method: 'POST',
             headers: {
@@ -219,56 +230,60 @@ Deno.serve(async (req) => {
               key: provider.apiKey,
               action: 'services',
             }),
+            signal: controller.signal,
           });
 
+          clearTimeout(timeoutId);
+
           if (!response.ok) {
-            console.error(`${provider.name} API request failed: ${response.statusText}`);
+            lastError = `API request failed: ${response.status} ${response.statusText}`;
+            console.error(`${provider.name} ${lastError}`);
             retries--;
-            if (retries > 0) {
-              console.log(`Retrying ${provider.name}... (${retries} attempts left)`);
-              await new Promise(r => setTimeout(r, 1000));
-              continue;
-            }
-            break;
+            continue;
           }
 
           const responseData = await response.json();
           
           // Check if response is an error object
           if (responseData && typeof responseData === 'object' && 'error' in responseData) {
-            console.error(`${provider.name} API returned error:`, responseData.error);
+            lastError = `API returned error: ${responseData.error}`;
+            console.error(`${provider.name} ${lastError}`);
             retries--;
-            if (retries > 0) {
-              console.log(`Retrying ${provider.name}... (${retries} attempts left)`);
-              await new Promise(r => setTimeout(r, 1000));
-              continue;
-            }
-            break;
+            continue;
           }
           
           // Validate that we got an array of services
           if (!Array.isArray(responseData)) {
-            console.error(`${provider.name} returned unexpected response format:`, typeof responseData);
+            lastError = `Unexpected response format: ${typeof responseData}`;
+            console.error(`${provider.name} ${lastError}`);
             retries--;
-            if (retries > 0) {
-              console.log(`Retrying ${provider.name}... (${retries} attempts left)`);
-              await new Promise(r => setTimeout(r, 1000));
-              continue;
-            }
-            break;
+            continue;
+          }
+          
+          // Validate minimum service count to detect incomplete responses
+          if (responseData.length < 10) {
+            lastError = `Suspiciously low service count: ${responseData.length}`;
+            console.warn(`${provider.name} ${lastError}`);
+            retries--;
+            continue;
           }
           
           services = responseData as SMMService[];
-          console.log(`Fetched ${services.length} services from ${provider.name}`);
+          console.log(`Successfully fetched ${services.length} services from ${provider.name}`);
           break;
         } catch (error) {
-          console.error(`Error fetching from ${provider.name}:`, error);
-          retries--;
-          if (retries > 0) {
-            console.log(`Retrying ${provider.name}... (${retries} attempts left)`);
-            await new Promise(r => setTimeout(r, 1000));
+          if (error instanceof Error && error.name === 'AbortError') {
+            lastError = 'Request timed out after 30s';
+          } else {
+            lastError = error instanceof Error ? error.message : 'Unknown error';
           }
+          console.error(`Error fetching from ${provider.name}:`, lastError);
+          retries--;
         }
+      }
+
+      if (services.length === 0 && lastError) {
+        console.error(`Failed to fetch from ${provider.name} after all retries. Last error: ${lastError}`);
       }
 
       providerResults[provider.name] = services.length;
