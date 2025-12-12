@@ -74,6 +74,60 @@ export type Database = {
           },
         ]
       }
+      otp_codes: {
+        Row: {
+          code: string
+          created_at: string
+          email: string
+          expires_at: string
+          id: string
+          type: string
+          used: boolean
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          email: string
+          expires_at: string
+          id?: string
+          type?: string
+          used?: boolean
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          email?: string
+          expires_at?: string
+          id?: string
+          type?: string
+          used?: boolean
+        }
+        Relationships: []
+      }
+      otp_rate_limits: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          request_count: number
+          window_start: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id?: string
+          request_count?: number
+          window_start?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          request_count?: number
+          window_start?: string
+        }
+        Relationships: []
+      }
       payments: {
         Row: {
           amount: number
@@ -275,6 +329,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      cleanup_expired_otps: { Args: never; Returns: undefined }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
