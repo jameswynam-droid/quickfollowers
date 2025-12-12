@@ -8,7 +8,7 @@ import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
-type AuthMode = 'login' | 'signup' | 'forgot-password' | 'verify-otp' | 'new-password';
+type AuthMode = 'login' | 'signup' | 'forgot-password' | 'verify-otp' | 'new-password' | 'signup-verify-otp';
 
 const Auth = () => {
   const urlParams = new URLSearchParams(window.location.search);
@@ -47,9 +47,9 @@ const Auth = () => {
     }
   }, [resendCooldown]);
 
-  const sendOTP = async (emailAddress: string) => {
+  const sendOTP = async (emailAddress: string, type: string = 'password_reset') => {
     const response = await supabase.functions.invoke('send-otp', {
-      body: { email: emailAddress, type: 'password_reset' }
+      body: { email: emailAddress, type }
     });
 
     if (response.error) {
@@ -67,9 +67,9 @@ const Auth = () => {
     return response.data;
   };
 
-  const verifyOTP = async (emailAddress: string, code: string) => {
+  const verifyOTP = async (emailAddress: string, code: string, type: string = 'password_reset') => {
     const response = await supabase.functions.invoke('verify-otp', {
-      body: { email: emailAddress, code, type: 'password_reset' }
+      body: { email: emailAddress, code, type }
     });
 
     if (response.error) {
@@ -104,7 +104,8 @@ const Auth = () => {
     
     setLoading(true);
     try {
-      await sendOTP(email);
+      const type = authMode === 'signup-verify-otp' ? 'email_verification' : 'password_reset';
+      await sendOTP(email, type);
       toast.success("New OTP code sent to your email!");
       setResendCooldown(60); // 60 second cooldown
     } catch (error: any) {
@@ -129,9 +130,36 @@ const Auth = () => {
           throw new Error("Please enter a valid 6-digit OTP code");
         }
         
-        await verifyOTP(email, otp);
+        await verifyOTP(email, otp, 'password_reset');
         toast.success("OTP verified! Set your new password.");
         setAuthMode('new-password');
+      } else if (authMode === 'signup-verify-otp') {
+        if (otp.length !== 6) {
+          throw new Error("Please enter a valid 6-digit OTP code");
+        }
+        
+        await verifyOTP(email, otp, 'email_verification');
+        
+        // Now create the account after email verification
+        const { data, error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            data: {
+              full_name: fullName,
+              email_verified: true,
+            },
+          },
+        });
+
+        if (error) throw error;
+        
+        if (data.user && data.user.identities && data.user.identities.length === 0) {
+          throw new Error("An account with this email already exists. Please sign in instead.");
+        }
+        
+        toast.success("Account created successfully! Welcome to QuickFollowers!");
+        // User should be automatically logged in since we're creating without email confirmation
       } else if (authMode === 'new-password') {
         if (password !== confirmPassword) {
           throw new Error("Passwords do not match");
@@ -157,24 +185,26 @@ const Auth = () => {
         if (error) throw error;
         toast.success("Welcome back!");
       } else if (authMode === 'signup') {
-        const { data, error } = await supabase.auth.signUp({
-          email,
-          password,
-          options: {
-            data: {
-              full_name: fullName,
-            },
-            emailRedirectTo: `${window.location.origin}/dashboard`,
-          },
-        });
-
-        if (error) throw error;
+        if (password.length < 6) {
+          throw new Error("Password must be at least 6 characters");
+        }
         
-        if (data.user && data.user.identities && data.user.identities.length === 0) {
+        // First check if email already exists
+        const { data: existingUsers } = await supabase
+          .from('profiles')
+          .select('email')
+          .eq('email', email.toLowerCase())
+          .single();
+        
+        if (existingUsers) {
           throw new Error("An account with this email already exists. Please sign in instead.");
         }
         
-        toast.success("Account created! Check your email and click the verification link to continue.");
+        // Send OTP for email verification before creating account
+        await sendOTP(email, 'email_verification');
+        toast.success("Verification code sent to your email!");
+        setAuthMode('signup-verify-otp');
+        setResendCooldown(60);
       }
     } catch (error: any) {
       console.error("Auth error:", error);
@@ -188,6 +218,7 @@ const Auth = () => {
     switch (authMode) {
       case 'forgot-password': return "Reset Password";
       case 'verify-otp': return "Verify OTP";
+      case 'signup-verify-otp': return "Verify Email";
       case 'new-password': return "New Password";
       case 'signup': return "Create Account";
       default: return "Welcome Back";
@@ -198,6 +229,7 @@ const Auth = () => {
     switch (authMode) {
       case 'forgot-password': return "Enter your email to receive a verification code";
       case 'verify-otp': return `Enter the 6-digit code sent to ${email}`;
+      case 'signup-verify-otp': return `Enter the 6-digit code sent to ${email}`;
       case 'new-password': return "Create a new password for your account";
       case 'signup': return "Sign up to start boosting your social media";
       default: return "Sign in to manage your orders";
@@ -209,8 +241,9 @@ const Auth = () => {
     switch (authMode) {
       case 'forgot-password': return "Send OTP Code";
       case 'verify-otp': return "Verify Code";
+      case 'signup-verify-otp': return "Verify & Create Account";
       case 'new-password': return "Update Password";
-      case 'signup': return "Sign Up";
+      case 'signup': return "Continue";
       default: return "Sign In";
     }
   };
@@ -266,8 +299,8 @@ const Auth = () => {
               </div>
             )}
 
-            {/* OTP Input - for verify-otp */}
-            {authMode === 'verify-otp' && (
+            {/* OTP Input - for verify-otp and signup-verify-otp */}
+            {(authMode === 'verify-otp' || authMode === 'signup-verify-otp') && (
               <div className="space-y-2">
                 <Label>Verification Code</Label>
                 <div className="flex justify-center">
@@ -367,7 +400,7 @@ const Auth = () => {
           </form>
 
           <div className="mt-4 text-center text-sm space-y-2">
-            {(authMode === 'forgot-password' || authMode === 'verify-otp' || authMode === 'new-password') ? (
+            {(authMode === 'forgot-password' || authMode === 'verify-otp' || authMode === 'new-password' || authMode === 'signup-verify-otp') ? (
               <button
                 type="button"
                 onClick={handleBackToLogin}

@@ -83,7 +83,7 @@ serve(async (req) => {
         .insert({ email: email.toLowerCase(), request_count: 1, window_start: now.toISOString() });
     }
 
-    // Check if user exists for password reset
+    // Check if user exists for password reset (but NOT for email verification during signup)
     if (type === "password_reset") {
       const { data: users } = await supabase.auth.admin.listUsers();
       const userExists = users?.users?.some(u => u.email?.toLowerCase() === email.toLowerCase());
@@ -93,6 +93,19 @@ serve(async (req) => {
         return new Response(
           JSON.stringify({ success: true, message: "If an account exists, an OTP has been sent." }),
           { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+    }
+
+    // For email verification during signup, check if email is already registered
+    if (type === "email_verification") {
+      const { data: users } = await supabase.auth.admin.listUsers();
+      const userExists = users?.users?.some(u => u.email?.toLowerCase() === email.toLowerCase());
+      
+      if (userExists) {
+        return new Response(
+          JSON.stringify({ error: "An account with this email already exists. Please sign in instead." }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
     }
@@ -122,6 +135,10 @@ serve(async (req) => {
     const subject = type === "password_reset" 
       ? "Reset Your Password - QuickFollowers" 
       : "Verify Your Email - QuickFollowers";
+    
+    const actionText = type === "password_reset"
+      ? "You requested to reset your password. Use the code below to proceed:"
+      : "Use the code below to verify your email address and complete your signup:";
 
     const emailHtml = `
       <!DOCTYPE html>
@@ -141,9 +158,8 @@ serve(async (req) => {
           </h2>
           
           <p style="color: #666; text-align: center; margin-bottom: 30px;">
-            ${type === "password_reset" 
-              ? "You requested to reset your password. Use the code below to proceed:" 
-              : "Use the code below to verify your email address:"}
+            ${actionText}
+          </p>
           </p>
           
           <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 8px; padding: 20px; text-align: center; margin-bottom: 30px;">
