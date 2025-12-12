@@ -1,4 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
+import { Resend } from 'https://esm.sh/resend@4.0.0';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -22,6 +23,53 @@ interface Provider {
   name: string;
   url: string;
   apiKey: string;
+}
+
+interface SyncResult {
+  success: boolean;
+  count: number;
+  deleted: number;
+  providerResults: { [key: string]: number };
+  warnings: string[];
+  errors: string[];
+}
+
+// Send email notification for sync issues
+async function sendSyncNotification(subject: string, content: string, isError: boolean = false) {
+  const resendApiKey = Deno.env.get('RESEND_API_KEY');
+  const adminEmail = Deno.env.get('ADMIN_EMAIL');
+  
+  if (!resendApiKey || !adminEmail) {
+    console.warn('Email notifications not configured - missing RESEND_API_KEY or ADMIN_EMAIL');
+    return;
+  }
+  
+  try {
+    const resend = new Resend(resendApiKey);
+    const timestamp = new Date().toISOString();
+    
+    await resend.emails.send({
+      from: 'SMM Panel <onboarding@resend.dev>',
+      to: [adminEmail],
+      subject: `[SMM Panel] ${subject}`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <div style="background: ${isError ? '#ef4444' : '#f59e0b'}; color: white; padding: 20px; border-radius: 8px 8px 0 0;">
+            <h1 style="margin: 0; font-size: 24px;">${isError ? '⚠️ Sync Error' : '📊 Sync Alert'}</h1>
+          </div>
+          <div style="background: #f9fafb; padding: 20px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 8px 8px;">
+            <p style="color: #374151; line-height: 1.6;">${content}</p>
+            <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 20px 0;">
+            <p style="color: #6b7280; font-size: 12px;">Timestamp: ${timestamp}</p>
+          </div>
+        </div>
+      `,
+    });
+    
+    console.log(`Email notification sent: ${subject}`);
+  } catch (error) {
+    console.error('Failed to send email notification:', error);
+  }
 }
 
 // Generate meaningful descriptions based on service name and category
@@ -425,6 +473,41 @@ Deno.serve(async (req) => {
 
     console.log(`Services synced successfully. Upserted ${successCount}, deleted ${deletedCount} services.`);
 
+    // Check for significant changes and send notification
+    const significantChangeThreshold = 50;
+    const hasSignificantChanges = deletedCount > significantChangeThreshold || 
+      Math.abs(allServicesData.length - existingServiceIds.length) > significantChangeThreshold;
+    
+    const hasProviderIssues = Object.entries(providerResults).some(([name, count]) => count === 0);
+    
+    if (hasSignificantChanges || hasProviderIssues) {
+      const changes: string[] = [];
+      
+      if (hasProviderIssues) {
+        const failedProviders = Object.entries(providerResults)
+          .filter(([_, count]) => count === 0)
+          .map(([name]) => name);
+        changes.push(`<strong>Provider Issues:</strong> ${failedProviders.join(', ')} returned 0 services`);
+      }
+      
+      if (deletedCount > significantChangeThreshold) {
+        changes.push(`<strong>High Deletions:</strong> ${deletedCount} services were deleted`);
+      }
+      
+      const netChange = allServicesData.length - existingServiceIds.length;
+      if (Math.abs(netChange) > significantChangeThreshold) {
+        changes.push(`<strong>Service Count Change:</strong> ${netChange > 0 ? '+' : ''}${netChange} (${existingServiceIds.length} → ${allServicesData.length})`);
+      }
+      
+      changes.push(`<br><strong>Summary:</strong><br>• Upserted: ${successCount}<br>• Deleted: ${deletedCount}<br>• Owlet: ${providerResults['owlet'] || 0}<br>• FollowsPanel: ${providerResults['followspanel'] || 0}`);
+      
+      await sendSyncNotification(
+        'Significant Sync Changes Detected',
+        changes.join('<br><br>'),
+        hasProviderIssues
+      );
+    }
+
     return new Response(
       JSON.stringify({ 
         success: true, 
@@ -442,6 +525,14 @@ Deno.serve(async (req) => {
   } catch (error) {
     console.error('Error syncing services:', error);
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    
+    // Send error notification
+    await sendSyncNotification(
+      'Service Sync Failed',
+      `<strong>Error:</strong> ${errorMessage}<br><br>The automatic service synchronization has failed. Please check the edge function logs for more details and consider running a manual sync.`,
+      true
+    );
+    
     return new Response(
       JSON.stringify({ error: errorMessage }),
       { 
