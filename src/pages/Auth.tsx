@@ -4,22 +4,25 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
+import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+
+type AuthMode = 'login' | 'signup' | 'forgot-password' | 'verify-otp' | 'new-password';
 
 const Auth = () => {
   const urlParams = new URLSearchParams(window.location.search);
   const mode = urlParams.get('mode');
-  const [isLogin, setIsLogin] = useState(mode !== 'signup');
-  const [isForgotPassword, setIsForgotPassword] = useState(false);
+  const [authMode, setAuthMode] = useState<AuthMode>(mode === 'signup' ? 'signup' : 'login');
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [fullName, setFullName] = useState("");
+  const [otp, setOtp] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Check if user is already logged in
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) {
         navigate("/dashboard");
@@ -40,15 +43,52 @@ const Auth = () => {
     setLoading(true);
 
     try {
-      if (isForgotPassword) {
+      if (authMode === 'forgot-password') {
         const { error } = await supabase.auth.resetPasswordForEmail(email, {
-          redirectTo: `${window.location.origin}/auth?reset=true`,
+          redirectTo: `${window.location.origin}/auth`,
         });
 
         if (error) throw error;
-        toast.success("Password reset email sent! Check your inbox.");
-        setIsForgotPassword(false);
-      } else if (isLogin) {
+        toast.success("OTP code sent to your email!");
+        setAuthMode('verify-otp');
+      } else if (authMode === 'verify-otp') {
+        if (otp.length !== 6) {
+          throw new Error("Please enter a valid 6-digit OTP code");
+        }
+        
+        // Verify OTP and get session
+        const { error } = await supabase.auth.verifyOtp({
+          email,
+          token: otp,
+          type: 'recovery',
+        });
+
+        if (error) throw error;
+        toast.success("OTP verified! Set your new password.");
+        setAuthMode('new-password');
+      } else if (authMode === 'new-password') {
+        if (password !== confirmPassword) {
+          throw new Error("Passwords do not match");
+        }
+        
+        if (password.length < 6) {
+          throw new Error("Password must be at least 6 characters");
+        }
+
+        const { error } = await supabase.auth.updateUser({
+          password: password,
+        });
+
+        if (error) throw error;
+        toast.success("Password updated successfully!");
+        
+        // Sign out and redirect to login
+        await supabase.auth.signOut();
+        setAuthMode('login');
+        setPassword("");
+        setConfirmPassword("");
+        setOtp("");
+      } else if (authMode === 'login') {
         const { error } = await supabase.auth.signInWithPassword({
           email,
           password,
@@ -56,7 +96,7 @@ const Auth = () => {
 
         if (error) throw error;
         toast.success("Welcome back!");
-      } else {
+      } else if (authMode === 'signup') {
         const { data, error } = await supabase.auth.signUp({
           email,
           password,
@@ -70,7 +110,6 @@ const Auth = () => {
 
         if (error) throw error;
         
-        // Check if user already exists (Supabase returns user with identities = [] for existing email)
         if (data.user && data.user.identities && data.user.identities.length === 0) {
           throw new Error("An account with this email already exists. Please sign in instead.");
         }
@@ -85,24 +124,59 @@ const Auth = () => {
     }
   };
 
+  const getTitle = () => {
+    switch (authMode) {
+      case 'forgot-password': return "Reset Password";
+      case 'verify-otp': return "Verify OTP";
+      case 'new-password': return "New Password";
+      case 'signup': return "Create Account";
+      default: return "Welcome Back";
+    }
+  };
+
+  const getDescription = () => {
+    switch (authMode) {
+      case 'forgot-password': return "Enter your email to receive a verification code";
+      case 'verify-otp': return `Enter the 6-digit code sent to ${email}`;
+      case 'new-password': return "Create a new password for your account";
+      case 'signup': return "Sign up to start boosting your social media";
+      default: return "Sign in to manage your orders";
+    }
+  };
+
+  const getButtonText = () => {
+    if (loading) return "Processing...";
+    switch (authMode) {
+      case 'forgot-password': return "Send OTP Code";
+      case 'verify-otp': return "Verify Code";
+      case 'new-password': return "Update Password";
+      case 'signup': return "Sign Up";
+      default: return "Sign In";
+    }
+  };
+
+  const handleBackToLogin = () => {
+    setAuthMode('login');
+    setOtp("");
+    setPassword("");
+    setConfirmPassword("");
+  };
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/10 via-background to-secondary/10 p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1">
           <CardTitle className="text-2xl font-bold text-center">
-            {isForgotPassword ? "Reset Password" : isLogin ? "Welcome Back" : "Create Account"}
+            {getTitle()}
           </CardTitle>
           <CardDescription className="text-center">
-            {isForgotPassword
-              ? "Enter your email to receive a password reset link"
-              : isLogin
-              ? "Sign in to manage your orders"
-              : "Sign up to start boosting your social media"}
+            {getDescription()}
           </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
-            {!isLogin && !isForgotPassword && (
+            {/* Full Name - only for signup */}
+            {authMode === 'signup' && (
               <div className="space-y-2">
                 <Label htmlFor="fullName">Full Name</Label>
                 <Input
@@ -111,29 +185,68 @@ const Auth = () => {
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
                   placeholder="John Doe"
-                  required={!isLogin}
+                  required
                 />
               </div>
             )}
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="you@example.com"
-                required
-              />
-            </div>
-            {!isForgotPassword && (
+
+            {/* Email - for login, signup, forgot-password */}
+            {(authMode === 'login' || authMode === 'signup' || authMode === 'forgot-password') && (
+              <div className="space-y-2">
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="you@example.com"
+                  required
+                />
+              </div>
+            )}
+
+            {/* OTP Input - for verify-otp */}
+            {authMode === 'verify-otp' && (
+              <div className="space-y-2">
+                <Label>Verification Code</Label>
+                <div className="flex justify-center">
+                  <InputOTP 
+                    value={otp} 
+                    onChange={setOtp}
+                    maxLength={6}
+                  >
+                    <InputOTPGroup>
+                      <InputOTPSlot index={0} />
+                      <InputOTPSlot index={1} />
+                      <InputOTPSlot index={2} />
+                      <InputOTPSlot index={3} />
+                      <InputOTPSlot index={4} />
+                      <InputOTPSlot index={5} />
+                    </InputOTPGroup>
+                  </InputOTP>
+                </div>
+                <p className="text-xs text-muted-foreground text-center mt-2">
+                  Didn't receive the code?{" "}
+                  <button
+                    type="button"
+                    onClick={() => setAuthMode('forgot-password')}
+                    className="text-primary hover:underline"
+                  >
+                    Resend
+                  </button>
+                </p>
+              </div>
+            )}
+
+            {/* Password - for login, signup */}
+            {(authMode === 'login' || authMode === 'signup') && (
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <Label htmlFor="password">Password</Label>
-                  {isLogin && (
+                  {authMode === 'login' && (
                     <button
                       type="button"
-                      onClick={() => setIsForgotPassword(true)}
+                      onClick={() => setAuthMode('forgot-password')}
                       className="text-xs text-primary hover:underline"
                     >
                       Forgot password?
@@ -151,19 +264,51 @@ const Auth = () => {
                 />
               </div>
             )}
+
+            {/* New Password fields - for new-password */}
+            {authMode === 'new-password' && (
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="newPassword">New Password</Label>
+                  <Input
+                    id="newPassword"
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="••••••••"
+                    required
+                    minLength={6}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="confirmPassword">Confirm Password</Label>
+                  <Input
+                    id="confirmPassword"
+                    type="password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    placeholder="••••••••"
+                    required
+                    minLength={6}
+                  />
+                </div>
+              </>
+            )}
+
             <Button
               type="submit"
               className="w-full"
               disabled={loading}
             >
-              {loading ? "Processing..." : isForgotPassword ? "Send Reset Link" : isLogin ? "Sign In" : "Sign Up"}
+              {getButtonText()}
             </Button>
           </form>
+
           <div className="mt-4 text-center text-sm space-y-2">
-            {isForgotPassword ? (
+            {(authMode === 'forgot-password' || authMode === 'verify-otp' || authMode === 'new-password') ? (
               <button
                 type="button"
-                onClick={() => setIsForgotPassword(false)}
+                onClick={handleBackToLogin}
                 className="text-primary hover:underline"
               >
                 Back to sign in
@@ -171,10 +316,10 @@ const Auth = () => {
             ) : (
               <button
                 type="button"
-                onClick={() => setIsLogin(!isLogin)}
+                onClick={() => setAuthMode(authMode === 'login' ? 'signup' : 'login')}
                 className="text-primary hover:underline"
               >
-                {isLogin
+                {authMode === 'login'
                   ? "Don't have an account? Sign up"
                   : "Already have an account? Sign in"}
               </button>
