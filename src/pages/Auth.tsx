@@ -20,6 +20,7 @@ const Auth = () => {
   const [fullName, setFullName] = useState("");
   const [otp, setOtp] = useState("");
   const [loading, setLoading] = useState(false);
+  const [resendCooldown, setResendCooldown] = useState(0);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -38,32 +39,97 @@ const Auth = () => {
     return () => subscription.unsubscribe();
   }, [navigate]);
 
+  // Resend cooldown timer
+  useEffect(() => {
+    if (resendCooldown > 0) {
+      const timer = setTimeout(() => setResendCooldown(resendCooldown - 1), 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [resendCooldown]);
+
+  const sendOTP = async (emailAddress: string) => {
+    const response = await supabase.functions.invoke('send-otp', {
+      body: { email: emailAddress, type: 'password_reset' }
+    });
+
+    if (response.error) {
+      throw new Error(response.error.message || "Failed to send OTP");
+    }
+
+    if (response.data?.rateLimited) {
+      throw new Error(response.data.error);
+    }
+
+    if (response.data?.error) {
+      throw new Error(response.data.error);
+    }
+
+    return response.data;
+  };
+
+  const verifyOTP = async (emailAddress: string, code: string) => {
+    const response = await supabase.functions.invoke('verify-otp', {
+      body: { email: emailAddress, code, type: 'password_reset' }
+    });
+
+    if (response.error) {
+      throw new Error(response.error.message || "Failed to verify OTP");
+    }
+
+    if (response.data?.error) {
+      throw new Error(response.data.error);
+    }
+
+    return response.data;
+  };
+
+  const resetPassword = async (emailAddress: string, newPassword: string) => {
+    const response = await supabase.functions.invoke('reset-password', {
+      body: { email: emailAddress, newPassword }
+    });
+
+    if (response.error) {
+      throw new Error(response.error.message || "Failed to reset password");
+    }
+
+    if (response.data?.error) {
+      throw new Error(response.data.error);
+    }
+
+    return response.data;
+  };
+
+  const handleResendOTP = async () => {
+    if (resendCooldown > 0) return;
+    
+    setLoading(true);
+    try {
+      await sendOTP(email);
+      toast.success("New OTP code sent to your email!");
+      setResendCooldown(60); // 60 second cooldown
+    } catch (error: any) {
+      toast.error(error.message || "Failed to resend OTP");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
     try {
       if (authMode === 'forgot-password') {
-        const { error } = await supabase.auth.resetPasswordForEmail(email, {
-          redirectTo: `${window.location.origin}/auth`,
-        });
-
-        if (error) throw error;
+        await sendOTP(email);
         toast.success("OTP code sent to your email!");
         setAuthMode('verify-otp');
+        setResendCooldown(60);
       } else if (authMode === 'verify-otp') {
         if (otp.length !== 6) {
           throw new Error("Please enter a valid 6-digit OTP code");
         }
         
-        // Verify OTP and get session
-        const { error } = await supabase.auth.verifyOtp({
-          email,
-          token: otp,
-          type: 'recovery',
-        });
-
-        if (error) throw error;
+        await verifyOTP(email, otp);
         toast.success("OTP verified! Set your new password.");
         setAuthMode('new-password');
       } else if (authMode === 'new-password') {
@@ -75,15 +141,9 @@ const Auth = () => {
           throw new Error("Password must be at least 6 characters");
         }
 
-        const { error } = await supabase.auth.updateUser({
-          password: password,
-        });
-
-        if (error) throw error;
-        toast.success("Password updated successfully!");
+        await resetPassword(email, password);
+        toast.success("Password updated successfully! Please sign in.");
         
-        // Sign out and redirect to login
-        await supabase.auth.signOut();
         setAuthMode('login');
         setPassword("");
         setConfirmPassword("");
@@ -160,6 +220,7 @@ const Auth = () => {
     setOtp("");
     setPassword("");
     setConfirmPassword("");
+    setResendCooldown(0);
   };
 
   return (
@@ -229,10 +290,11 @@ const Auth = () => {
                   Didn't receive the code?{" "}
                   <button
                     type="button"
-                    onClick={() => setAuthMode('forgot-password')}
-                    className="text-primary hover:underline"
+                    onClick={handleResendOTP}
+                    disabled={resendCooldown > 0 || loading}
+                    className={`text-primary hover:underline ${resendCooldown > 0 ? 'opacity-50 cursor-not-allowed' : ''}`}
                   >
-                    Resend
+                    {resendCooldown > 0 ? `Resend in ${resendCooldown}s` : 'Resend'}
                   </button>
                 </p>
               </div>
