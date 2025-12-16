@@ -10,8 +10,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AddFundsModal } from "@/components/AddFundsModal";
+import { AccountSettingsModal } from "@/components/AccountSettingsModal";
 import { toast } from "sonner";
-import { Wallet } from "lucide-react";
+import { Wallet, Settings } from "lucide-react";
 
 const Dashboard = () => {
   const [user, setUser] = useState<any>(null);
@@ -24,6 +25,7 @@ const Dashboard = () => {
   const [bankDetails, setBankDetails] = useState("");
   const [notes, setNotes] = useState("");
   const [addFundsOpen, setAddFundsOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -99,6 +101,9 @@ const Dashboard = () => {
           </div>
           <div className="flex gap-2">
             {isAdmin && <Button variant="outline" onClick={() => navigate("/admin")}>Admin</Button>}
+            <Button variant="outline" size="icon" onClick={() => setSettingsOpen(true)}>
+              <Settings className="h-4 w-4" />
+            </Button>
             <Button variant="outline" onClick={handleSignOut}>Sign Out</Button>
           </div>
         </div>
@@ -112,6 +117,7 @@ const Dashboard = () => {
       </main>
       <Footer />
       <AddFundsModal open={addFundsOpen} onOpenChange={setAddFundsOpen} />
+      <AccountSettingsModal open={settingsOpen} onOpenChange={setSettingsOpen} userEmail={user?.email || ""} />
       <Dialog open={paymentDialogOpen} onOpenChange={setPaymentDialogOpen}><DialogContent><DialogHeader><DialogTitle>Bank Transfer</DialogTitle></DialogHeader><div className="space-y-4"><div><Label>Amount</Label><Input type="number" value={paymentAmount} onChange={e => setPaymentAmount(e.target.value)} /></div><div><Label>Bank Details</Label><Input value={bankDetails} onChange={e => setBankDetails(e.target.value)} /></div><div><Label>Notes</Label><Input value={notes} onChange={e => setNotes(e.target.value)} /></div><Button onClick={handlePaymentRequest} className="w-full">Submit</Button></div></DialogContent></Dialog>
     </div>
   );
