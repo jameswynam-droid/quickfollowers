@@ -16,6 +16,14 @@ serve(async (req) => {
 
   try {
     const { email, code, type = "password_reset" } = await req.json();
+    
+    const validTypes = ["password_reset", "email_verification", "password_change", "email_change"];
+    if (!validTypes.includes(type)) {
+      return new Response(
+        JSON.stringify({ error: "Invalid OTP type" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
     if (!email || !code) {
       return new Response(

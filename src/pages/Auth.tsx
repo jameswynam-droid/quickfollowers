@@ -47,6 +47,8 @@ const Auth = () => {
     }
   }, [resendCooldown]);
 
+  const [rateLimitMessage, setRateLimitMessage] = useState("");
+
   const sendOTP = async (emailAddress: string, type: string = 'password_reset') => {
     const response = await supabase.functions.invoke('send-otp', {
       body: { email: emailAddress, type }
@@ -57,7 +59,8 @@ const Auth = () => {
     }
 
     if (response.data?.rateLimited) {
-      throw new Error(response.data.error);
+      setRateLimitMessage("You've reached your OTP verification limit for today. Please try again tomorrow.");
+      throw new Error("Rate limit exceeded");
     }
 
     if (response.data?.error) {
@@ -103,13 +106,16 @@ const Auth = () => {
     if (resendCooldown > 0) return;
     
     setLoading(true);
+    setRateLimitMessage("");
     try {
       const type = authMode === 'signup-verify-otp' ? 'email_verification' : 'password_reset';
       await sendOTP(email, type);
       toast.success("New OTP code sent to your email!");
-      setResendCooldown(60); // 60 second cooldown
+      setResendCooldown(60);
     } catch (error: any) {
-      toast.error(error.message || "Failed to resend OTP");
+      if (error.message !== "Rate limit exceeded") {
+        toast.error(error.message || "Failed to resend OTP");
+      }
     } finally {
       setLoading(false);
     }
@@ -208,7 +214,9 @@ const Auth = () => {
       }
     } catch (error: any) {
       console.error("Auth error:", error);
-      toast.error(error.message || "Authentication failed");
+      if (error.message !== "Rate limit exceeded") {
+        toast.error(error.message || "Authentication failed");
+      }
     } finally {
       setLoading(false);
     }
@@ -254,6 +262,7 @@ const Auth = () => {
     setPassword("");
     setConfirmPassword("");
     setResendCooldown(0);
+    setRateLimitMessage("");
   };
 
   return (
@@ -261,13 +270,23 @@ const Auth = () => {
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1">
           <CardTitle className="text-2xl font-bold text-center">
-            {getTitle()}
+            {rateLimitMessage ? "Limit Reached" : getTitle()}
           </CardTitle>
           <CardDescription className="text-center">
-            {getDescription()}
+            {rateLimitMessage ? "" : getDescription()}
           </CardDescription>
         </CardHeader>
         <CardContent>
+          {rateLimitMessage ? (
+            <div className="space-y-4">
+              <div className="p-4 bg-destructive/10 border border-destructive/20 rounded-lg">
+                <p className="text-destructive text-center">{rateLimitMessage}</p>
+              </div>
+              <Button variant="outline" className="w-full" onClick={handleBackToLogin}>
+                Back to Sign In
+              </Button>
+            </div>
+          ) : (
           <form onSubmit={handleSubmit} className="space-y-4">
             {/* Full Name - only for signup */}
             {authMode === 'signup' && (
@@ -398,7 +417,9 @@ const Auth = () => {
               {getButtonText()}
             </Button>
           </form>
+          )}
 
+          {!rateLimitMessage && (
           <div className="mt-4 text-center text-sm space-y-2">
             {(authMode === 'forgot-password' || authMode === 'verify-otp' || authMode === 'new-password' || authMode === 'signup-verify-otp') ? (
               <button
@@ -420,6 +441,7 @@ const Auth = () => {
               </button>
             )}
           </div>
+          )}
         </CardContent>
       </Card>
     </div>

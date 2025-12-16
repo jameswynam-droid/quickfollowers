@@ -52,12 +52,9 @@ serve(async (req) => {
       if (windowStart > oneHourAgo) {
         // Within the rate limit window
         if (rateLimit.request_count >= MAX_REQUESTS_PER_HOUR) {
-          const resetTime = new Date(windowStart.getTime() + 60 * 60 * 1000);
-          const minutesLeft = Math.ceil((resetTime.getTime() - now.getTime()) / 60000);
-          
           return new Response(
             JSON.stringify({ 
-              error: `Too many requests. Please try again in ${minutesLeft} minutes.`,
+              error: "You've reached your OTP verification limit for today. Please try again tomorrow.",
               rateLimited: true 
             }),
             { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -83,8 +80,8 @@ serve(async (req) => {
         .insert({ email: email.toLowerCase(), request_count: 1, window_start: now.toISOString() });
     }
 
-    // Check if user exists for password reset (but NOT for email verification during signup)
-    if (type === "password_reset") {
+    // Check if user exists for password reset and password change (but NOT for email verification during signup)
+    if (type === "password_reset" || type === "password_change") {
       const { data: users } = await supabase.auth.admin.listUsers();
       const userExists = users?.users?.some(u => u.email?.toLowerCase() === email.toLowerCase());
       
@@ -132,13 +129,26 @@ serve(async (req) => {
       });
 
     // Send OTP via Resend REST API
-    const subject = type === "password_reset" 
-      ? "Reset Your Password - QuickFollowers" 
-      : "Verify Your Email - QuickFollowers";
+    const getSubject = () => {
+      switch (type) {
+        case "password_reset": return "Reset Your Password - QuickFollowers";
+        case "password_change": return "Change Your Password - QuickFollowers";
+        case "email_change": return "Verify New Email - QuickFollowers";
+        default: return "Verify Your Email - QuickFollowers";
+      }
+    };
     
-    const actionText = type === "password_reset"
-      ? "You requested to reset your password. Use the code below to proceed:"
-      : "Use the code below to verify your email address and complete your signup:";
+    const getActionText = () => {
+      switch (type) {
+        case "password_reset": return "You requested to reset your password. Use the code below to proceed:";
+        case "password_change": return "You requested to change your password. Use the code below to verify:";
+        case "email_change": return "Use the code below to verify your new email address:";
+        default: return "Use the code below to verify your email address and complete your signup:";
+      }
+    };
+    
+    const subject = getSubject();
+    const actionText = getActionText();
 
     const emailHtml = `
       <!DOCTYPE html>
@@ -185,7 +195,7 @@ serve(async (req) => {
         "Authorization": `Bearer ${RESEND_API_KEY}`,
       },
       body: JSON.stringify({
-        from: "QuickFollowers <onboarding@resend.dev>",
+        from: "QuickFollowers <no-reply@quickfollowers.online>",
         to: [email],
         subject,
         html: emailHtml,
