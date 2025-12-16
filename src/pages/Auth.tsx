@@ -126,19 +126,28 @@ const Auth = () => {
     setLoading(true);
 
     try {
-      if (authMode === 'forgot-password') {
-        await sendOTP(email);
-        toast.success("OTP code sent to your email!");
-        setAuthMode('verify-otp');
-        setResendCooldown(60);
-      } else if (authMode === 'verify-otp') {
-        if (otp.length !== 6) {
-          throw new Error("Please enter a valid 6-digit OTP code");
+      if (authMode === 'signup') {
+        // Validate password BEFORE sending OTP
+        if (password.length < 8) {
+          throw new Error("Password must be at least 8 characters");
         }
         
-        await verifyOTP(email, otp, 'password_reset');
-        toast.success("OTP verified! Set your new password.");
-        setAuthMode('new-password');
+        // First check if email already exists
+        const { data: existingUsers } = await supabase
+          .from('profiles')
+          .select('email')
+          .eq('email', email.toLowerCase())
+          .single();
+        
+        if (existingUsers) {
+          throw new Error("An account with this email already exists. Please sign in instead.");
+        }
+        
+        // Send OTP for email verification before creating account
+        await sendOTP(email, 'email_verification');
+        toast.success("Verification code sent to your email!");
+        setAuthMode('signup-verify-otp');
+        setResendCooldown(60);
       } else if (authMode === 'signup-verify-otp') {
         if (otp.length !== 6) {
           throw new Error("Please enter a valid 6-digit OTP code");
@@ -165,14 +174,26 @@ const Auth = () => {
         }
         
         toast.success("Account created successfully! Welcome to QuickFollowers!");
-        // User should be automatically logged in since we're creating without email confirmation
-      } else if (authMode === 'new-password') {
-        if (password !== confirmPassword) {
-          throw new Error("Passwords do not match");
+      } else if (authMode === 'forgot-password') {
+        await sendOTP(email);
+        toast.success("OTP code sent to your email!");
+        setAuthMode('verify-otp');
+        setResendCooldown(60);
+      } else if (authMode === 'verify-otp') {
+        if (otp.length !== 6) {
+          throw new Error("Please enter a valid 6-digit OTP code");
         }
         
-        if (password.length < 6) {
-          throw new Error("Password must be at least 6 characters");
+        await verifyOTP(email, otp, 'password_reset');
+        toast.success("OTP verified! Set your new password.");
+        setAuthMode('new-password');
+      } else if (authMode === 'new-password') {
+        if (password.length < 8) {
+          throw new Error("Password must be at least 8 characters");
+        }
+        
+        if (password !== confirmPassword) {
+          throw new Error("Passwords do not match");
         }
 
         await resetPassword(email, password);
@@ -190,27 +211,6 @@ const Auth = () => {
 
         if (error) throw error;
         toast.success("Welcome back!");
-      } else if (authMode === 'signup') {
-        if (password.length < 6) {
-          throw new Error("Password must be at least 6 characters");
-        }
-        
-        // First check if email already exists
-        const { data: existingUsers } = await supabase
-          .from('profiles')
-          .select('email')
-          .eq('email', email.toLowerCase())
-          .single();
-        
-        if (existingUsers) {
-          throw new Error("An account with this email already exists. Please sign in instead.");
-        }
-        
-        // Send OTP for email verification before creating account
-        await sendOTP(email, 'email_verification');
-        toast.success("Verification code sent to your email!");
-        setAuthMode('signup-verify-otp');
-        setResendCooldown(60);
       }
     } catch (error: any) {
       console.error("Auth error:", error);
@@ -374,8 +374,11 @@ const Auth = () => {
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
                   required
-                  minLength={6}
+                  minLength={8}
                 />
+                {authMode === 'signup' && (
+                  <p className="text-xs text-muted-foreground">Minimum 8 characters</p>
+                )}
               </div>
             )}
 
@@ -391,8 +394,9 @@ const Auth = () => {
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="••••••••"
                     required
-                    minLength={6}
+                    minLength={8}
                   />
+                  <p className="text-xs text-muted-foreground">Minimum 8 characters</p>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="confirmPassword">Confirm Password</Label>
@@ -403,7 +407,7 @@ const Auth = () => {
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     placeholder="••••••••"
                     required
-                    minLength={6}
+                    minLength={8}
                   />
                 </div>
               </>
