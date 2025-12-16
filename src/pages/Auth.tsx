@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { Check, X } from "lucide-react";
 
 type AuthMode = 'login' | 'signup' | 'forgot-password' | 'verify-otp' | 'new-password' | 'signup-verify-otp';
 
@@ -21,7 +22,16 @@ const Auth = () => {
   const [otp, setOtp] = useState("");
   const [loading, setLoading] = useState(false);
   const [resendCooldown, setResendCooldown] = useState(0);
+  const [showPasswordRequirements, setShowPasswordRequirements] = useState(false);
   const navigate = useNavigate();
+
+  // Password validation checks
+  const hasMinLength = password.length >= 8;
+  const hasUppercase = /[A-Z]/.test(password);
+  const hasLowercase = /[a-z]/.test(password);
+  const hasNumber = /[0-9]/.test(password);
+  const passwordsMatch = password === confirmPassword && confirmPassword.length > 0;
+  const isPasswordValid = hasMinLength && hasUppercase && hasLowercase && hasNumber;
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -128,8 +138,12 @@ const Auth = () => {
     try {
       if (authMode === 'signup') {
         // Validate password BEFORE sending OTP
-        if (password.length < 8) {
-          throw new Error("Password must be at least 8 characters");
+        if (!isPasswordValid) {
+          throw new Error("Password must be at least 8 characters with uppercase, lowercase, and a number");
+        }
+        
+        if (password !== confirmPassword) {
+          throw new Error("Passwords do not match");
         }
         
         // First check if email already exists
@@ -187,9 +201,11 @@ const Auth = () => {
         await verifyOTP(email, otp, 'password_reset');
         toast.success("OTP verified! Set your new password.");
         setAuthMode('new-password');
+        setPassword("");
+        setConfirmPassword("");
       } else if (authMode === 'new-password') {
-        if (password.length < 8) {
-          throw new Error("Password must be at least 8 characters");
+        if (!isPasswordValid) {
+          throw new Error("Password must be at least 8 characters with uppercase, lowercase, and a number");
         }
         
         if (password !== confirmPassword) {
@@ -263,6 +279,29 @@ const Auth = () => {
     setConfirmPassword("");
     setResendCooldown(0);
     setRateLimitMessage("");
+    setShowPasswordRequirements(false);
+  };
+
+  const RequirementItem = ({ met, text }: { met: boolean; text: string }) => (
+    <div className="flex items-center gap-2 text-sm">
+      {met ? (
+        <Check className="h-4 w-4 text-green-500" />
+      ) : (
+        <X className="h-4 w-4 text-muted-foreground" />
+      )}
+      <span className={met ? "text-green-500" : "text-muted-foreground"}>{text}</span>
+    </div>
+  );
+
+  const isSubmitDisabled = () => {
+    if (loading) return true;
+    if (authMode === 'signup') {
+      return !isPasswordValid || !passwordsMatch;
+    }
+    if (authMode === 'new-password') {
+      return !isPasswordValid || !passwordsMatch;
+    }
+    return false;
   };
 
   return (
@@ -372,12 +411,48 @@ const Auth = () => {
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
+                  onFocus={() => authMode === 'signup' && setShowPasswordRequirements(true)}
                   placeholder="••••••••"
                   required
-                  minLength={8}
                 />
-                {authMode === 'signup' && (
-                  <p className="text-xs text-muted-foreground">Minimum 8 characters</p>
+                {authMode === 'signup' && showPasswordRequirements && (
+                  <div className="mt-2 p-3 bg-muted rounded-lg space-y-1">
+                    <p className="text-sm font-medium text-foreground mb-2">Password must contain:</p>
+                    <RequirementItem met={hasMinLength} text="At least 8 characters" />
+                    <RequirementItem met={hasUppercase} text="At least one uppercase letter" />
+                    <RequirementItem met={hasLowercase} text="At least one lowercase letter" />
+                    <RequirementItem met={hasNumber} text="At least one number" />
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Confirm Password - for signup */}
+            {authMode === 'signup' && (
+              <div className="space-y-2">
+                <Label htmlFor="confirmPassword">Re-enter Password</Label>
+                <Input
+                  id="confirmPassword"
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  placeholder="••••••••"
+                  required
+                />
+                {confirmPassword && (
+                  <div className="mt-1 flex items-center gap-2 text-sm">
+                    {passwordsMatch ? (
+                      <>
+                        <Check className="h-4 w-4 text-green-500" />
+                        <span className="text-green-500">Passwords match</span>
+                      </>
+                    ) : (
+                      <>
+                        <X className="h-4 w-4 text-destructive" />
+                        <span className="text-destructive">Passwords do not match</span>
+                      </>
+                    )}
+                  </div>
                 )}
               </div>
             )}
@@ -392,14 +467,22 @@ const Auth = () => {
                     type="password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
+                    onFocus={() => setShowPasswordRequirements(true)}
                     placeholder="••••••••"
                     required
-                    minLength={8}
                   />
-                  <p className="text-xs text-muted-foreground">Minimum 8 characters</p>
+                  {showPasswordRequirements && (
+                    <div className="mt-2 p-3 bg-muted rounded-lg space-y-1">
+                      <p className="text-sm font-medium text-foreground mb-2">Password must contain:</p>
+                      <RequirementItem met={hasMinLength} text="At least 8 characters" />
+                      <RequirementItem met={hasUppercase} text="At least one uppercase letter" />
+                      <RequirementItem met={hasLowercase} text="At least one lowercase letter" />
+                      <RequirementItem met={hasNumber} text="At least one number" />
+                    </div>
+                  )}
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="confirmPassword">Confirm Password</Label>
+                  <Label htmlFor="confirmPassword">Re-enter Password</Label>
                   <Input
                     id="confirmPassword"
                     type="password"
@@ -407,8 +490,22 @@ const Auth = () => {
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     placeholder="••••••••"
                     required
-                    minLength={8}
                   />
+                  {confirmPassword && (
+                    <div className="mt-1 flex items-center gap-2 text-sm">
+                      {passwordsMatch ? (
+                        <>
+                          <Check className="h-4 w-4 text-green-500" />
+                          <span className="text-green-500">Passwords match</span>
+                        </>
+                      ) : (
+                        <>
+                          <X className="h-4 w-4 text-destructive" />
+                          <span className="text-destructive">Passwords do not match</span>
+                        </>
+                      )}
+                    </div>
+                  )}
                 </div>
               </>
             )}
@@ -416,7 +513,7 @@ const Auth = () => {
             <Button
               type="submit"
               className="w-full"
-              disabled={loading}
+              disabled={isSubmitDisabled()}
             >
               {getButtonText()}
             </Button>
