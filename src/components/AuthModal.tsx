@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Check, X } from "lucide-react";
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -19,6 +20,16 @@ const AuthModal = ({ isOpen, type, onClose, onSwitch, onSubmit }: AuthModalProps
     confirmPassword: "",
   });
 
+  const [showPasswordRequirements, setShowPasswordRequirements] = useState(false);
+
+  // Password validation checks
+  const hasMinLength = formData.password.length >= 8;
+  const hasUppercase = /[A-Z]/.test(formData.password);
+  const hasLowercase = /[a-z]/.test(formData.password);
+  const hasNumber = /[0-9]/.test(formData.password);
+  const passwordsMatch = formData.password === formData.confirmPassword && formData.confirmPassword.length > 0;
+  const isPasswordValid = hasMinLength && hasUppercase && hasLowercase && hasNumber;
+
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = "hidden";
@@ -34,8 +45,29 @@ const AuthModal = ({ isOpen, type, onClose, onSwitch, onSubmit }: AuthModalProps
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (type === "signup") {
+      if (!isPasswordValid) {
+        return;
+      }
+      if (formData.password !== formData.confirmPassword) {
+        return;
+      }
+    }
+    
     onSubmit(formData);
   };
+
+  const RequirementItem = ({ met, text }: { met: boolean; text: string }) => (
+    <div className="flex items-center gap-2 text-sm">
+      {met ? (
+        <Check className="h-4 w-4 text-green-500" />
+      ) : (
+        <X className="h-4 w-4 text-muted-foreground" />
+      )}
+      <span className={met ? "text-green-500" : "text-muted-foreground"}>{text}</span>
+    </div>
+  );
 
   return (
     <>
@@ -99,14 +131,24 @@ const AuthModal = ({ isOpen, type, onClose, onSwitch, onSubmit }: AuthModalProps
               required
               value={formData.password}
               onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+              onFocus={() => type === "signup" && setShowPasswordRequirements(true)}
               className="mt-1"
             />
+            {type === "signup" && showPasswordRequirements && (
+              <div className="mt-2 p-3 bg-muted rounded-lg space-y-1">
+                <p className="text-sm font-medium text-foreground mb-2">Password must contain:</p>
+                <RequirementItem met={hasMinLength} text="At least 8 characters" />
+                <RequirementItem met={hasUppercase} text="At least one uppercase letter" />
+                <RequirementItem met={hasLowercase} text="At least one lowercase letter" />
+                <RequirementItem met={hasNumber} text="At least one number" />
+              </div>
+            )}
           </div>
 
           {type === "signup" && (
             <div>
               <Label htmlFor="confirmPassword" className="text-sm font-medium mb-1">
-                Confirm Password
+                Re-enter Password
               </Label>
               <Input
                 id="confirmPassword"
@@ -116,10 +158,29 @@ const AuthModal = ({ isOpen, type, onClose, onSwitch, onSubmit }: AuthModalProps
                 onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
                 className="mt-1"
               />
+              {formData.confirmPassword && (
+                <div className="mt-1 flex items-center gap-2 text-sm">
+                  {passwordsMatch ? (
+                    <>
+                      <Check className="h-4 w-4 text-green-500" />
+                      <span className="text-green-500">Passwords match</span>
+                    </>
+                  ) : (
+                    <>
+                      <X className="h-4 w-4 text-destructive" />
+                      <span className="text-destructive">Passwords do not match</span>
+                    </>
+                  )}
+                </div>
+              )}
             </div>
           )}
 
-          <Button type="submit" className="w-full">
+          <Button 
+            type="submit" 
+            className="w-full"
+            disabled={type === "signup" && (!isPasswordValid || !passwordsMatch)}
+          >
             {type === "login" ? "Login" : "Create Account"}
           </Button>
         </form>
