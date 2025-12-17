@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AddFundsModal } from "@/components/AddFundsModal";
 import { AccountSettingsModal } from "@/components/AccountSettingsModal";
+import { DashboardSkeleton } from "@/components/LoadingSkeleton";
 import { toast } from "sonner";
 import { Wallet, Settings } from "lucide-react";
 
@@ -26,6 +27,7 @@ const Dashboard = () => {
   const [notes, setNotes] = useState("");
   const [addFundsOpen, setAddFundsOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -50,9 +52,12 @@ const Dashboard = () => {
       return;
     }
     setUser(session.user);
-    fetchProfile(session.user.id);
-    fetchOrders(session.user.id);
-    checkAdminStatus(session.user.id);
+    await Promise.all([
+      fetchProfile(session.user.id),
+      fetchOrders(session.user.id),
+      checkAdminStatus(session.user.id)
+    ]);
+    setIsLoading(false);
   };
 
   const fetchProfile = async (userId: string) => {
@@ -88,7 +93,17 @@ const Dashboard = () => {
     setPaymentDialogOpen(false);
   };
 
-  if (!profile) return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex flex-col">
+        <Header />
+        <main className="flex-grow container mx-auto px-4 py-8">
+          <DashboardSkeleton />
+        </main>
+        <Footer />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -97,7 +112,7 @@ const Dashboard = () => {
         <div className="mb-8 flex justify-between items-center">
           <div>
             <h1 className="text-4xl font-bold">Dashboard</h1>
-            <p className="text-muted-foreground mt-2">Welcome, {profile.full_name || user.email}</p>
+            <p className="text-muted-foreground mt-2">Welcome, {profile?.full_name || user?.email}</p>
           </div>
           <div className="flex gap-2">
             {isAdmin && <Button variant="outline" onClick={() => navigate("/admin")}>Admin</Button>}
@@ -108,7 +123,7 @@ const Dashboard = () => {
           </div>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-          <Card><CardHeader><CardTitle>Balance</CardTitle></CardHeader><CardContent><div className="text-3xl font-bold">₦{parseFloat(profile.balance).toFixed(2)}</div><Button className="w-full mt-4" onClick={() => setAddFundsOpen(true)}><Wallet className="mr-2 h-4 w-4" />Add Funds</Button></CardContent></Card>
+          <Card><CardHeader><CardTitle>Balance</CardTitle></CardHeader><CardContent><div className="text-3xl font-bold">₦{parseFloat(profile?.balance || 0).toFixed(2)}</div><Button className="w-full mt-4" onClick={() => setAddFundsOpen(true)}><Wallet className="mr-2 h-4 w-4" />Add Funds</Button></CardContent></Card>
           <Card><CardHeader><CardTitle>Orders</CardTitle></CardHeader><CardContent><div className="text-3xl font-bold">{totalOrders}</div><Button className="w-full mt-4" onClick={() => navigate("/orders")}>View All Orders</Button></CardContent></Card>
           <Card><CardHeader><CardTitle>Transactions</CardTitle></CardHeader><CardContent><p className="text-muted-foreground text-sm mb-4">View deposits & refunds</p><Button className="w-full" onClick={() => navigate("/transactions")}>View History</Button></CardContent></Card>
           <Card><CardHeader><CardTitle>Quick Actions</CardTitle></CardHeader><CardContent><Button className="w-full" onClick={() => navigate("/services")}>New Order</Button></CardContent></Card>
