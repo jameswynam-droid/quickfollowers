@@ -85,11 +85,19 @@ const Auth = () => {
       body: { email: emailAddress, code, type }
     });
 
+    // Handle edge function errors with user-friendly messages
     if (response.error) {
-      throw new Error(response.error.message || "Failed to verify OTP");
+      const errorBody = response.error.message;
+      if (errorBody?.includes("Invalid or expired OTP")) {
+        throw new Error("Invalid or expired verification code. Please try again.");
+      }
+      throw new Error("Failed to verify code. Please try again.");
     }
 
     if (response.data?.error) {
+      if (response.data.error.includes("Invalid or expired")) {
+        throw new Error("Invalid or expired verification code. Please try again.");
+      }
       throw new Error(response.data.error);
     }
 
