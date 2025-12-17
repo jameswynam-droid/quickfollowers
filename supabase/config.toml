@@ -1,15 +1,39 @@
 project_id = "ckradhwidegrbmdiynts"
 
-[functions.sync-services]
+[functions.approve-payment]
+verify_jwt = true
+
+[functions.complete-email-change]
 verify_jwt = false
 
-[functions.verify-payment]
+[functions.confirm-email-change]
+verify_jwt = false
+
+[functions.initialize-payment]
+verify_jwt = true
+
+[functions.initiate-email-change]
+verify_jwt = true
+
+[functions.place-order]
+verify_jwt = true
+
+[functions.reset-password]
+verify_jwt = false
+
+[functions.send-otp]
 verify_jwt = false
 
 [functions.sync-order-status]
 verify_jwt = false
 
-[functions.confirm-email-change]
+[functions.sync-services]
+verify_jwt = false
+
+[functions.verify-otp]
+verify_jwt = false
+
+[functions.verify-payment]
 verify_jwt = false
 
 [auth]
