@@ -15,14 +15,6 @@ serve(async (req) => {
   }
 
   try {
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
-      return new Response(
-        JSON.stringify({ error: "Authorization required" }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
     const { newEmail, code } = await req.json();
 
     if (!newEmail || !code) {
@@ -33,25 +25,12 @@ serve(async (req) => {
     }
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
-
-    // Get current user from token
-    const token = authHeader.replace("Bearer ", "");
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-    
-    if (authError || !user) {
-      return new Response(
-        JSON.stringify({ error: "Invalid authentication" }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    // Find pending email change by new email first
     const normalizedEmail = newEmail.toLowerCase().trim();
     
     console.log("Looking for pending email change for new email:", normalizedEmail);
     
-    // First, find ANY pending change for this new email that has old email confirmed
-    const { data: pendingChangeByEmail, error: findByEmailError } = await supabase
+    // Find pending email change by new email that has old email confirmed
+    const { data: pendingChange, error: findError } = await supabase
       .from("pending_email_changes")
       .select("*")
       .eq("new_email", normalizedEmail)
@@ -61,25 +40,14 @@ serve(async (req) => {
       .limit(1)
       .single();
 
-    console.log("Pending change by email lookup:", pendingChangeByEmail, "error:", findByEmailError);
+    console.log("Pending change lookup:", pendingChange, "error:", findError);
 
-    if (findByEmailError || !pendingChangeByEmail) {
+    if (findError || !pendingChange) {
       return new Response(
         JSON.stringify({ error: "No pending email change found. Please click the confirmation link in your old email first, then try again." }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
-
-    // Check if the current user matches the one who initiated the email change
-    if (pendingChangeByEmail.user_id !== user.id) {
-      console.log("User mismatch! Session user:", user.id, "Pending change user:", pendingChangeByEmail.user_id);
-      return new Response(
-        JSON.stringify({ error: "Please sign in with your original account (" + pendingChangeByEmail.old_email + ") to complete the email change." }),
-        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    const pendingChange = pendingChangeByEmail;
 
     // Check if expired
     if (new Date(pendingChange.expires_at) < new Date()) {
@@ -89,15 +57,13 @@ serve(async (req) => {
       );
     }
 
-    // Verify OTP - search with lowercase email to match how it was stored
-    const normalizedNewEmail = newEmail.toLowerCase().trim();
-    
-    console.log("Looking for OTP with email:", normalizedNewEmail, "code:", code, "type: email_change");
+    // Verify OTP
+    console.log("Looking for OTP with email:", normalizedEmail, "code:", code, "type: email_change");
     
     const { data: otpData, error: otpError } = await supabase
       .from("otp_codes")
       .select("*")
-      .eq("email", normalizedNewEmail)
+      .eq("email", normalizedEmail)
       .eq("code", code)
       .eq("type", "email_change")
       .eq("used", false)
@@ -115,17 +81,15 @@ serve(async (req) => {
       );
     }
 
-    // OTP is valid (expiry already checked in query above)
-
     // Mark OTP as used
     await supabase
       .from("otp_codes")
       .update({ used: true })
       .eq("id", otpData.id);
 
-    // Update user email in Supabase Auth
-    const { error: updateAuthError } = await supabase.auth.admin.updateUserById(user.id, {
-      email: newEmail.toLowerCase(),
+    // Update user email in Supabase Auth using the user_id from the pending change
+    const { error: updateAuthError } = await supabase.auth.admin.updateUserById(pendingChange.user_id, {
+      email: normalizedEmail,
       email_confirm: true,
     });
 
@@ -137,8 +101,8 @@ serve(async (req) => {
     // Update email in profiles table
     const { error: profileError } = await supabase
       .from("profiles")
-      .update({ email: newEmail.toLowerCase() })
-      .eq("id", user.id);
+      .update({ email: normalizedEmail })
+      .eq("id", pendingChange.user_id);
 
     if (profileError) {
       console.error("Profile update error:", profileError);
@@ -153,7 +117,7 @@ serve(async (req) => {
       })
       .eq("id", pendingChange.id);
 
-    console.log("Email change completed successfully");
+    console.log("Email change completed successfully for user:", pendingChange.user_id);
 
     return new Response(
       JSON.stringify({ 
