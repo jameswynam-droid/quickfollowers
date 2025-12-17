@@ -45,28 +45,41 @@ serve(async (req) => {
       );
     }
 
-    // Find pending email change that has old email confirmed
+    // Find pending email change by new email first
     const normalizedEmail = newEmail.toLowerCase().trim();
     
-    console.log("Looking for pending email change for user:", user.id, "new email:", normalizedEmail);
+    console.log("Looking for pending email change for new email:", normalizedEmail);
     
-    const { data: pendingChange, error: findError } = await supabase
+    // First, find ANY pending change for this new email that has old email confirmed
+    const { data: pendingChangeByEmail, error: findByEmailError } = await supabase
       .from("pending_email_changes")
       .select("*")
-      .eq("user_id", user.id)
       .eq("new_email", normalizedEmail)
       .eq("old_email_confirmed", true)
       .is("completed_at", null)
+      .order("created_at", { ascending: false })
+      .limit(1)
       .single();
 
-    console.log("Pending change lookup result:", pendingChange, "error:", findError);
+    console.log("Pending change by email lookup:", pendingChangeByEmail, "error:", findByEmailError);
 
-    if (findError || !pendingChange) {
+    if (findByEmailError || !pendingChangeByEmail) {
       return new Response(
-        JSON.stringify({ error: "No pending email change found or old email not confirmed. Please click the confirmation link in your old email first." }),
+        JSON.stringify({ error: "No pending email change found. Please click the confirmation link in your old email first, then try again." }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
+
+    // Check if the current user matches the one who initiated the email change
+    if (pendingChangeByEmail.user_id !== user.id) {
+      console.log("User mismatch! Session user:", user.id, "Pending change user:", pendingChangeByEmail.user_id);
+      return new Response(
+        JSON.stringify({ error: "Please sign in with your original account (" + pendingChangeByEmail.old_email + ") to complete the email change." }),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const pendingChange = pendingChangeByEmail;
 
     // Check if expired
     if (new Date(pendingChange.expires_at) < new Date()) {
