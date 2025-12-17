@@ -46,14 +46,20 @@ serve(async (req) => {
     }
 
     // Find pending email change that has old email confirmed
+    const normalizedEmail = newEmail.toLowerCase().trim();
+    
+    console.log("Looking for pending email change for user:", user.id, "new email:", normalizedEmail);
+    
     const { data: pendingChange, error: findError } = await supabase
       .from("pending_email_changes")
       .select("*")
       .eq("user_id", user.id)
-      .eq("new_email", newEmail.toLowerCase())
+      .eq("new_email", normalizedEmail)
       .eq("old_email_confirmed", true)
       .is("completed_at", null)
       .single();
+
+    console.log("Pending change lookup result:", pendingChange, "error:", findError);
 
     if (findError || !pendingChange) {
       return new Response(
@@ -70,15 +76,24 @@ serve(async (req) => {
       );
     }
 
-    // Verify OTP
+    // Verify OTP - search with lowercase email to match how it was stored
+    const normalizedNewEmail = newEmail.toLowerCase().trim();
+    
+    console.log("Looking for OTP with email:", normalizedNewEmail, "code:", code, "type: email_change");
+    
     const { data: otpData, error: otpError } = await supabase
       .from("otp_codes")
       .select("*")
-      .eq("email", newEmail.toLowerCase())
+      .eq("email", normalizedNewEmail)
       .eq("code", code)
       .eq("type", "email_change")
       .eq("used", false)
+      .gt("expires_at", new Date().toISOString())
+      .order("created_at", { ascending: false })
+      .limit(1)
       .single();
+
+    console.log("OTP lookup result:", otpData, "error:", otpError);
 
     if (otpError || !otpData) {
       return new Response(
@@ -87,13 +102,7 @@ serve(async (req) => {
       );
     }
 
-    // Check if OTP expired
-    if (new Date(otpData.expires_at) < new Date()) {
-      return new Response(
-        JSON.stringify({ error: "Verification code has expired. Please request a new one." }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
+    // OTP is valid (expiry already checked in query above)
 
     // Mark OTP as used
     await supabase
