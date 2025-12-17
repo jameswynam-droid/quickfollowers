@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -17,11 +17,13 @@ const ConfirmEmailChange = () => {
   const [otp, setOtp] = useState("");
   const [verifying, setVerifying] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const hasConfirmed = useRef(false);
 
   useEffect(() => {
-    if (token) {
+    if (token && !hasConfirmed.current) {
+      hasConfirmed.current = true;
       confirmToken();
-    } else {
+    } else if (!token) {
       setStatus("error");
       setErrorMessage("Invalid confirmation link.");
     }
@@ -59,22 +61,18 @@ const ConfirmEmailChange = () => {
 
     setVerifying(true);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      
       const response = await supabase.functions.invoke("complete-email-change", {
         body: { newEmail, code: otp }
       });
 
-      if (response.error) {
-        const errorMsg = response.error.message;
-        if (errorMsg?.includes("Invalid or expired")) {
-          throw new Error("Invalid or expired verification code. Please try again.");
-        }
-        throw new Error(errorMsg || "Failed to complete email change");
-      }
-
+      // Check for error in response data first (edge function returned error)
       if (response.data?.error) {
         throw new Error(response.data.error);
+      }
+
+      // Check for function invocation error
+      if (response.error) {
+        throw new Error("Failed to complete email change. Please try again.");
       }
 
       toast.success("Email updated successfully! Please sign in with your new email.");
@@ -84,7 +82,7 @@ const ConfirmEmailChange = () => {
       navigate("/auth");
     } catch (error: any) {
       console.error("Verification error:", error);
-      toast.error(error.message || "Failed to verify code");
+      toast.error(error.message || "Failed to verify code. Please try again.");
     } finally {
       setVerifying(false);
     }
