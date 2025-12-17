@@ -4,11 +4,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
+import { PasswordInput } from "@/components/PasswordInput";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Check, X } from "lucide-react";
+import { Check, X, Mail, AlertTriangle } from "lucide-react";
 
-type SettingsMode = 'menu' | 'change-password' | 'change-password-otp' | 'change-password-new' | 'change-email' | 'change-email-otp' | 'change-email-new';
+type SettingsMode = 'menu' | 'change-password' | 'change-password-otp' | 'change-password-new' | 'change-email' | 'change-email-pending';
 
 interface AccountSettingsModalProps {
   open: boolean;
@@ -98,9 +99,7 @@ export const AccountSettingsModal = ({ open, onOpenChange, userEmail }: AccountS
       body: { email, code, type }
     });
 
-    // Handle edge function errors with user-friendly messages
     if (response.error) {
-      // Check if the error contains a specific message from the edge function
       const errorBody = response.error.message;
       if (errorBody?.includes("Invalid or expired OTP")) {
         throw new Error("Invalid or expired verification code. Please try again.");
@@ -183,46 +182,29 @@ export const AccountSettingsModal = ({ open, onOpenChange, userEmail }: AccountS
       return;
     }
 
-    setLoading(true);
-    setRateLimitMessage("");
-    try {
-      await sendOTP(newEmail, 'email_change');
-      toast.success("Verification code sent to your new email!");
-      setMode('change-email-otp');
-      setResendCooldown(60);
-    } catch (error: any) {
-      if (error.message !== "Rate limit exceeded") {
-        toast.error(error.message || "Failed to send OTP");
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleVerifyEmailOTP = async () => {
-    if (otp.length !== 6) {
-      toast.error("Please enter a valid 6-digit code");
+    if (newEmail.toLowerCase() === userEmail.toLowerCase()) {
+      toast.error("New email must be different from current email");
       return;
     }
-    
+
     setLoading(true);
     try {
-      await verifyOTP(newEmail, otp, 'email_change');
-      
-      // Update email in Supabase Auth
-      const { error } = await supabase.auth.updateUser({ email: newEmail });
-      if (error) throw error;
-      
-      // Update email in profiles table
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        await supabase.from('profiles').update({ email: newEmail.toLowerCase() }).eq('id', user.id);
+      const response = await supabase.functions.invoke('initiate-email-change', {
+        body: { newEmail }
+      });
+
+      if (response.error) {
+        throw new Error(response.error.message || "Failed to initiate email change");
       }
-      
-      toast.success("Email updated successfully!");
-      onOpenChange(false);
+
+      if (response.data?.error) {
+        throw new Error(response.data.error);
+      }
+
+      toast.success("Confirmation email sent to your current email address!");
+      setMode('change-email-pending');
     } catch (error: any) {
-      toast.error(error.message || "Failed to update email");
+      toast.error(error.message || "Failed to initiate email change");
     } finally {
       setLoading(false);
     }
@@ -234,9 +216,7 @@ export const AccountSettingsModal = ({ open, onOpenChange, userEmail }: AccountS
     setLoading(true);
     setRateLimitMessage("");
     try {
-      const email = mode === 'change-email-otp' ? newEmail : userEmail;
-      const type = mode === 'change-email-otp' ? 'email_change' : 'password_change';
-      await sendOTP(email, type);
+      await sendOTP(userEmail, 'password_change');
       toast.success("New verification code sent!");
       setResendCooldown(60);
     } catch (error: any) {
@@ -318,8 +298,7 @@ export const AccountSettingsModal = ({ open, onOpenChange, userEmail }: AccountS
           <div className="space-y-4">
             <div className="space-y-2">
               <Label>New Password</Label>
-              <Input
-                type="password"
+              <PasswordInput
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
                 onFocus={() => setShowPasswordRequirements(true)}
@@ -337,8 +316,7 @@ export const AccountSettingsModal = ({ open, onOpenChange, userEmail }: AccountS
             </div>
             <div className="space-y-2">
               <Label>Confirm Password</Label>
-              <Input
-                type="password"
+              <PasswordInput
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 placeholder="••••••••"
@@ -371,6 +349,18 @@ export const AccountSettingsModal = ({ open, onOpenChange, userEmail }: AccountS
       case 'change-email':
         return (
           <div className="space-y-4">
+            <div className="p-4 bg-muted rounded-lg">
+              <h4 className="font-medium text-sm mb-2 flex items-center gap-2">
+                <AlertTriangle className="h-4 w-4 text-amber-500" />
+                How email change works:
+              </h4>
+              <ol className="text-sm text-muted-foreground space-y-1 list-decimal list-inside">
+                <li>We'll send a confirmation link to your current email ({userEmail})</li>
+                <li>Click the link to confirm you want to change your email</li>
+                <li>A verification code will be sent to your new email</li>
+                <li>Enter the code to complete the change</li>
+              </ol>
+            </div>
             <div className="space-y-2">
               <Label>Current Email</Label>
               <Input value={userEmail} disabled className="bg-muted" />
@@ -387,47 +377,37 @@ export const AccountSettingsModal = ({ open, onOpenChange, userEmail }: AccountS
             <div className="flex gap-2">
               <Button variant="outline" className="flex-1" onClick={() => setMode('menu')}>Back</Button>
               <Button className="flex-1" onClick={handleStartEmailChange} disabled={loading}>
-                {loading ? "Sending..." : "Send Verification"}
+                {loading ? "Sending..." : "Send Confirmation"}
               </Button>
             </div>
           </div>
         );
 
-      case 'change-email-otp':
+      case 'change-email-pending':
         return (
-          <div className="space-y-4">
-            <p className="text-sm text-muted-foreground text-center">
-              Enter the 6-digit code sent to {newEmail}
-            </p>
+          <div className="space-y-4 text-center">
             <div className="flex justify-center">
-              <InputOTP value={otp} onChange={setOtp} maxLength={6}>
-                <InputOTPGroup>
-                  <InputOTPSlot index={0} />
-                  <InputOTPSlot index={1} />
-                  <InputOTPSlot index={2} />
-                  <InputOTPSlot index={3} />
-                  <InputOTPSlot index={4} />
-                  <InputOTPSlot index={5} />
-                </InputOTPGroup>
-              </InputOTP>
+              <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center">
+                <Mail className="h-8 w-8 text-primary" />
+              </div>
             </div>
-            <p className="text-xs text-muted-foreground text-center">
-              Didn't receive the code?{" "}
-              <button
-                type="button"
-                onClick={handleResendOTP}
-                disabled={resendCooldown > 0 || loading}
-                className={`text-primary hover:underline ${resendCooldown > 0 ? 'opacity-50 cursor-not-allowed' : ''}`}
-              >
-                {resendCooldown > 0 ? `Resend in ${resendCooldown}s` : 'Resend'}
-              </button>
+            <h4 className="font-semibold">Check Your Current Email</h4>
+            <p className="text-sm text-muted-foreground">
+              We've sent a confirmation link to <strong>{userEmail}</strong>. 
+              Please click the link in that email to proceed with the email change.
             </p>
-            <div className="flex gap-2">
-              <Button variant="outline" className="flex-1" onClick={() => setMode('change-email')}>Back</Button>
-              <Button className="flex-1" onClick={handleVerifyEmailOTP} disabled={loading}>
-                {loading ? "Verifying..." : "Verify & Update"}
-              </Button>
+            <p className="text-xs text-muted-foreground">
+              After clicking the confirmation link, you'll be taken to a page where you can enter 
+              the verification code sent to your new email address.
+            </p>
+            <div className="p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
+              <p className="text-sm text-amber-800 dark:text-amber-200">
+                <strong>Important:</strong> If you didn't request this change, please change your password immediately.
+              </p>
             </div>
+            <Button variant="outline" className="w-full" onClick={() => onOpenChange(false)}>
+              Done
+            </Button>
           </div>
         );
 
@@ -442,8 +422,9 @@ export const AccountSettingsModal = ({ open, onOpenChange, userEmail }: AccountS
       case 'change-password-new':
         return "Change Password";
       case 'change-email':
-      case 'change-email-otp':
         return "Change Email";
+      case 'change-email-pending':
+        return "Confirmation Sent";
       default:
         return "Account Settings";
     }

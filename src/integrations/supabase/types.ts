@@ -185,6 +185,45 @@ export type Database = {
           },
         ]
       }
+      pending_email_changes: {
+        Row: {
+          completed_at: string | null
+          confirmation_token: string
+          created_at: string
+          expires_at: string
+          id: string
+          new_email: string
+          new_email_verified: boolean
+          old_email: string
+          old_email_confirmed: boolean
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          confirmation_token: string
+          created_at?: string
+          expires_at: string
+          id?: string
+          new_email: string
+          new_email_verified?: boolean
+          old_email: string
+          old_email_confirmed?: boolean
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          confirmation_token?: string
+          created_at?: string
+          expires_at?: string
+          id?: string
+          new_email?: string
+          new_email_verified?: boolean
+          old_email?: string
+          old_email_confirmed?: boolean
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           balance: number

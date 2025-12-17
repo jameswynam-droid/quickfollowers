@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { PasswordInput } from "@/components/PasswordInput";
 import { Check, X } from "lucide-react";
 
 interface AuthModalProps {
@@ -125,9 +126,8 @@ const AuthModal = ({ isOpen, type, onClose, onSwitch, onSubmit }: AuthModalProps
             <Label htmlFor="password" className="text-sm font-medium mb-1">
               Password
             </Label>
-            <Input
+            <PasswordInput
               id="password"
-              type="password"
               required
               value={formData.password}
               onChange={(e) => setFormData({ ...formData, password: e.target.value })}
@@ -150,9 +150,8 @@ const AuthModal = ({ isOpen, type, onClose, onSwitch, onSubmit }: AuthModalProps
               <Label htmlFor="confirmPassword" className="text-sm font-medium mb-1">
                 Re-enter Password
               </Label>
-              <Input
+              <PasswordInput
                 id="confirmPassword"
-                type="password"
                 required
                 value={formData.confirmPassword}
                 onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}

@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
+import { PasswordInput } from "@/components/PasswordInput";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Check, X } from "lucide-react";
@@ -85,7 +86,6 @@ const Auth = () => {
       body: { email: emailAddress, code, type }
     });
 
-    // Handle edge function errors with user-friendly messages
     if (response.error) {
       const errorBody = response.error.message;
       if (errorBody?.includes("Invalid or expired OTP")) {
@@ -414,9 +414,8 @@ const Auth = () => {
                     </button>
                   )}
                 </div>
-                <Input
+                <PasswordInput
                   id="password"
-                  type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   onFocus={() => authMode === 'signup' && setShowPasswordRequirements(true)}
@@ -439,9 +438,8 @@ const Auth = () => {
             {authMode === 'signup' && (
               <div className="space-y-2">
                 <Label htmlFor="confirmPassword">Re-enter Password</Label>
-                <Input
+                <PasswordInput
                   id="confirmPassword"
-                  type="password"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   placeholder="••••••••"
@@ -470,9 +468,8 @@ const Auth = () => {
               <>
                 <div className="space-y-2">
                   <Label htmlFor="newPassword">New Password</Label>
-                  <Input
+                  <PasswordInput
                     id="newPassword"
-                    type="password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     onFocus={() => setShowPasswordRequirements(true)}
@@ -491,9 +488,8 @@ const Auth = () => {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="confirmPassword">Re-enter Password</Label>
-                  <Input
+                  <PasswordInput
                     id="confirmPassword"
-                    type="password"
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     placeholder="••••••••"
