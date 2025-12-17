@@ -23,6 +23,10 @@ serve(async (req) => {
   }
 
   try {
+    if (!RESEND_API_KEY) {
+      throw new Error("Email service not configured");
+    }
+
     const { token } = await req.json();
 
     if (!token) {
@@ -52,19 +56,83 @@ serve(async (req) => {
     // Check if expired
     if (new Date(pendingChange.expires_at) < new Date()) {
       return new Response(
-        JSON.stringify({ error: "This confirmation link has expired. Please start the email change process again." }),
+        JSON.stringify({
+          error:
+            "This confirmation link has expired. Please start the email change process again.",
+        }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // Mark old email as confirmed
-    const { error: updateError } = await supabase
-      .from("pending_email_changes")
-      .update({ old_email_confirmed: true })
-      .eq("id", pendingChange.id);
+    const normalizedNewEmail = String(pendingChange.new_email).toLowerCase().trim();
 
-    if (updateError) {
-      throw new Error("Failed to confirm email change");
+    const findExistingValidOtp = async () => {
+      const { data, error } = await supabase
+        .from("otp_codes")
+        .select("id, created_at, expires_at")
+        .eq("email", normalizedNewEmail)
+        .eq("type", "email_change")
+        .eq("used", false)
+        .gt("expires_at", new Date().toISOString())
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (error) {
+        console.error("Existing OTP lookup error:", error);
+      }
+
+      return data ?? null;
+    };
+
+    // Idempotency: email clients may prefetch links (or users may open the link twice).
+    // If old email is already confirmed AND there is a still-valid OTP, do NOT send a new one.
+    let alreadyConfirmed = !!pendingChange.old_email_confirmed;
+
+    if (!alreadyConfirmed) {
+      const { data: updatedRows, error: updateError } = await supabase
+        .from("pending_email_changes")
+        .update({ old_email_confirmed: true })
+        .eq("id", pendingChange.id)
+        .eq("old_email_confirmed", false)
+        .select("id");
+
+      if (updateError) {
+        console.error("Failed to set old_email_confirmed:", updateError);
+        throw new Error("Failed to confirm email change");
+      }
+
+      // If we updated 0 rows, someone else confirmed it concurrently.
+      if (!updatedRows || updatedRows.length === 0) {
+        alreadyConfirmed = true;
+      }
+    }
+
+    if (alreadyConfirmed) {
+      let existingOtp = await findExistingValidOtp();
+
+      // Small delay to reduce duplicates during near-simultaneous requests
+      if (!existingOtp) {
+        await new Promise((r) => setTimeout(r, 300));
+        existingOtp = await findExistingValidOtp();
+      }
+
+      if (existingOtp) {
+        console.log(
+          "OTP already exists and is still valid; not sending a second code.",
+          { pending_change_id: pendingChange.id, email: normalizedNewEmail, otp_id: existingOtp.id }
+        );
+
+        return new Response(
+          JSON.stringify({
+            success: true,
+            newEmail: normalizedNewEmail,
+            message:
+              "Old email confirmed! Please use the verification code already sent to your new email address.",
+          }),
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
     }
 
     // Generate and store OTP for new email
@@ -76,19 +144,17 @@ serve(async (req) => {
     await supabase
       .from("otp_codes")
       .update({ used: true })
-      .eq("email", pendingChange.new_email)
+      .eq("email", normalizedNewEmail)
       .eq("type", "email_change")
       .eq("used", false);
 
     // Store new OTP
-    await supabase
-      .from("otp_codes")
-      .insert({
-        email: pendingChange.new_email,
-        code: otp,
-        type: "email_change",
-        expires_at: expiresAt.toISOString(),
-      });
+    await supabase.from("otp_codes").insert({
+      email: normalizedNewEmail,
+      code: otp,
+      type: "email_change",
+      expires_at: expiresAt.toISOString(),
+    });
 
     // Send OTP to new email
     const emailHtml = `
@@ -136,7 +202,7 @@ serve(async (req) => {
       },
       body: JSON.stringify({
         from: "QuickFollowers <no-reply@quickfollowers.online>",
-        to: [pendingChange.new_email],
+        to: [normalizedNewEmail],
         subject: "Verify Your New Email - QuickFollowers",
         html: emailHtml,
       }),
@@ -151,10 +217,11 @@ serve(async (req) => {
     console.log("OTP sent to new email for verification");
 
     return new Response(
-      JSON.stringify({ 
-        success: true, 
-        newEmail: pendingChange.new_email,
-        message: "Old email confirmed! A verification code has been sent to your new email address." 
+      JSON.stringify({
+        success: true,
+        newEmail: normalizedNewEmail,
+        message:
+          "Old email confirmed! A verification code has been sent to your new email address.",
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
