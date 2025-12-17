@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { Check, X } from "lucide-react";
 
 type SettingsMode = 'menu' | 'change-password' | 'change-password-otp' | 'change-password-new' | 'change-email' | 'change-email-otp' | 'change-email-new';
 
@@ -25,6 +26,15 @@ export const AccountSettingsModal = ({ open, onOpenChange, userEmail }: AccountS
   const [loading, setLoading] = useState(false);
   const [resendCooldown, setResendCooldown] = useState(0);
   const [rateLimitMessage, setRateLimitMessage] = useState("");
+  const [showPasswordRequirements, setShowPasswordRequirements] = useState(false);
+
+  // Password validation checks
+  const hasMinLength = newPassword.length >= 8;
+  const hasUppercase = /[A-Z]/.test(newPassword);
+  const hasLowercase = /[a-z]/.test(newPassword);
+  const hasNumber = /[0-9]/.test(newPassword);
+  const passwordsMatch = newPassword === confirmPassword && confirmPassword.length > 0;
+  const isPasswordValid = hasMinLength && hasUppercase && hasLowercase && hasNumber;
 
   useEffect(() => {
     if (!open) {
@@ -48,7 +58,19 @@ export const AccountSettingsModal = ({ open, onOpenChange, userEmail }: AccountS
     setOtp("");
     setResendCooldown(0);
     setRateLimitMessage("");
+    setShowPasswordRequirements(false);
   };
+
+  const RequirementItem = ({ met, text }: { met: boolean; text: string }) => (
+    <div className="flex items-center gap-2 text-sm">
+      {met ? (
+        <Check className="h-4 w-4 text-green-500" />
+      ) : (
+        <X className="h-4 w-4 text-muted-foreground" />
+      )}
+      <span className={met ? "text-green-500" : "text-muted-foreground"}>{text}</span>
+    </div>
+  );
 
   const sendOTP = async (email: string, type: string) => {
     const response = await supabase.functions.invoke('send-otp', {
@@ -76,11 +98,20 @@ export const AccountSettingsModal = ({ open, onOpenChange, userEmail }: AccountS
       body: { email, code, type }
     });
 
+    // Handle edge function errors with user-friendly messages
     if (response.error) {
-      throw new Error(response.error.message || "Failed to verify OTP");
+      // Check if the error contains a specific message from the edge function
+      const errorBody = response.error.message;
+      if (errorBody?.includes("Invalid or expired OTP")) {
+        throw new Error("Invalid or expired verification code. Please try again.");
+      }
+      throw new Error("Failed to verify code. Please try again.");
     }
 
     if (response.data?.error) {
+      if (response.data.error.includes("Invalid or expired")) {
+        throw new Error("Invalid or expired verification code. Please try again.");
+      }
       throw new Error(response.data.error);
     }
 
@@ -123,8 +154,8 @@ export const AccountSettingsModal = ({ open, onOpenChange, userEmail }: AccountS
   };
 
   const handleUpdatePassword = async () => {
-    if (newPassword.length < 6) {
-      toast.error("Password must be at least 6 characters");
+    if (!isPasswordValid) {
+      toast.error("Password must be at least 8 characters with uppercase, lowercase, and a number");
       return;
     }
     if (newPassword !== confirmPassword) {
@@ -291,9 +322,18 @@ export const AccountSettingsModal = ({ open, onOpenChange, userEmail }: AccountS
                 type="password"
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
+                onFocus={() => setShowPasswordRequirements(true)}
                 placeholder="••••••••"
-                minLength={6}
               />
+              {showPasswordRequirements && (
+                <div className="mt-2 p-3 bg-muted rounded-lg space-y-1">
+                  <p className="text-sm font-medium text-foreground mb-2">Password must contain:</p>
+                  <RequirementItem met={hasMinLength} text="At least 8 characters" />
+                  <RequirementItem met={hasUppercase} text="At least one uppercase letter" />
+                  <RequirementItem met={hasLowercase} text="At least one lowercase letter" />
+                  <RequirementItem met={hasNumber} text="At least one number" />
+                </div>
+              )}
             </div>
             <div className="space-y-2">
               <Label>Confirm Password</Label>
@@ -302,12 +342,26 @@ export const AccountSettingsModal = ({ open, onOpenChange, userEmail }: AccountS
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 placeholder="••••••••"
-                minLength={6}
               />
+              {confirmPassword && (
+                <div className="mt-1 flex items-center gap-2 text-sm">
+                  {passwordsMatch ? (
+                    <>
+                      <Check className="h-4 w-4 text-green-500" />
+                      <span className="text-green-500">Passwords match</span>
+                    </>
+                  ) : (
+                    <>
+                      <X className="h-4 w-4 text-destructive" />
+                      <span className="text-destructive">Passwords do not match</span>
+                    </>
+                  )}
+                </div>
+              )}
             </div>
             <div className="flex gap-2">
               <Button variant="outline" className="flex-1" onClick={() => setMode('menu')}>Cancel</Button>
-              <Button className="flex-1" onClick={handleUpdatePassword} disabled={loading}>
+              <Button className="flex-1" onClick={handleUpdatePassword} disabled={loading || !isPasswordValid || !passwordsMatch}>
                 {loading ? "Updating..." : "Update Password"}
               </Button>
             </div>
