@@ -135,16 +135,16 @@ const Index = () => {
       <section className="relative gradient-hero text-white overflow-hidden">
         {/* Animated background shapes */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute top-1/4 -left-20 w-96 h-96 bg-white/10 rounded-full blur-3xl animate-float"></div>
-          <div className="absolute bottom-1/4 -right-20 w-96 h-96 bg-white/10 rounded-full blur-3xl animate-float" style={{ animationDelay: '2s' }}></div>
+          <div className="absolute top-1/4 -left-20 w-48 sm:w-96 h-48 sm:h-96 bg-white/10 rounded-full blur-3xl animate-float"></div>
+          <div className="absolute bottom-1/4 -right-20 w-48 sm:w-96 h-48 sm:h-96 bg-white/10 rounded-full blur-3xl animate-float" style={{ animationDelay: '2s' }}></div>
         </div>
 
-        <div className="relative max-w-7xl mx-auto px-4 py-32 text-center">
-          <div className="inline-block mb-6 px-4 py-2 bg-white/10 backdrop-blur-sm rounded-full text-sm font-semibold border border-white/20">
+        <div className="relative max-w-7xl mx-auto px-4 py-16 sm:py-32 text-center">
+          <div className="inline-block mb-4 sm:mb-6 px-3 sm:px-4 py-1.5 sm:py-2 bg-white/10 backdrop-blur-sm rounded-full text-xs sm:text-sm font-semibold border border-white/20">
             🚀 Trusted by 500K+ Content Creators
           </div>
           
-          <h1 className="text-5xl md:text-7xl font-black leading-tight mb-6">
+          <h1 className="text-3xl sm:text-5xl md:text-7xl font-black leading-tight mb-4 sm:mb-6">
             Grow Your Social Media
             <br />
             <span className="bg-gradient-to-r from-yellow-200 via-yellow-300 to-yellow-200 bg-clip-text text-transparent">
@@ -152,17 +152,17 @@ const Index = () => {
             </span>
           </h1>
           
-          <p className="mt-6 text-lg md:text-xl max-w-3xl mx-auto text-white/90 leading-relaxed font-medium">
+          <p className="mt-4 sm:mt-6 text-sm sm:text-lg md:text-xl max-w-3xl mx-auto text-white/90 leading-relaxed font-medium px-4">
             Premium SMM Panel • Real Engagement • Instant Delivery
             <br />
             Instagram • TikTok • YouTube • X • Facebook • Spotify
           </p>
           
-          <div className="mt-12 flex justify-center">
+          <div className="mt-8 sm:mt-12 flex justify-center">
             <Button 
               size="lg" 
               onClick={() => (window.location.href = "#services")} 
-              className="btn-pulse text-lg shadow-2xl bg-white text-primary hover:bg-white/90 hover:scale-105"
+              className="btn-pulse text-sm sm:text-lg shadow-2xl bg-white text-primary hover:bg-white/90 hover:scale-105"
               variant="secondary"
             >
               <i className="fa-solid fa-rocket mr-2"></i>
@@ -171,36 +171,36 @@ const Index = () => {
           </div>
           
           {/* Stats */}
-          <div className="mt-20 grid grid-cols-3 gap-3 md:gap-8 max-w-3xl mx-auto">
-            <div className="stat-card p-3 md:p-6 bg-white/10 backdrop-blur-sm rounded-xl md:rounded-2xl border border-white/20">
-              <div className="text-2xl md:text-4xl lg:text-5xl font-black mb-1 md:mb-2">11M+</div>
-              <div className="text-white/80 text-xs md:text-sm font-medium">Orders Delivered</div>
+          <div className="mt-12 sm:mt-20 grid grid-cols-3 gap-2 sm:gap-3 md:gap-8 max-w-3xl mx-auto px-2">
+            <div className="stat-card p-2 sm:p-3 md:p-6 bg-white/10 backdrop-blur-sm rounded-lg sm:rounded-xl md:rounded-2xl border border-white/20">
+              <div className="text-lg sm:text-2xl md:text-4xl lg:text-5xl font-black mb-0.5 sm:mb-1 md:mb-2">11M+</div>
+              <div className="text-white/80 text-[10px] sm:text-xs md:text-sm font-medium">Orders Delivered</div>
             </div>
-            <div className="stat-card p-3 md:p-6 bg-white/10 backdrop-blur-sm rounded-xl md:rounded-2xl border border-white/20">
-              <div className="text-2xl md:text-4xl lg:text-5xl font-black mb-1 md:mb-2">&lt;1min</div>
-              <div className="text-white/80 text-xs md:text-sm font-medium">Avg. Start Time</div>
+            <div className="stat-card p-2 sm:p-3 md:p-6 bg-white/10 backdrop-blur-sm rounded-lg sm:rounded-xl md:rounded-2xl border border-white/20">
+              <div className="text-lg sm:text-2xl md:text-4xl lg:text-5xl font-black mb-0.5 sm:mb-1 md:mb-2">&lt;1min</div>
+              <div className="text-white/80 text-[10px] sm:text-xs md:text-sm font-medium">Avg. Start Time</div>
             </div>
-            <div className="stat-card p-3 md:p-6 bg-white/10 backdrop-blur-sm rounded-xl md:rounded-2xl border border-white/20">
-              <div className="text-2xl md:text-4xl lg:text-5xl font-black mb-1 md:mb-2">24/7</div>
-              <div className="text-white/80 text-xs md:text-sm font-medium">Live Support</div>
+            <div className="stat-card p-2 sm:p-3 md:p-6 bg-white/10 backdrop-blur-sm rounded-lg sm:rounded-xl md:rounded-2xl border border-white/20">
+              <div className="text-lg sm:text-2xl md:text-4xl lg:text-5xl font-black mb-0.5 sm:mb-1 md:mb-2">24/7</div>
+              <div className="text-white/80 text-[10px] sm:text-xs md:text-sm font-medium">Live Support</div>
             </div>
           </div>
         </div>
       </section>
 
       {/* Services Section */}
-      <section id="services" className="py-24 bg-gradient-to-b from-background to-muted/30">
+      <section id="services" className="py-12 sm:py-24 bg-gradient-to-b from-background to-muted/30">
         <div className="max-w-7xl mx-auto px-4">
-          <div className="text-center mb-16">
-            <div className="inline-block mb-4 px-4 py-2 bg-primary/10 rounded-full text-sm font-semibold text-primary">
+          <div className="text-center mb-8 sm:mb-16">
+            <div className="inline-block mb-3 sm:mb-4 px-3 sm:px-4 py-1.5 sm:py-2 bg-primary/10 rounded-full text-xs sm:text-sm font-semibold text-primary">
               Premium Services
             </div>
-            <h2 className="text-4xl md:text-5xl font-black mb-4">Choose Your Platform</h2>
-            <p className="text-foreground text-lg max-w-2xl mx-auto">
+            <h2 className="text-2xl sm:text-4xl md:text-5xl font-black mb-3 sm:mb-4">Choose Your Platform</h2>
+            <p className="text-foreground text-sm sm:text-lg max-w-2xl mx-auto px-4">
               High-quality engagement delivered instantly. All services come with a 30-day refill guarantee.
             </p>
           </div>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-8">
             {services.map((service, index) => (
               <ServiceCard
                 key={index}
@@ -213,47 +213,47 @@ const Index = () => {
       </section>
 
       {/* How It Works */}
-      <section id="how" className="py-24">
+      <section id="how" className="py-12 sm:py-24">
         <div className="max-w-6xl mx-auto px-4">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl md:text-5xl font-black mb-4">How It Works</h2>
-            <p className="text-foreground text-lg">Start growing in minutes with our simple process</p>
+          <div className="text-center mb-8 sm:mb-16">
+            <h2 className="text-2xl sm:text-4xl md:text-5xl font-black mb-3 sm:mb-4">How It Works</h2>
+            <p className="text-foreground text-sm sm:text-lg">Start growing in minutes with our simple process</p>
           </div>
-          <div className="grid md:grid-cols-3 gap-8">
-            <div className="relative p-8 bg-gradient-card rounded-2xl border border-border/50 shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-2">
-              <div className="absolute -top-4 left-8 w-12 h-12 rounded-xl bg-gradient-primary flex items-center justify-center text-white text-xl font-black shadow-lg">
+          <div className="grid md:grid-cols-3 gap-4 sm:gap-8">
+            <div className="relative p-4 sm:p-8 bg-gradient-card rounded-xl sm:rounded-2xl border border-border/50 shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-2">
+              <div className="absolute -top-3 sm:-top-4 left-4 sm:left-8 w-8 h-8 sm:w-12 sm:h-12 rounded-lg sm:rounded-xl bg-gradient-primary flex items-center justify-center text-white text-sm sm:text-xl font-black shadow-lg">
                 1
               </div>
-              <div className="mt-6">
-                <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mb-4 mx-auto">
-                  <i className="fa-solid fa-user-plus text-primary text-2xl"></i>
+              <div className="mt-4 sm:mt-6">
+                <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-xl sm:rounded-2xl bg-primary/10 flex items-center justify-center mb-3 sm:mb-4 mx-auto">
+                  <i className="fa-solid fa-user-plus text-primary text-lg sm:text-2xl"></i>
                 </div>
-                <h3 className="text-2xl font-bold mb-3 text-center">Create Account</h3>
-                <p className="text-foreground text-center leading-relaxed">Quick registration with email verification. Get started in under 60 seconds.</p>
+                <h3 className="text-lg sm:text-2xl font-bold mb-2 sm:mb-3 text-center">Create Account</h3>
+                <p className="text-foreground text-center leading-relaxed text-xs sm:text-base">Quick registration with email verification. Get started in under 60 seconds.</p>
               </div>
             </div>
-            <div className="relative p-8 bg-gradient-card rounded-2xl border border-border/50 shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-2">
-              <div className="absolute -top-4 left-8 w-12 h-12 rounded-xl bg-gradient-primary flex items-center justify-center text-white text-xl font-black shadow-lg">
+            <div className="relative p-4 sm:p-8 bg-gradient-card rounded-xl sm:rounded-2xl border border-border/50 shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-2">
+              <div className="absolute -top-3 sm:-top-4 left-4 sm:left-8 w-8 h-8 sm:w-12 sm:h-12 rounded-lg sm:rounded-xl bg-gradient-primary flex items-center justify-center text-white text-sm sm:text-xl font-black shadow-lg">
                 2
               </div>
-              <div className="mt-6">
-                <div className="w-16 h-16 rounded-2xl bg-success/10 flex items-center justify-center mb-4 mx-auto">
-                  <i className="fa-solid fa-wallet text-success text-2xl"></i>
+              <div className="mt-4 sm:mt-6">
+                <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-xl sm:rounded-2xl bg-success/10 flex items-center justify-center mb-3 sm:mb-4 mx-auto">
+                  <i className="fa-solid fa-wallet text-success text-lg sm:text-2xl"></i>
                 </div>
-                <h3 className="text-2xl font-bold mb-3 text-center">Add Funds</h3>
-                <p className="text-foreground text-center leading-relaxed">Secure bank transfer deposit. Funds credited instantly to your account.</p>
+                <h3 className="text-lg sm:text-2xl font-bold mb-2 sm:mb-3 text-center">Add Funds</h3>
+                <p className="text-foreground text-center leading-relaxed text-xs sm:text-base">Secure bank transfer deposit. Funds credited instantly to your account.</p>
               </div>
             </div>
-            <div className="relative p-8 bg-gradient-card rounded-2xl border border-border/50 shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-2">
-              <div className="absolute -top-4 left-8 w-12 h-12 rounded-xl bg-gradient-primary flex items-center justify-center text-white text-xl font-black shadow-lg">
+            <div className="relative p-4 sm:p-8 bg-gradient-card rounded-xl sm:rounded-2xl border border-border/50 shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-2">
+              <div className="absolute -top-3 sm:-top-4 left-4 sm:left-8 w-8 h-8 sm:w-12 sm:h-12 rounded-lg sm:rounded-xl bg-gradient-primary flex items-center justify-center text-white text-sm sm:text-xl font-black shadow-lg">
                 3
               </div>
-              <div className="mt-6">
-                <div className="w-16 h-16 rounded-2xl bg-secondary/10 flex items-center justify-center mb-4 mx-auto">
-                  <i className="fa-solid fa-rocket text-secondary text-2xl"></i>
+              <div className="mt-4 sm:mt-6">
+                <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-xl sm:rounded-2xl bg-secondary/10 flex items-center justify-center mb-3 sm:mb-4 mx-auto">
+                  <i className="fa-solid fa-rocket text-secondary text-lg sm:text-2xl"></i>
                 </div>
-                <h3 className="text-2xl font-bold mb-3 text-center">Place Order</h3>
-                <p className="text-foreground text-center leading-relaxed">Choose service, paste link, and watch your growth skyrocket instantly.</p>
+                <h3 className="text-lg sm:text-2xl font-bold mb-2 sm:mb-3 text-center">Place Order</h3>
+                <p className="text-foreground text-center leading-relaxed text-xs sm:text-base">Choose service, paste link, and watch your growth skyrocket instantly.</p>
               </div>
             </div>
           </div>
@@ -261,51 +261,51 @@ const Index = () => {
       </section>
 
       {/* FAQ Section */}
-      <section id="faq" className="py-24 bg-gradient-to-b from-background to-muted/20">
+      <section id="faq" className="py-12 sm:py-24 bg-gradient-to-b from-background to-muted/20">
         <div className="max-w-4xl mx-auto px-4">
-          <div className="text-center mb-16">
-            <div className="inline-block mb-4 px-4 py-2 bg-primary/10 rounded-full text-sm font-semibold text-primary">
+          <div className="text-center mb-8 sm:mb-16">
+            <div className="inline-block mb-3 sm:mb-4 px-3 sm:px-4 py-1.5 sm:py-2 bg-primary/10 rounded-full text-xs sm:text-sm font-semibold text-primary">
               FAQ
             </div>
-            <h2 className="text-4xl md:text-5xl font-black mb-4">Frequently Asked Questions</h2>
-            <p className="text-foreground text-lg">Everything you need to know about our services</p>
+            <h2 className="text-2xl sm:text-4xl md:text-5xl font-black mb-3 sm:mb-4">Frequently Asked Questions</h2>
+            <p className="text-foreground text-sm sm:text-lg">Everything you need to know about our services</p>
           </div>
-          <div className="space-y-4">
-            <details className="group bg-card rounded-2xl shadow-lg px-8 py-6 open:shadow-xl transition-all border border-border/50 hover:border-primary/50">
-              <summary className="font-bold text-lg cursor-pointer list-none flex items-center justify-between">
+          <div className="space-y-3 sm:space-y-4">
+            <details className="group bg-card rounded-xl sm:rounded-2xl shadow-lg px-4 sm:px-8 py-4 sm:py-6 open:shadow-xl transition-all border border-border/50 hover:border-primary/50">
+              <summary className="font-bold text-sm sm:text-lg cursor-pointer list-none flex items-center justify-between">
                 Are the followers real?
-                <i className="fa-solid fa-chevron-down text-primary group-open:rotate-180 transition-transform"></i>
+                <i className="fa-solid fa-chevron-down text-primary group-open:rotate-180 transition-transform text-xs sm:text-base"></i>
               </summary>
-              <p className="text-foreground mt-4 leading-relaxed">
+              <p className="text-foreground mt-3 sm:mt-4 leading-relaxed text-xs sm:text-base">
                 We deliver a mix of real and high-quality accounts that look authentic. Drops are rare, but we
                 offer 30-day refill on eligible services.
               </p>
             </details>
-            <details className="group bg-card rounded-2xl shadow-lg px-8 py-6 open:shadow-xl transition-all border border-border/50 hover:border-primary/50">
-              <summary className="font-bold text-lg cursor-pointer list-none flex items-center justify-between">
+            <details className="group bg-card rounded-xl sm:rounded-2xl shadow-lg px-4 sm:px-8 py-4 sm:py-6 open:shadow-xl transition-all border border-border/50 hover:border-primary/50">
+              <summary className="font-bold text-sm sm:text-lg cursor-pointer list-none flex items-center justify-between">
                 How long does it take to start?
-                <i className="fa-solid fa-chevron-down text-primary group-open:rotate-180 transition-transform"></i>
+                <i className="fa-solid fa-chevron-down text-primary group-open:rotate-180 transition-transform text-xs sm:text-base"></i>
               </summary>
-              <p className="text-foreground mt-4 leading-relaxed">
+              <p className="text-foreground mt-3 sm:mt-4 leading-relaxed text-xs sm:text-base">
                 Most orders start within 30-60 seconds. Larger campaigns may take up to 12 hours to ramp up
                 gradually.
               </p>
             </details>
-            <details className="group bg-card rounded-2xl shadow-lg px-8 py-6 open:shadow-xl transition-all border border-border/50 hover:border-primary/50">
-              <summary className="font-bold text-lg cursor-pointer list-none flex items-center justify-between">
+            <details className="group bg-card rounded-xl sm:rounded-2xl shadow-lg px-4 sm:px-8 py-4 sm:py-6 open:shadow-xl transition-all border border-border/50 hover:border-primary/50">
+              <summary className="font-bold text-sm sm:text-lg cursor-pointer list-none flex items-center justify-between">
                 What payment methods do you accept?
-                <i className="fa-solid fa-chevron-down text-primary group-open:rotate-180 transition-transform"></i>
+                <i className="fa-solid fa-chevron-down text-primary group-open:rotate-180 transition-transform text-xs sm:text-base"></i>
               </summary>
-              <p className="text-foreground mt-4 leading-relaxed">
+              <p className="text-foreground mt-3 sm:mt-4 leading-relaxed text-xs sm:text-base">
                 Bank Transfer only. We credit instantly once confirmed.
               </p>
             </details>
-            <details className="group bg-card rounded-2xl shadow-lg px-8 py-6 open:shadow-xl transition-all border border-border/50 hover:border-primary/50">
-              <summary className="font-bold text-lg cursor-pointer list-none flex items-center justify-between">
+            <details className="group bg-card rounded-xl sm:rounded-2xl shadow-lg px-4 sm:px-8 py-4 sm:py-6 open:shadow-xl transition-all border border-border/50 hover:border-primary/50">
+              <summary className="font-bold text-sm sm:text-lg cursor-pointer list-none flex items-center justify-between">
                 Can I resell your services?
-                <i className="fa-solid fa-chevron-down text-primary group-open:rotate-180 transition-transform"></i>
+                <i className="fa-solid fa-chevron-down text-primary group-open:rotate-180 transition-transform text-xs sm:text-base"></i>
               </summary>
-              <p className="text-foreground mt-4 leading-relaxed">
+              <p className="text-foreground mt-3 sm:mt-4 leading-relaxed text-xs sm:text-base">
                 Absolutely. Open a sub-account and set your own prices. We keep no branding on delivered
                 engagement.
               </p>
@@ -315,26 +315,26 @@ const Index = () => {
       </section>
 
       {/* CTA Section */}
-      <section className="relative py-24 gradient-hero text-white overflow-hidden">
+      <section className="relative py-12 sm:py-24 gradient-hero text-white overflow-hidden">
         {/* Background decoration */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute top-0 left-1/4 w-96 h-96 bg-white/10 rounded-full blur-3xl"></div>
-          <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-white/10 rounded-full blur-3xl"></div>
+          <div className="absolute top-0 left-1/4 w-48 sm:w-96 h-48 sm:h-96 bg-white/10 rounded-full blur-3xl"></div>
+          <div className="absolute bottom-0 right-1/4 w-48 sm:w-96 h-48 sm:h-96 bg-white/10 rounded-full blur-3xl"></div>
         </div>
         
         <div className="relative max-w-4xl mx-auto px-4 text-center">
-          <div className="inline-block mb-6 px-4 py-2 bg-white/10 backdrop-blur-sm rounded-full text-sm font-semibold border border-white/20">
+          <div className="inline-block mb-4 sm:mb-6 px-3 sm:px-4 py-1.5 sm:py-2 bg-white/10 backdrop-blur-sm rounded-full text-xs sm:text-sm font-semibold border border-white/20">
             Join 500,000+ Content Creators
           </div>
-          <h2 className="text-4xl md:text-6xl font-black mb-6">Ready to Go Viral?</h2>
-          <p className="text-xl text-white/90 mb-10 max-w-2xl mx-auto leading-relaxed">
+          <h2 className="text-2xl sm:text-4xl md:text-6xl font-black mb-4 sm:mb-6">Ready to Go Viral?</h2>
+          <p className="text-sm sm:text-xl text-white/90 mb-6 sm:mb-10 max-w-2xl mx-auto leading-relaxed px-4">
             Create your account now and get instant access to premium social media growth services.
           </p>
           <div className="flex justify-center">
             <Button 
               size="lg" 
               onClick={() => handleAuthClick("signup")} 
-              className="btn-pulse text-lg shadow-2xl bg-white text-primary hover:bg-white/90 hover:scale-105"
+              className="btn-pulse text-sm sm:text-lg shadow-2xl bg-white text-primary hover:bg-white/90 hover:scale-105"
             >
               <i className="fa-solid fa-user-plus mr-2"></i>
               Create Free Account
