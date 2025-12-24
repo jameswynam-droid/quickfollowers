@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import logoImg from "@/assets/logo.png";
 
 interface HeaderProps {
   onAuthClick?: (type: "login" | "signup") => void;
@@ -40,16 +41,16 @@ const Header = ({ onAuthClick }: HeaderProps) => {
 
   return (
     <header className="sticky top-0 z-50 glass-effect shadow-lg border-b">
-      <div className="max-w-7xl mx-auto px-4 py-5 flex items-center justify-between">
-        <Link to="/" className="flex items-center gap-3 group">
-          <div className="w-10 h-10 rounded-xl bg-gradient-primary flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
-            <i className="fa-solid fa-bolt text-white text-xl"></i>
+      <div className="max-w-7xl mx-auto px-3 sm:px-4 py-3 sm:py-5 flex items-center justify-between">
+        <Link to="/" className="flex items-center gap-2 sm:gap-3 group">
+          <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl overflow-hidden shadow-lg group-hover:scale-110 transition-transform">
+            <img src={logoImg} alt="QuickFollowers" className="w-full h-full object-cover" />
           </div>
-          <span className="text-2xl font-black bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">QuickFollowers</span>
+          <span className="text-lg sm:text-2xl font-black bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">QuickFollowers</span>
         </Link>
 
         {/* Desktop Navigation */}
-        <nav className="hidden md:flex items-center gap-8 text-sm font-semibold">
+        <nav className="hidden md:flex items-center gap-6 lg:gap-8 text-sm font-semibold">
           {isAuthenticated ? (
             <>
               <Link to="/dashboard" className="text-foreground/80 hover:text-primary transition">
@@ -111,7 +112,7 @@ const Header = ({ onAuthClick }: HeaderProps) => {
         {/* Mobile Menu Button */}
         <button
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          className="md:hidden text-2xl text-foreground"
+          className="md:hidden text-xl sm:text-2xl text-foreground p-1"
         >
           <i className={`fa-solid ${mobileMenuOpen ? "fa-xmark" : "fa-bars"}`}></i>
         </button>

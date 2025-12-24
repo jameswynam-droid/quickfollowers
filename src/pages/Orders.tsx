@@ -105,18 +105,22 @@ const Orders = () => {
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
-      <main className="flex-grow container mx-auto px-4 py-8">
-        <div className="mb-8 flex justify-between items-center">
+      <main className="flex-grow container mx-auto px-3 sm:px-4 py-4 sm:py-8">
+        <div className="mb-6 sm:mb-8 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
           <div>
-            <h1 className="text-4xl font-bold">Order History</h1>
-            <p className="text-muted-foreground mt-2">View all your past orders</p>
+            <h1 className="text-2xl sm:text-4xl font-bold">Order History</h1>
+            <p className="text-muted-foreground mt-1 sm:mt-2 text-sm sm:text-base">View all your past orders</p>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" onClick={handleRefresh} disabled={syncing}>
+            <Button variant="outline" size="sm" onClick={handleRefresh} disabled={syncing}>
               <RefreshCw className={`h-4 w-4 mr-2 ${syncing ? 'animate-spin' : ''}`} />
-              {syncing ? 'Syncing...' : 'Refresh Status'}
+              <span className="hidden sm:inline">{syncing ? 'Syncing...' : 'Refresh Status'}</span>
+              <span className="sm:hidden">{syncing ? '...' : 'Refresh'}</span>
             </Button>
-            <Button onClick={() => navigate("/services")}>New Order</Button>
+            <Button size="sm" onClick={() => navigate("/services")}>
+              <span className="hidden sm:inline">New Order</span>
+              <span className="sm:hidden">New</span>
+            </Button>
           </div>
         </div>
 
@@ -129,52 +133,50 @@ const Orders = () => {
           </Card>
         ) : (
           <Card>
-            <CardHeader>
-              <CardTitle>All Orders ({orders.length})</CardTitle>
+            <CardHeader className="p-3 sm:p-6">
+              <CardTitle className="text-base sm:text-lg">All Orders ({orders.length})</CardTitle>
             </CardHeader>
-            <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Order ID</TableHead>
-                    <TableHead>Service</TableHead>
-                    <TableHead>Category</TableHead>
-                    <TableHead>Link</TableHead>
-                    <TableHead>Quantity</TableHead>
-                    <TableHead>Cost</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Date</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {orders.map((order) => (
-                    <TableRow key={order.id}>
-                      <TableCell className="font-mono text-xs">
-                        {order.id.slice(0, 8)}...
-                      </TableCell>
-                      <TableCell>{order.services?.name || "Unknown"}</TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {order.services?.category || "N/A"}
-                      </TableCell>
-                      <TableCell className="max-w-[200px] truncate">
-                        {order.link}
-                      </TableCell>
-                      <TableCell>{order.quantity.toLocaleString()}</TableCell>
-                      <TableCell className="font-semibold">
-                        ₦{formatPrice(order.charge)}
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant={getStatusColor(order.status)}>
-                          {order.status}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {new Date(order.created_at).toLocaleDateString()}
-                      </TableCell>
+            <CardContent className="p-0 sm:p-6 sm:pt-0">
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="text-xs sm:text-sm">Service</TableHead>
+                      <TableHead className="text-xs sm:text-sm hidden md:table-cell">Link</TableHead>
+                      <TableHead className="text-xs sm:text-sm hidden sm:table-cell">Qty</TableHead>
+                      <TableHead className="text-xs sm:text-sm">Cost</TableHead>
+                      <TableHead className="text-xs sm:text-sm">Status</TableHead>
+                      <TableHead className="text-xs sm:text-sm hidden lg:table-cell">Date</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {orders.map((order) => (
+                      <TableRow key={order.id}>
+                        <TableCell className="text-xs sm:text-sm max-w-[100px] sm:max-w-[200px] truncate">
+                          {order.services?.name || "Unknown"}
+                        </TableCell>
+                        <TableCell className="text-xs sm:text-sm max-w-[150px] truncate hidden md:table-cell">
+                          {order.link}
+                        </TableCell>
+                        <TableCell className="text-xs sm:text-sm hidden sm:table-cell">
+                          {order.quantity.toLocaleString()}
+                        </TableCell>
+                        <TableCell className="text-xs sm:text-sm font-semibold whitespace-nowrap">
+                          ₦{formatPrice(order.charge)}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant={getStatusColor(order.status)} className="text-xs">
+                            {order.status}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-xs text-muted-foreground hidden lg:table-cell">
+                          {new Date(order.created_at).toLocaleDateString()}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
             </CardContent>
           </Card>
         )}

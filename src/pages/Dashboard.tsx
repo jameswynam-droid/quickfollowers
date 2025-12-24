@@ -108,32 +108,134 @@ const Dashboard = () => {
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
-      <main className="flex-grow container mx-auto px-4 py-8">
-        <div className="mb-8 flex justify-between items-center">
+      <main className="flex-grow container mx-auto px-3 sm:px-4 py-4 sm:py-8">
+        {/* Header Section */}
+        <div className="mb-6 sm:mb-8 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
           <div>
-            <h1 className="text-4xl font-bold">Dashboard</h1>
-            <p className="text-muted-foreground mt-2">Welcome, {profile?.full_name || user?.email}</p>
+            <h1 className="text-2xl sm:text-4xl font-bold">Dashboard</h1>
+            <p className="text-muted-foreground mt-1 sm:mt-2 text-sm sm:text-base truncate max-w-[250px] sm:max-w-none">
+              Welcome, {profile?.full_name || user?.email}
+            </p>
           </div>
-          <div className="flex gap-2">
-            {isAdmin && <Button variant="outline" onClick={() => navigate("/admin")}>Admin</Button>}
+          <div className="flex gap-2 flex-wrap">
+            {isAdmin && <Button variant="outline" size="sm" onClick={() => navigate("/admin")}>Admin</Button>}
             <Button variant="outline" size="icon" onClick={() => setSettingsOpen(true)}>
               <Settings className="h-4 w-4" />
             </Button>
-            <Button variant="outline" onClick={handleSignOut}>Sign Out</Button>
+            <Button variant="outline" size="sm" onClick={handleSignOut}>Sign Out</Button>
           </div>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-          <Card><CardHeader><CardTitle>Balance</CardTitle></CardHeader><CardContent><div className="text-3xl font-bold">₦{parseFloat(profile?.balance || 0).toFixed(2)}</div><Button className="w-full mt-4" onClick={() => setAddFundsOpen(true)}><Wallet className="mr-2 h-4 w-4" />Add Funds</Button></CardContent></Card>
-          <Card><CardHeader><CardTitle>Orders</CardTitle></CardHeader><CardContent><div className="text-3xl font-bold">{totalOrders}</div><Button className="w-full mt-4" onClick={() => navigate("/orders")}>View All Orders</Button></CardContent></Card>
-          <Card><CardHeader><CardTitle>Transactions</CardTitle></CardHeader><CardContent><p className="text-muted-foreground text-sm mb-4">View deposits & refunds</p><Button className="w-full" onClick={() => navigate("/transactions")}>View History</Button></CardContent></Card>
-          <Card><CardHeader><CardTitle>Quick Actions</CardTitle></CardHeader><CardContent><Button className="w-full" onClick={() => navigate("/services")}>New Order</Button></CardContent></Card>
+
+        {/* Stats Grid */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6 sm:mb-8">
+          <Card className="col-span-1">
+            <CardHeader className="p-3 sm:p-6 pb-2 sm:pb-2">
+              <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground">Balance</CardTitle>
+            </CardHeader>
+            <CardContent className="p-3 sm:p-6 pt-0">
+              <div className="text-lg sm:text-3xl font-bold truncate">₦{parseFloat(profile?.balance || 0).toFixed(2)}</div>
+              <Button className="w-full mt-3 sm:mt-4 text-xs sm:text-sm" size="sm" onClick={() => setAddFundsOpen(true)}>
+                <Wallet className="mr-2 h-3 w-3 sm:h-4 sm:w-4" />Add Funds
+              </Button>
+            </CardContent>
+          </Card>
+          
+          <Card className="col-span-1">
+            <CardHeader className="p-3 sm:p-6 pb-2 sm:pb-2">
+              <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground">Orders</CardTitle>
+            </CardHeader>
+            <CardContent className="p-3 sm:p-6 pt-0">
+              <div className="text-lg sm:text-3xl font-bold">{totalOrders}</div>
+              <Button className="w-full mt-3 sm:mt-4 text-xs sm:text-sm" size="sm" variant="outline" onClick={() => navigate("/orders")}>
+                View All
+              </Button>
+            </CardContent>
+          </Card>
+          
+          <Card className="col-span-1">
+            <CardHeader className="p-3 sm:p-6 pb-2 sm:pb-2">
+              <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground">History</CardTitle>
+            </CardHeader>
+            <CardContent className="p-3 sm:p-6 pt-0">
+              <p className="text-muted-foreground text-xs mb-2 sm:mb-4 hidden sm:block">Deposits & refunds</p>
+              <Button className="w-full mt-0 sm:mt-4 text-xs sm:text-sm" size="sm" variant="outline" onClick={() => navigate("/transactions")}>
+                View
+              </Button>
+            </CardContent>
+          </Card>
+          
+          <Card className="col-span-1">
+            <CardHeader className="p-3 sm:p-6 pb-2 sm:pb-2">
+              <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground">Quick Actions</CardTitle>
+            </CardHeader>
+            <CardContent className="p-3 sm:p-6 pt-0">
+              <Button className="w-full mt-0 sm:mt-4 text-xs sm:text-sm" size="sm" onClick={() => navigate("/services")}>
+                New Order
+              </Button>
+            </CardContent>
+          </Card>
         </div>
-        <Card><CardHeader><CardTitle>Recent Orders</CardTitle></CardHeader><CardContent>{orders.length === 0 ? <p className="text-center py-8">No orders yet</p> : <Table><TableHeader><TableRow><TableHead>Service</TableHead><TableHead>Quantity</TableHead><TableHead>Cost</TableHead><TableHead>Status</TableHead></TableRow></TableHeader><TableBody>{orders.map(o => <TableRow key={o.id}><TableCell>{o.services?.name}</TableCell><TableCell>{o.quantity}</TableCell><TableCell>₦{o.charge}</TableCell><TableCell>{o.status}</TableCell></TableRow>)}</TableBody></Table>}</CardContent></Card>
+
+        {/* Recent Orders */}
+        <Card>
+          <CardHeader className="p-3 sm:p-6">
+            <CardTitle className="text-base sm:text-lg">Recent Orders</CardTitle>
+          </CardHeader>
+          <CardContent className="p-0 sm:p-6 sm:pt-0">
+            {orders.length === 0 ? (
+              <p className="text-center py-8 text-muted-foreground text-sm">No orders yet</p>
+            ) : (
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="text-xs sm:text-sm">Service</TableHead>
+                      <TableHead className="text-xs sm:text-sm hidden sm:table-cell">Qty</TableHead>
+                      <TableHead className="text-xs sm:text-sm">Cost</TableHead>
+                      <TableHead className="text-xs sm:text-sm">Status</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {orders.map(o => (
+                      <TableRow key={o.id}>
+                        <TableCell className="text-xs sm:text-sm max-w-[120px] sm:max-w-none truncate">{o.services?.name}</TableCell>
+                        <TableCell className="text-xs sm:text-sm hidden sm:table-cell">{o.quantity}</TableCell>
+                        <TableCell className="text-xs sm:text-sm">₦{o.charge}</TableCell>
+                        <TableCell className="text-xs sm:text-sm capitalize">{o.status}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </main>
       <Footer />
       <AddFundsModal open={addFundsOpen} onOpenChange={setAddFundsOpen} />
       <AccountSettingsModal open={settingsOpen} onOpenChange={setSettingsOpen} userEmail={user?.email || ""} />
-      <Dialog open={paymentDialogOpen} onOpenChange={setPaymentDialogOpen}><DialogContent><DialogHeader><DialogTitle>Bank Transfer</DialogTitle></DialogHeader><div className="space-y-4"><div><Label>Amount</Label><Input type="number" value={paymentAmount} onChange={e => setPaymentAmount(e.target.value)} /></div><div><Label>Bank Details</Label><Input value={bankDetails} onChange={e => setBankDetails(e.target.value)} /></div><div><Label>Notes</Label><Input value={notes} onChange={e => setNotes(e.target.value)} /></div><Button onClick={handlePaymentRequest} className="w-full">Submit</Button></div></DialogContent></Dialog>
+      <Dialog open={paymentDialogOpen} onOpenChange={setPaymentDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Bank Transfer</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label>Amount</Label>
+              <Input type="number" value={paymentAmount} onChange={e => setPaymentAmount(e.target.value)} />
+            </div>
+            <div>
+              <Label>Bank Details</Label>
+              <Input value={bankDetails} onChange={e => setBankDetails(e.target.value)} />
+            </div>
+            <div>
+              <Label>Notes</Label>
+              <Input value={notes} onChange={e => setNotes(e.target.value)} />
+            </div>
+            <Button onClick={handlePaymentRequest} className="w-full">Submit</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

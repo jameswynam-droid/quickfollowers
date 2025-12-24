@@ -110,7 +110,7 @@ const Services = () => {
   };
 
   const fetchServices = async () => {
-    const pageSize = 1000; // PostgREST default page size cap
+    const pageSize = 1000;
     let page = 0;
     let all: any[] = [];
 
@@ -130,17 +130,13 @@ const Services = () => {
         all = all.concat(batch);
         console.log(`Fetched batch ${page + 1}:`, batch.length, `Total so far:`, all.length);
 
-        if (batch.length < pageSize) break; // no more pages
+        if (batch.length < pageSize) break;
         page++;
       }
 
       console.log("Total raw services fetched:", all.length);
-      console.log("Sample service:", all[0]);
-
       const organized = organizeServices(all);
       console.log("Organized categories:", organized.length);
-      console.log("Sample category:", organized[0]);
-
       setOrganizedCategories(organized);
     } catch (error: any) {
       console.error("Error loading services:", error);
@@ -149,6 +145,7 @@ const Services = () => {
       setLoading(false);
     }
   };
+
   const getFilteredCategories = () => {
     let filtered = organizedCategories;
 
@@ -202,7 +199,6 @@ const Services = () => {
       });
 
       if (error) {
-        // Extract the actual error message from the edge function response
         const errorMessage = error.message || error.error || "Failed to place order";
         toast.error(errorMessage);
         return;
@@ -229,22 +225,20 @@ const Services = () => {
   }
 
   const filteredCategories = getFilteredCategories();
-  
-  // Extract unique platform keywords from categories
   const platformKeywords = ['Instagram', 'TikTok', 'Twitter', 'YouTube', 'Facebook', 'Telegram', 'Spotify', 'Audiomack', 'Boomplay', 'SoundCloud', 'Discord', 'WhatsApp', 'Snapchat', 'LinkedIn', 'Threads'];
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
       <Header />
-      <main className="flex-grow container mx-auto px-4 py-8">
-        <div className="mb-8">
-          <div className="flex items-center justify-between mb-4">
+      <main className="flex-grow container mx-auto px-3 sm:px-4 py-4 sm:py-8">
+        <div className="mb-6 sm:mb-8">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
             <div>
-              <h1 className="text-4xl font-bold mb-2">SMM Services</h1>
-              <p className="text-muted-foreground">Professional social media marketing services organized by platform</p>
+              <h1 className="text-2xl sm:text-4xl font-bold mb-1 sm:mb-2">SMM Services</h1>
+              <p className="text-muted-foreground text-sm sm:text-base">Professional social media marketing services</p>
             </div>
             {isAdmin && (
-              <div className="flex flex-col items-end gap-2">
+              <div className="flex flex-col sm:items-end gap-2">
                 <Button 
                   onClick={handleManualSync} 
                   disabled={syncing}
@@ -265,17 +259,17 @@ const Services = () => {
           </div>
         </div>
 
-        <div className="flex flex-col md:flex-row gap-4 mb-8">
+        <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mb-6 sm:mb-8">
           <Input
-            placeholder="Search services or categories..."
+            placeholder="Search services..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="md:flex-1"
+            className="sm:flex-1"
           />
           <select
             value={selectedPlatform}
             onChange={(e) => setSelectedPlatform(e.target.value)}
-            className="px-4 py-2 rounded-md border bg-background md:w-64"
+            className="px-3 py-2 rounded-md border bg-background text-sm sm:w-64"
           >
             <option value="all">All Categories</option>
             {platformKeywords.map((platform) => (
@@ -293,7 +287,7 @@ const Services = () => {
             <p className="text-sm text-muted-foreground">Try adjusting your search or filter</p>
           </div>
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-3 sm:space-y-4">
             {filteredCategories.map((category) => (
               <Collapsible 
                 key={category.category} 
@@ -302,27 +296,27 @@ const Services = () => {
                 className="rounded-xl overflow-hidden border bg-card shadow-sm"
               >
                 <CollapsibleTrigger className="w-full">
-                  <div className="px-6 py-4 bg-gradient-to-r from-primary/10 to-primary/5 border-b hover:from-primary/15 hover:to-primary/10 transition-colors">
+                  <div className="px-4 sm:px-6 py-3 sm:py-4 bg-gradient-to-r from-primary/10 to-primary/5 border-b hover:from-primary/15 hover:to-primary/10 transition-colors">
                     <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-2 sm:gap-3">
                         <ChevronDown 
-                          className={`h-5 w-5 text-primary transition-transform duration-200 ${
+                          className={`h-4 w-4 sm:h-5 sm:w-5 text-primary transition-transform duration-200 ${
                             openCategories.has(category.category) ? 'rotate-180' : ''
                           }`} 
                         />
-                        <h2 className="text-lg font-semibold text-card-foreground">{category.category}</h2>
+                        <h2 className="text-sm sm:text-lg font-semibold text-card-foreground text-left">{category.category}</h2>
                       </div>
-                      <span className="text-sm text-muted-foreground">{category.services.length} services</span>
+                      <span className="text-xs sm:text-sm text-muted-foreground whitespace-nowrap">{category.services.length} services</span>
                     </div>
                   </div>
                 </CollapsibleTrigger>
                 <CollapsibleContent>
-                  <div className="p-6">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                  <div className="p-3 sm:p-6">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
                       {category.services.map((service) => (
-                        <Card key={service.id} className="group hover:shadow-xl hover:border-primary/50 transition-all duration-300 hover:-translate-y-1">
-                          <CardHeader className="pb-3 space-y-2">
-                            <CardTitle className="text-sm leading-tight line-clamp-2 group-hover:text-primary transition-colors">
+                        <Card key={service.id} className="group hover:shadow-xl hover:border-primary/50 transition-all duration-300">
+                          <CardHeader className="p-3 sm:pb-3 space-y-2">
+                            <CardTitle className="text-xs sm:text-sm leading-tight line-clamp-2 group-hover:text-primary transition-colors">
                               {service.name.replace(/[🎉✨⚡️🔥💎🌟]/g, '').trim()}
                             </CardTitle>
                             <div className="flex items-center gap-2">
@@ -331,20 +325,20 @@ const Services = () => {
                               </span>
                             </div>
                           </CardHeader>
-                          <CardContent className="space-y-3">
-                            <div className="space-y-2 text-xs">
-                              <div className="flex justify-between items-center p-2 rounded-md bg-muted/50">
-                                <span className="text-muted-foreground">Min order:</span>
+                          <CardContent className="p-3 pt-0 space-y-2 sm:space-y-3">
+                            <div className="space-y-1.5 sm:space-y-2 text-xs">
+                              <div className="flex justify-between items-center p-1.5 sm:p-2 rounded-md bg-muted/50">
+                                <span className="text-muted-foreground">Min:</span>
                                 <span className="font-medium">{service.min_order.toLocaleString()}</span>
                               </div>
-                              <div className="flex justify-between items-center p-2 rounded-md bg-muted/50">
-                                <span className="text-muted-foreground">Max order:</span>
+                              <div className="flex justify-between items-center p-1.5 sm:p-2 rounded-md bg-muted/50">
+                                <span className="text-muted-foreground">Max:</span>
                                 <span className="font-medium">{service.max_order.toLocaleString()}</span>
                               </div>
                             </div>
                             <Button
                               onClick={() => handleOrderClick(service)}
-                              className="w-full group-hover:bg-primary group-hover:text-primary-foreground"
+                              className="w-full text-xs sm:text-sm"
                               size="sm"
                             >
                               Order Now
@@ -363,23 +357,24 @@ const Services = () => {
       <Footer />
 
       <Dialog open={orderDialogOpen} onOpenChange={setOrderDialogOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-[95vw] sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle>Place Order</DialogTitle>
-            <DialogDescription>{selectedService?.name}</DialogDescription>
+            <DialogTitle className="text-lg">Place Order</DialogTitle>
+            <DialogDescription className="text-xs sm:text-sm line-clamp-2">{selectedService?.name}</DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div>
-              <Label htmlFor="link">Link (URL)</Label>
+              <Label htmlFor="link" className="text-sm">Link (URL)</Label>
               <Input
                 id="link"
                 value={orderLink}
                 onChange={(e) => setOrderLink(e.target.value)}
                 placeholder="https://..."
+                className="text-sm"
               />
             </div>
             <div>
-              <Label htmlFor="quantity">Quantity</Label>
+              <Label htmlFor="quantity" className="text-sm">Quantity</Label>
               <Input
                 id="quantity"
                 type="number"
@@ -388,15 +383,16 @@ const Services = () => {
                 placeholder={`Min: ${selectedService?.min_order}, Max: ${selectedService?.max_order}`}
                 min={selectedService?.min_order}
                 max={selectedService?.max_order}
+                className="text-sm"
               />
             </div>
             {orderQuantity && selectedService && (
-              <div className="p-4 bg-primary/10 border border-primary/20 rounded-lg space-y-2">
-                <div className="flex justify-between text-sm">
+              <div className="p-3 sm:p-4 bg-primary/10 border border-primary/20 rounded-lg space-y-2">
+                <div className="flex justify-between text-xs sm:text-sm">
                   <span className="text-muted-foreground">Rate per 1000:</span>
                   <span className="font-medium">{selectedService.pricePerThousand}</span>
                 </div>
-                <div className="flex justify-between text-lg font-bold">
+                <div className="flex justify-between text-sm sm:text-lg font-bold">
                   <span>Total Cost:</span>
                   <span className="text-primary">₦{((parseInt(orderQuantity || "0") / 1000) * selectedService.markedUpRate).toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                 </div>
