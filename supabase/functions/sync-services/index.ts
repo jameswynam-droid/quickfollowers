@@ -37,10 +37,10 @@ interface SyncResult {
 // Send email notification for sync issues
 async function sendSyncNotification(subject: string, content: string, isError: boolean = false) {
   const resendApiKey = Deno.env.get('RESEND_API_KEY');
-  const adminEmail = Deno.env.get('ADMIN_EMAIL');
+  const adminEmail = 'admin@quickfollowers.online';
   
-  if (!resendApiKey || !adminEmail) {
-    console.warn('Email notifications not configured - missing RESEND_API_KEY or ADMIN_EMAIL');
+  if (!resendApiKey) {
+    console.warn('Email notifications not configured - missing RESEND_API_KEY');
     return;
   }
   
@@ -49,9 +49,9 @@ async function sendSyncNotification(subject: string, content: string, isError: b
     const timestamp = new Date().toISOString();
     
     await resend.emails.send({
-      from: 'SMM Panel <onboarding@resend.dev>',
+      from: 'QuickFollowers Alerts <no-reply@quickfollowers.online>',
       to: [adminEmail],
-      subject: `[SMM Panel] ${subject}`,
+      subject: `[QuickFollowers] ${subject}`,
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
           <div style="background: ${isError ? '#ef4444' : '#f59e0b'}; color: white; padding: 20px; border-radius: 8px 8px 0 0;">
@@ -61,12 +61,13 @@ async function sendSyncNotification(subject: string, content: string, isError: b
             <p style="color: #374151; line-height: 1.6;">${content}</p>
             <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 20px 0;">
             <p style="color: #6b7280; font-size: 12px;">Timestamp: ${timestamp}</p>
+            <p style="color: #6b7280; font-size: 12px;">This is an automated notification from QuickFollowers service sync.</p>
           </div>
         </div>
       `,
     });
     
-    console.log(`Email notification sent: ${subject}`);
+    console.log(`Email notification sent to ${adminEmail}: ${subject}`);
   } catch (error) {
     console.error('Failed to send email notification:', error);
   }
