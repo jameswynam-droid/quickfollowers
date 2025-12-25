@@ -14,8 +14,10 @@ import { AccountSettingsModal } from "@/components/AccountSettingsModal";
 import { DashboardSkeleton } from "@/components/LoadingSkeleton";
 import { toast } from "sonner";
 import { Wallet, Settings } from "lucide-react";
+import { useNoIndex } from "@/hooks/useNoIndex";
 
 const Dashboard = () => {
+  useNoIndex(); // Prevent search engine indexing
   const [user, setUser] = useState<any>(null);
   const [profile, setProfile] = useState<any>(null);
   const [orders, setOrders] = useState<any[]>([]);

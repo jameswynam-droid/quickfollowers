@@ -10,8 +10,10 @@ import { Badge } from "@/components/ui/badge";
 import { formatPrice } from "@/utils/serviceOrganizer";
 import { RefreshCw } from "lucide-react";
 import { toast } from "sonner";
+import { useNoIndex } from "@/hooks/useNoIndex";
 
 const Orders = () => {
+  useNoIndex(); // Prevent search engine indexing
   const [user, setUser] = useState<any>(null);
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);

@@ -47,8 +47,8 @@ serve(async (req) => {
 
     const transaction = paystackData.data;
     
-    // Get redirect URL from metadata or construct default
-    const redirectUrl = transaction.metadata?.redirect_url || 'https://id-preview--92633b06-ce4f-4cc5-accd-124a59937de2.lovable.app';
+    // Get redirect URL from metadata or use production domain
+    const redirectUrl = transaction.metadata?.redirect_url || 'https://quickfollowers.online';
     console.log('Using redirect URL:', redirectUrl);
 
     if (transaction.status !== 'success') {
