@@ -9,8 +9,10 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, ArrowDownCircle, RotateCcw } from "lucide-react";
 import { format } from "date-fns";
+import { useNoIndex } from "@/hooks/useNoIndex";
 
 const Transactions = () => {
+  useNoIndex(); // Prevent search engine indexing
   const [user, setUser] = useState<any>(null);
   const [transactions, setTransactions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);

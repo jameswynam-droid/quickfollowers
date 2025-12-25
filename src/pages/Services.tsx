@@ -12,8 +12,10 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { ChevronDown, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { organizeServices, OrganizedService, ServiceCategory } from "@/utils/serviceOrganizer";
+import { useNoIndex } from "@/hooks/useNoIndex";
 
 const Services = () => {
+  useNoIndex(); // Prevent search engine indexing
   const [user, setUser] = useState<any>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [organizedCategories, setOrganizedCategories] = useState<ServiceCategory[]>([]);

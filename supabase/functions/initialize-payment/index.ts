@@ -78,8 +78,8 @@ serve(async (req) => {
       );
     }
 
-    // Use the redirect_url from frontend or default to Supabase URL construction
-    const callbackBaseUrl = redirect_url || `${Deno.env.get('SUPABASE_URL')?.replace('.supabase.co', '.lovable.app')}`;
+    // Use the redirect_url from frontend or default to production domain
+    const callbackBaseUrl = redirect_url || 'https://quickfollowers.online';
 
     // Initialize Paystack transaction
     const paystackResponse = await fetch('https://api.paystack.co/transaction/initialize', {

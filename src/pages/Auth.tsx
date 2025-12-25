@@ -9,10 +9,12 @@ import { PasswordInput } from "@/components/PasswordInput";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Check, X } from "lucide-react";
+import { useNoIndex } from "@/hooks/useNoIndex";
 
 type AuthMode = 'login' | 'signup' | 'forgot-password' | 'verify-otp' | 'new-password' | 'signup-verify-otp';
 
 const Auth = () => {
+  useNoIndex(); // Prevent search engine indexing
   const urlParams = new URLSearchParams(window.location.search);
   const mode = urlParams.get('mode');
   const [authMode, setAuthMode] = useState<AuthMode>(mode === 'signup' ? 'signup' : 'login');

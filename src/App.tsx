@@ -6,6 +6,8 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import ConfirmEmailChange from "./pages/ConfirmEmailChange";
+import About from "./pages/About";
+import SeoDiagnostics from "./pages/SeoDiagnostics";
 
 import Dashboard from "./pages/Dashboard";
 import Services from "./pages/Services";
@@ -24,8 +26,10 @@ const App = () => (
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Index />} />
+          <Route path="/about" element={<About />} />
           <Route path="/auth" element={<Auth />} />
           <Route path="/confirm-email-change" element={<ConfirmEmailChange />} />
+          <Route path="/seo-diagnostics" element={<SeoDiagnostics />} />
           
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/services" element={<Services />} />
