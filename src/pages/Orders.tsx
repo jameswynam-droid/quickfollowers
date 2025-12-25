@@ -137,35 +137,35 @@ const Orders = () => {
               <CardTitle className="text-base sm:text-lg">All Orders ({orders.length})</CardTitle>
             </CardHeader>
             <CardContent className="p-0 sm:p-6 sm:pt-0">
-              <div className="overflow-x-auto">
-                <Table>
+              <div className="w-full">
+                <Table className="w-full table-fixed">
                   <TableHeader>
                     <TableRow>
-                      <TableHead className="text-xs sm:text-sm">Service</TableHead>
-                      <TableHead className="text-xs sm:text-sm hidden md:table-cell">Link</TableHead>
-                      <TableHead className="text-xs sm:text-sm hidden sm:table-cell">Qty</TableHead>
-                      <TableHead className="text-xs sm:text-sm">Cost</TableHead>
-                      <TableHead className="text-xs sm:text-sm">Status</TableHead>
-                      <TableHead className="text-xs sm:text-sm hidden lg:table-cell">Date</TableHead>
+                      <TableHead className="text-[10px] sm:text-sm w-[25%] sm:w-auto">Service</TableHead>
+                      <TableHead className="text-[10px] sm:text-sm w-[25%] sm:w-auto">Link</TableHead>
+                      <TableHead className="text-[10px] sm:text-sm w-[12%] sm:w-auto">Qty</TableHead>
+                      <TableHead className="text-[10px] sm:text-sm w-[15%] sm:w-auto">Cost</TableHead>
+                      <TableHead className="text-[10px] sm:text-sm w-[18%] sm:w-auto">Status</TableHead>
+                      <TableHead className="text-[10px] sm:text-sm hidden lg:table-cell">Date</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {orders.map((order) => (
                       <TableRow key={order.id}>
-                        <TableCell className="text-xs sm:text-sm max-w-[100px] sm:max-w-[200px] truncate">
+                        <TableCell className="text-[10px] sm:text-sm truncate p-1 sm:p-4">
                           {order.services?.name || "Unknown"}
                         </TableCell>
-                        <TableCell className="text-xs sm:text-sm max-w-[150px] truncate hidden md:table-cell">
-                          {order.link}
+                        <TableCell className="text-[10px] sm:text-sm truncate p-1 sm:p-4">
+                          <span className="block truncate max-w-full">{order.link}</span>
                         </TableCell>
-                        <TableCell className="text-xs sm:text-sm hidden sm:table-cell">
+                        <TableCell className="text-[10px] sm:text-sm p-1 sm:p-4">
                           {order.quantity.toLocaleString()}
                         </TableCell>
-                        <TableCell className="text-xs sm:text-sm font-semibold whitespace-nowrap">
+                        <TableCell className="text-[10px] sm:text-sm font-semibold p-1 sm:p-4">
                           ₦{formatPrice(order.charge)}
                         </TableCell>
-                        <TableCell>
-                          <Badge variant={getStatusColor(order.status)} className="text-xs">
+                        <TableCell className="p-1 sm:p-4">
+                          <Badge variant={getStatusColor(order.status)} className="text-[8px] sm:text-xs px-1 sm:px-2">
                             {order.status}
                           </Badge>
                         </TableCell>
