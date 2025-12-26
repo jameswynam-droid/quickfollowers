@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import logoImg from "@/assets/logo.png";
 
 interface HeaderProps {
@@ -91,6 +92,7 @@ const Header = ({ onAuthClick }: HeaderProps) => {
 
         {/* Auth Buttons */}
         <div className="hidden md:flex items-center gap-3">
+          <ThemeToggle />
           {isAuthenticated ? (
             <Button onClick={handleLogout} variant="outline">
               <i className="fa-solid fa-right-from-bracket mr-2"></i>
@@ -110,12 +112,15 @@ const Header = ({ onAuthClick }: HeaderProps) => {
         </div>
 
         {/* Mobile Menu Button */}
-        <button
-          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          className="md:hidden text-xl sm:text-2xl text-foreground p-1"
-        >
-          <i className={`fa-solid ${mobileMenuOpen ? "fa-xmark" : "fa-bars"}`}></i>
-        </button>
+        <div className="flex md:hidden items-center gap-2">
+          <ThemeToggle />
+          <button
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            className="text-xl sm:text-2xl text-foreground p-1"
+          >
+            <i className={`fa-solid ${mobileMenuOpen ? "fa-xmark" : "fa-bars"}`}></i>
+          </button>
+        </div>
       </div>
 
       {/* Mobile Menu */}
