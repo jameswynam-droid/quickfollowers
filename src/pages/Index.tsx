@@ -293,15 +293,6 @@ const Index = () => {
             </details>
             <details className="group bg-card rounded-xl sm:rounded-2xl shadow-lg px-4 sm:px-8 py-4 sm:py-6 open:shadow-xl transition-all border border-border/50 hover:border-primary/50">
               <summary className="font-bold text-sm sm:text-lg cursor-pointer list-none flex items-center justify-between">
-                What payment methods do you accept?
-                <i className="fa-solid fa-chevron-down text-primary group-open:rotate-180 transition-transform text-xs sm:text-base"></i>
-              </summary>
-              <p className="text-foreground mt-3 sm:mt-4 leading-relaxed text-xs sm:text-base">
-                Bank Transfer only. We credit instantly once confirmed.
-              </p>
-            </details>
-            <details className="group bg-card rounded-xl sm:rounded-2xl shadow-lg px-4 sm:px-8 py-4 sm:py-6 open:shadow-xl transition-all border border-border/50 hover:border-primary/50">
-              <summary className="font-bold text-sm sm:text-lg cursor-pointer list-none flex items-center justify-between">
                 Can I resell your services?
                 <i className="fa-solid fa-chevron-down text-primary group-open:rotate-180 transition-transform text-xs sm:text-base"></i>
               </summary>
