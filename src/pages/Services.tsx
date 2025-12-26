@@ -321,6 +321,11 @@ const Services = () => {
                             <CardTitle className="text-xs sm:text-sm leading-tight line-clamp-2 group-hover:text-primary transition-colors">
                               {service.name.replace(/[🎉✨⚡️🔥💎🌟]/g, '').trim()}
                             </CardTitle>
+                            {service.description && (
+                              <CardDescription className="text-xs text-muted-foreground line-clamp-2">
+                                {service.description}
+                              </CardDescription>
+                            )}
                             <div className="flex items-center gap-2">
                               <span className="text-xs px-2 py-1 rounded-full bg-primary/10 text-primary font-medium">
                                 {service.pricePerThousand}
