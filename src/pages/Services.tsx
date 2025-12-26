@@ -364,11 +364,19 @@ const Services = () => {
       <Footer />
 
       <Dialog open={orderDialogOpen} onOpenChange={setOrderDialogOpen}>
-        <DialogContent className="max-w-[95vw] sm:max-w-lg">
+        <DialogContent className="max-w-[95vw] sm:max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-lg">Place Order</DialogTitle>
-            <DialogDescription className="text-xs sm:text-sm line-clamp-2">{selectedService?.name}</DialogDescription>
+            <DialogDescription className="text-xs sm:text-sm">{selectedService?.name}</DialogDescription>
           </DialogHeader>
+          
+          {/* Show instructional description if available */}
+          {selectedService?.description && (
+            <div className="p-3 bg-muted/50 border border-border rounded-lg text-xs sm:text-sm whitespace-pre-line">
+              {selectedService.description}
+            </div>
+          )}
+          
           <div className="space-y-4">
             <div>
               <Label htmlFor="link" className="text-sm">Link (URL)</Label>
