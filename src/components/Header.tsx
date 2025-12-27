@@ -51,6 +51,9 @@ const Header = ({ onAuthClick }: HeaderProps) => {
               className="w-full h-full object-cover"
               loading="eager"
               fetchPriority="high"
+              decoding="sync"
+              width="40"
+              height="40"
             />
           </div>
           <span className="text-lg sm:text-2xl font-black bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">QuickFollowers</span>

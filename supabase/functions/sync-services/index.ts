@@ -194,34 +194,321 @@ Keep it up! 👏
 ⚠️ No offensive, spam or inappropriate comments allowed.`;
   }
   
-  // Telegram services
+  // Telegram services - expanded
   if (nameLower.includes('telegram') || categoryLower.includes('telegram')) {
-    if (nameLower.includes('member')) {
+    if (nameLower.includes('member') || nameLower.includes('subscriber')) {
       return `📱 Telegram Members Service
 
 ✅ Real Telegram Members
-✅ Fast Delivery
-✅ No Password Required
+✅ High retention rate
+✅ No admin access required
 
 📝 Format:
-Enter your Telegram group/channel link.
-Example: https://t.me/yourchannel
+Enter your Telegram group/channel username or link.
+Example: https://t.me/yourchannel or @yourchannel
 
-⚠️ Make sure your group/channel is public.`;
+⚠️ Channel/Group must be public. Private groups not supported.`;
     }
-    if (nameLower.includes('view') || nameLower.includes('post')) {
-      return `👁 Telegram Views Service
+    if (nameLower.includes('view') || nameLower.includes('post view')) {
+      return `👁 Telegram Post Views Service
 
 ✅ Real Telegram Views
-✅ Fast Delivery
+✅ Fast delivery
 ✅ Works on all public posts
 
 📝 Format:
 Enter your Telegram post link.
 Example: https://t.me/yourchannel/123
 
-⚠️ Post must be public and visible.`;
+⚠️ Post must be from a public channel.`;
     }
+    if (nameLower.includes('reaction') || nameLower.includes('emoji')) {
+      return `❤️ Telegram Reactions Service
+
+✅ Get reactions on your posts
+✅ Various emoji options
+✅ Fast delivery
+
+📝 Format:
+Enter your Telegram post link.
+Example: https://t.me/yourchannel/123
+
+⚠️ Post must be from a public channel.`;
+    }
+    if (nameLower.includes('share') || nameLower.includes('forward')) {
+      return `🔄 Telegram Shares/Forwards Service
+
+✅ Increase post visibility
+✅ Real shares
+✅ Fast processing
+
+📝 Format:
+Enter your Telegram post link.
+Example: https://t.me/yourchannel/123
+
+⚠️ Post must be public and shareable.`;
+    }
+    if (nameLower.includes('vote') || nameLower.includes('poll')) {
+      return `🗳 Telegram Poll Votes Service
+
+✅ Get votes on your polls
+✅ Choose specific option
+✅ Fast delivery
+
+📝 Format:
+Enter post link and specify vote option.
+Example: https://t.me/yourchannel/123 | Option 1
+
+⚠️ Poll must be active and public.`;
+    }
+    // Default Telegram
+    return `📱 Telegram Service
+
+✅ Quality Telegram engagement
+✅ Fast delivery
+✅ No password required
+
+📝 Format:
+Enter your Telegram channel/group/post link.
+Example: https://t.me/yourchannel
+
+⚠️ Must be public and accessible.`;
+  }
+  
+  // Discord services - expanded
+  if (nameLower.includes('discord') || categoryLower.includes('discord')) {
+    if (nameLower.includes('member') || nameLower.includes('join')) {
+      return `💬 Discord Members Service
+
+✅ Real Discord members
+✅ Quality accounts
+✅ Stay in server
+
+📝 Format:
+Enter your Discord server invite link (permanent invite).
+Example: https://discord.gg/yourserver
+
+⚠️ Invite link must be permanent and not expired.`;
+    }
+    if (nameLower.includes('online') || nameLower.includes('presence')) {
+      return `🟢 Discord Online Members Service
+
+✅ Show more online members
+✅ Boost server activity appearance
+✅ Fast activation
+
+📝 Format:
+Enter your Discord server invite link.
+Example: https://discord.gg/yourserver
+
+⚠️ Link must be valid and permanent.`;
+    }
+    if (nameLower.includes('boost') || nameLower.includes('nitro')) {
+      return `🚀 Discord Server Boost Service
+
+✅ Boost your server level
+✅ Unlock perks and features
+✅ Quality boosts
+
+📝 Format:
+Enter your Discord server invite link.
+Example: https://discord.gg/yourserver
+
+⚠️ Server must be accessible.`;
+    }
+    // Default Discord
+    return `💬 Discord Service
+
+✅ Real Discord engagement
+✅ Quality interactions
+✅ Fast delivery
+
+📝 Format:
+Enter your Discord server invite link.
+Example: https://discord.gg/yourserver
+
+⚠️ Server must be public and invite link must be valid.`;
+  }
+  
+  // Snapchat services - expanded
+  if (nameLower.includes('snapchat') || categoryLower.includes('snapchat')) {
+    if (nameLower.includes('follower') || nameLower.includes('subscriber')) {
+      return `👻 Snapchat Followers Service
+
+✅ Real Snapchat followers
+✅ Quality profiles
+✅ Organic appearance
+
+📝 Format:
+Enter your Snapchat username.
+Example: your_snapchat_username (without @)
+
+⚠️ Account must be public.`;
+    }
+    if (nameLower.includes('view') || nameLower.includes('story')) {
+      return `👁 Snapchat Story Views Service
+
+✅ Get views on your stories
+✅ Real viewers
+✅ Fast delivery
+
+📝 Format:
+Enter your Snapchat username.
+Example: your_snapchat_username
+
+⚠️ Stories must be public to view.`;
+    }
+    if (nameLower.includes('score') || nameLower.includes('snap score')) {
+      return `📊 Snapchat Score Service
+
+✅ Increase your Snap Score
+✅ Safe method
+✅ Gradual delivery
+
+📝 Format:
+Enter your Snapchat username.
+Example: your_snapchat_username
+
+⚠️ Account must be public.`;
+    }
+    // Default Snapchat
+    return `👻 Snapchat Service
+
+✅ Quality Snapchat engagement
+✅ Real profiles
+✅ Fast delivery
+
+📝 Format:
+Enter your Snapchat username.
+Example: your_snapchat_username
+
+⚠️ Account must be public.`;
+  }
+  
+  // Twitch services
+  if (nameLower.includes('twitch') || categoryLower.includes('twitch')) {
+    if (nameLower.includes('follower')) {
+      return `🎮 Twitch Followers Service
+
+✅ Real Twitch followers
+✅ Quality accounts
+✅ No password required
+
+📝 Format:
+Enter your Twitch channel URL or username.
+Example: https://twitch.tv/yourchannel
+
+⚠️ Channel must be public.`;
+    }
+    if (nameLower.includes('viewer') || nameLower.includes('live')) {
+      return `🔴 Twitch Live Viewers Service
+
+✅ Real-time live viewers
+✅ Boost your stream visibility
+✅ Concurrent viewers
+
+📝 Format:
+Enter your Twitch channel URL when you go live.
+Example: https://twitch.tv/yourchannel
+
+⚠️ Start order AFTER you go live.`;
+    }
+    // Default Twitch
+    return `🎮 Twitch Service
+
+✅ Quality Twitch engagement
+✅ Real interactions
+✅ Fast delivery
+
+📝 Format:
+Enter your Twitch channel URL.
+Example: https://twitch.tv/yourchannel
+
+⚠️ Channel must be public.`;
+  }
+  
+  // LinkedIn services
+  if (nameLower.includes('linkedin') || categoryLower.includes('linkedin')) {
+    if (nameLower.includes('follower') || nameLower.includes('connection')) {
+      return `💼 LinkedIn Followers/Connections Service
+
+✅ Professional profiles
+✅ Quality engagement
+✅ Boost credibility
+
+📝 Format:
+Enter your LinkedIn profile or company page URL.
+Example: https://linkedin.com/in/yourprofile
+
+⚠️ Profile must be public.`;
+    }
+    if (nameLower.includes('like') || nameLower.includes('reaction')) {
+      return `👍 LinkedIn Likes/Reactions Service
+
+✅ Boost post engagement
+✅ Professional appearance
+✅ Fast delivery
+
+📝 Format:
+Enter your LinkedIn post URL.
+Example: https://linkedin.com/posts/yourpost
+
+⚠️ Post must be public.`;
+    }
+    // Default LinkedIn
+    return `💼 LinkedIn Service
+
+✅ Professional engagement
+✅ Quality interactions
+✅ Boost your profile
+
+📝 Format:
+Enter your LinkedIn URL.
+Example: https://linkedin.com/in/yourprofile
+
+⚠️ Profile/Post must be public.`;
+  }
+  
+  // Pinterest services
+  if (nameLower.includes('pinterest') || categoryLower.includes('pinterest')) {
+    if (nameLower.includes('follower')) {
+      return `📌 Pinterest Followers Service
+
+✅ Real Pinterest followers
+✅ Quality accounts
+✅ Boost your profile
+
+📝 Format:
+Enter your Pinterest profile URL.
+Example: https://pinterest.com/yourusername
+
+⚠️ Profile must be public.`;
+    }
+    if (nameLower.includes('repin') || nameLower.includes('save')) {
+      return `🔄 Pinterest Repins/Saves Service
+
+✅ Increase pin visibility
+✅ Real engagement
+✅ Boost reach
+
+📝 Format:
+Enter your Pinterest pin URL.
+Example: https://pinterest.com/pin/123456
+
+⚠️ Pin must be public.`;
+    }
+    // Default Pinterest
+    return `📌 Pinterest Service
+
+✅ Quality Pinterest engagement
+✅ Real users
+✅ Fast delivery
+
+📝 Format:
+Enter your Pinterest URL.
+Example: https://pinterest.com/yourusername
+
+⚠️ Content must be public.`;
   }
   
   // DM/Direct Message services
