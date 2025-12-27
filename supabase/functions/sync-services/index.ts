@@ -73,11 +73,195 @@ async function sendSyncNotification(subject: string, content: string, isError: b
   }
 }
 
-// Generate meaningful descriptions based on service name and category
+// Generate meaningful and instructional descriptions based on service name and category
 function generateDescription(name: string, category: string, min: string, max: string): string {
   const nameLower = name.toLowerCase();
   const categoryLower = category.toLowerCase();
   
+  // Check for Traffic/Keyword services - these need detailed instructions
+  if ((nameLower.includes('traffic') || categoryLower.includes('traffic')) && 
+      (nameLower.includes('keyword') || nameLower.includes('organic') || nameLower.includes('google') || nameLower.includes('search'))) {
+    return `💡 Use a bit.ly link to track traffic
+💡 Keyword can be added in any language
+
+✅ Organic Keyword Traffic from Search Engines
+✅ Add Your Own Custom Keyword (See below how to add it)
+✅ 100% Real & Unique Visitors
+✅ Google Analytics Supported
+
+⏱ Session Length: 40-60 Seconds per visit
+📉 Bounce Rates: Low
+⚡ Speed: 10,000 unique visitors per day
+⏳ Start Time: 0-12h (we check all links for compliance)
+
+🖥 Desktop Traffic Over 90%
+📱 Mobile Traffic Under 10%
+
+⚠️ No Adult, Drug or offensive websites allowed
+
+📝 URL and KEYWORD Format:
+Add your URL and keyword in to the link field with a separator. For example:
+https://www.domain.com:keyword
+or
+http://bit.ly/xyz:keyword longtail
+
+1 (ONE) keyword per order. To use multiple keywords create another order for the same URL using a different keyword.`;
+  }
+  
+  // Regular traffic services without keywords
+  if (nameLower.includes('traffic') || categoryLower.includes('traffic')) {
+    return `✅ Real Website Traffic Visitors
+✅ 100% Unique Visitors
+✅ Google Analytics Supported
+
+⏱ Session Length: 30-60 Seconds per visit
+📉 Bounce Rates: Low
+⚡ Speed: Up to 10,000 visitors per day
+⏳ Start Time: 0-12 hours
+
+🖥 Desktop Traffic Over 90%
+📱 Mobile Traffic Under 10%
+
+⚠️ No Adult, Drug or offensive websites allowed
+
+📝 Enter your website URL in the link field.`;
+  }
+  
+  // Custom comments services
+  if (nameLower.includes('custom comment') || (nameLower.includes('comment') && nameLower.includes('custom'))) {
+    return `📝 Custom Comments Service
+
+✅ Write your own custom comments
+✅ Real-looking engagement
+✅ Natural delivery speed
+
+📝 Format:
+Enter your comments separated by new lines. Each line = one comment.
+
+Example:
+Great post! Love this content 🔥
+This is amazing work!
+Keep it up! 👏
+
+⚠️ No offensive, spam or inappropriate comments allowed.`;
+  }
+  
+  // Telegram services
+  if (nameLower.includes('telegram') || categoryLower.includes('telegram')) {
+    if (nameLower.includes('member')) {
+      return `📱 Telegram Members Service
+
+✅ Real Telegram Members
+✅ Fast Delivery
+✅ No Password Required
+
+📝 Format:
+Enter your Telegram group/channel link.
+Example: https://t.me/yourchannel
+
+⚠️ Make sure your group/channel is public.`;
+    }
+    if (nameLower.includes('view') || nameLower.includes('post')) {
+      return `👁 Telegram Views Service
+
+✅ Real Telegram Views
+✅ Fast Delivery
+✅ Works on all public posts
+
+📝 Format:
+Enter your Telegram post link.
+Example: https://t.me/yourchannel/123
+
+⚠️ Post must be public and visible.`;
+    }
+  }
+  
+  // DM/Direct Message services
+  if (nameLower.includes(' dm ') || nameLower.includes('direct message') || nameLower.includes('dm service')) {
+    return `📩 Direct Message (DM) Service
+
+✅ Reach users directly via DM
+✅ Custom message content
+✅ Targeted audience
+
+📝 Format:
+Provide target username/URL and your message.
+
+⚠️ No spam, offensive or promotional content that violates platform terms.`;
+  }
+  
+  // Mention/Tag services
+  if (nameLower.includes('mention') || nameLower.includes('tag')) {
+    return `🏷 Mention/Tag Service
+
+✅ Get mentioned or tagged in posts
+✅ Increase visibility and engagement
+✅ Real accounts
+
+📝 Format:
+Enter the post URL where you want mentions/tags.
+
+⚠️ Content must be public and comply with platform guidelines.`;
+  }
+  
+  // Poll vote services
+  if (nameLower.includes('poll') || nameLower.includes('vote')) {
+    return `🗳 Poll Vote Service
+
+✅ Get votes on your polls
+✅ Fast delivery
+✅ Real engagement
+
+📝 Format:
+Enter the poll URL and specify which option to vote for.
+Example: https://platform.com/poll/123 | Option 1
+
+⚠️ Poll must be public and accessible.`;
+  }
+  
+  // Review services
+  if (nameLower.includes('review')) {
+    return `⭐ Review Service
+
+✅ Get authentic-looking reviews
+✅ Custom review text (if applicable)
+✅ Boost your reputation
+
+📝 Format:
+Enter your business/product page URL.
+
+⚠️ Content must comply with platform guidelines. No fake or misleading information.`;
+  }
+  
+  // Live/Stream services
+  if (nameLower.includes('live') || nameLower.includes('stream') || nameLower.includes('viewer')) {
+    return `🔴 Live Stream Viewers Service
+
+✅ Real-time live viewers
+✅ Boost your live stream engagement
+✅ Works on most platforms
+
+📝 Format:
+Enter your live stream URL when you go live.
+
+⚠️ Stream must be public and active when order is placed.`;
+  }
+  
+  // Story views
+  if (nameLower.includes('story') && nameLower.includes('view')) {
+    return `👁 Story Views Service
+
+✅ Increase your story visibility
+✅ Fast delivery
+✅ Real engagement
+
+📝 Format:
+Enter your profile URL. Make sure your stories are public.
+
+⚠️ Stories must be visible to everyone.`;
+  }
+  
+  // Default description for other services
   let description = '';
   
   // Platform detection
@@ -121,11 +305,6 @@ function generateDescription(name: string, category: string, min: string, max: s
     'members': 'Grow your group or channel membership.',
     'reactions': 'Get more reactions on your posts.',
     'reposts': 'Increase reposts for wider distribution.',
-    'story views': 'Boost story engagement with more views.',
-    'live viewers': 'Get more live stream viewers.',
-    'dm': 'Direct message marketing service.',
-    'poll votes': 'Increase votes on your polls.',
-    'review': 'Get reviews for your business or product.',
   };
   
   let serviceType = '';
@@ -207,6 +386,16 @@ function generateDescription(name: string, category: string, min: string, max: s
   description += ` Order range: ${min} - ${max}.`;
   
   return description;
+}
+
+// Clean service names by removing provider references
+function cleanServiceName(name: string): string {
+  // Remove provider names from service names
+  return name
+    .replace(/\bOwlet\b/gi, 'QuickFollowers')
+    .replace(/\bFollowspanel\b/gi, 'QuickFollowers')
+    .replace(/\bOwlet's\b/gi, "QuickFollowers'")
+    .replace(/\bFollowspanel's\b/gi, "QuickFollowers'");
 }
 
 Deno.serve(async (req) => {
@@ -346,9 +535,9 @@ Deno.serve(async (req) => {
         
         return {
           id: `${provider.name}-${service.service}`,
-          name: service.name,
+          name: cleanServiceName(service.name),
           type: service.type,
-          category: service.category,
+          category: cleanServiceName(service.category),
           rate: rate,
           min_order: parseInt(service.min),
           max_order: parseInt(service.max),
