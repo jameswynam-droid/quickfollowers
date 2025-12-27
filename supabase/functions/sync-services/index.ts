@@ -198,12 +198,95 @@ Keep it up! 👏
 ⚠️ No offensive, spam or inappropriate comments allowed.`;
   }
   
-  // Telegram services - expanded
+  // Telegram services - expanded with specific service types
   if (nameLower.includes('telegram') || categoryLower.includes('telegram')) {
-    if (nameLower.includes('member') || nameLower.includes('subscriber')) {
-      return `📱 Telegram Members Service
+    // Telegram Dedicated Proxy/VPN for Sponsor Channel - SPECIFIC
+    if ((nameLower.includes('proxy') || nameLower.includes('vpn')) && 
+        (nameLower.includes('sponsor') || nameLower.includes('dedicated'))) {
+      return `🔐 Telegram Dedicated Proxy/VPN For Sponsor Channel
 
-✅ Real Telegram Members
+⚠️ IMPORTANT INSTRUCTIONS - READ CAREFULLY:
+
+This service provides dedicated proxy/VPN members for your sponsor channel. These members will join using specific proxy or VPN connections.
+
+📝 HOW TO USE:
+1. Enter your Telegram channel username or link
+2. Your channel must be PUBLIC
+3. Do NOT change channel to private during order
+
+📝 Format:
+Enter your Telegram public channel link.
+Example: https://t.me/yourchannel or @yourchannel
+
+✅ Real accounts with proxy/VPN
+✅ Stays in channel
+✅ Good for monetization requirements
+
+⚠️ Channel must remain PUBLIC throughout the order
+⚠️ Do not kick or ban members during delivery`;
+    }
+    
+    // Telegram Boost/Premium Boost services - SPECIFIC
+    if (nameLower.includes('boost') || nameLower.includes('booster') || nameLower.includes('premium boost')) {
+      const is1Month = nameLower.includes('1 month') || nameLower.includes('1month') || nameLower.includes('30 day');
+      const is3Month = nameLower.includes('3 month') || nameLower.includes('3month') || nameLower.includes('90 day');
+      const duration = is3Month ? '3 Months' : is1Month ? '1 Month' : '1 Month';
+      
+      return `🚀 Telegram Channel Boost Service (${duration})
+
+⚠️ IMPORTANT - READ BEFORE ORDERING:
+
+This service adds Premium Boosts to your Telegram channel to unlock special features and increase visibility.
+
+📝 HOW TO ORDER:
+1. Enter your PUBLIC channel username or link
+2. Quantity = Number of boosts you want
+3. Wait for delivery (starts within 0-1 hour)
+
+📝 Format:
+https://t.me/yourchannel or @yourchannel
+
+✅ Premium Telegram Boosts
+✅ Unlocks channel features (stories, custom emoji, etc.)
+✅ ${duration} boost duration
+✅ Increases channel visibility
+
+⚠️ REQUIREMENTS:
+- Channel MUST be PUBLIC
+- Do NOT change to private during order
+- Do NOT change channel username during order
+
+💡 Benefits of Boosting:
+- Custom channel backgrounds
+- Channel stories
+- Custom emoji packs
+- Voice-to-text for voice messages
+- Increased upload limits`;
+    }
+    
+    // Telegram Channel/Group Members
+    if (nameLower.includes('member') || nameLower.includes('subscriber')) {
+      const isRealActive = nameLower.includes('real') || nameLower.includes('active') || nameLower.includes('hq');
+      const isFake = nameLower.includes('fake') || nameLower.includes('bot');
+      
+      if (isFake) {
+        return `📱 Telegram Members Service (Bot/Inactive)
+
+⚠️ These are BOT/INACTIVE members for number purposes only.
+
+📝 Format:
+Enter your Telegram group/channel link.
+Example: https://t.me/yourchannel or @yourchannel
+
+✅ Fast delivery
+✅ Increases member count
+⚠️ NOT for engagement - number boosting only
+⚠️ Channel/Group must be PUBLIC`;
+      }
+      
+      return `📱 Telegram Members Service${isRealActive ? ' (Real & Active)' : ''}
+
+✅ ${isRealActive ? 'Real active Telegram members' : 'Telegram members'}
 ✅ High retention rate
 ✅ No admin access required
 
@@ -211,9 +294,29 @@ Keep it up! 👏
 Enter your Telegram group/channel username or link.
 Example: https://t.me/yourchannel or @yourchannel
 
-⚠️ Channel/Group must be public. Private groups not supported.`;
+⚠️ Channel/Group must be PUBLIC
+⚠️ Private groups are NOT supported
+⚠️ Do not change to private during delivery`;
     }
+    
+    // Telegram Post Views
     if (nameLower.includes('view') || nameLower.includes('post view')) {
+      const isAuto = nameLower.includes('auto') || nameLower.includes('subscription');
+      
+      if (isAuto) {
+        return `👁 Telegram Auto/Subscription Views
+
+✅ Automatic views on new posts
+✅ Set once and forget
+✅ Works on all new posts
+
+📝 Format:
+Enter your Telegram channel username.
+Example: @yourchannel or https://t.me/yourchannel
+
+⚠️ Channel must be PUBLIC`;
+      }
+      
       return `👁 Telegram Post Views Service
 
 ✅ Real Telegram Views
@@ -221,37 +324,48 @@ Example: https://t.me/yourchannel or @yourchannel
 ✅ Works on all public posts
 
 📝 Format:
-Enter your Telegram post link.
+Enter your Telegram post link (with post number).
 Example: https://t.me/yourchannel/123
 
-⚠️ Post must be from a public channel.`;
+⚠️ Post must be from a PUBLIC channel`;
     }
+    
+    // Telegram Reactions
     if (nameLower.includes('reaction') || nameLower.includes('emoji')) {
-      return `❤️ Telegram Reactions Service
+      const emojiMatch = nameLower.match(/[👍❤️🔥😂😢😡💯🎉🤔👎]/);
+      const emoji = emojiMatch ? emojiMatch[0] : '❤️';
+      
+      return `${emoji} Telegram Reactions Service
 
 ✅ Get reactions on your posts
-✅ Various emoji options
 ✅ Fast delivery
+✅ Increases engagement
 
 📝 Format:
 Enter your Telegram post link.
 Example: https://t.me/yourchannel/123
 
-⚠️ Post must be from a public channel.`;
+⚠️ Post must be from a PUBLIC channel
+⚠️ Reactions must be enabled on your channel`;
     }
+    
+    // Telegram Shares/Forwards
     if (nameLower.includes('share') || nameLower.includes('forward')) {
       return `🔄 Telegram Shares/Forwards Service
 
 ✅ Increase post visibility
-✅ Real shares
+✅ Real shares to other chats
 ✅ Fast processing
 
 📝 Format:
 Enter your Telegram post link.
 Example: https://t.me/yourchannel/123
 
-⚠️ Post must be public and shareable.`;
+⚠️ Post must be PUBLIC and shareable
+⚠️ Forwarding must be enabled`;
     }
+    
+    // Telegram Poll Votes
     if (nameLower.includes('vote') || nameLower.includes('poll')) {
       return `🗳 Telegram Poll Votes Service
 
@@ -260,11 +374,51 @@ Example: https://t.me/yourchannel/123
 ✅ Fast delivery
 
 📝 Format:
-Enter post link and specify vote option.
-Example: https://t.me/yourchannel/123 | Option 1
+Enter post link with poll and specify the option number.
+Format: https://t.me/yourchannel/123 | Option Number
 
-⚠️ Poll must be active and public.`;
+Example: https://t.me/mychannel/456 | 1
+(This votes for option 1)
+
+⚠️ Poll must be ACTIVE and PUBLIC
+⚠️ Make sure to specify correct option number`;
     }
+    
+    // Telegram Comments
+    if (nameLower.includes('comment')) {
+      if (nameLower.includes('custom')) {
+        return `💬 Telegram Custom Comments Service
+
+✅ Write your own comments
+✅ Appears on your post
+✅ Natural delivery
+
+📝 Format:
+Enter your post link, then add comments on separate lines.
+Format:
+https://t.me/yourchannel/123
+Comment 1 here
+Comment 2 here
+Comment 3 here
+
+⚠️ Comments must be enabled on your channel
+⚠️ Post must be PUBLIC`;
+      }
+      
+      return `💬 Telegram Comments Service
+
+✅ Get comments on your posts
+✅ Random relevant comments
+✅ Increases engagement
+
+📝 Format:
+Enter your Telegram post link.
+Example: https://t.me/yourchannel/123
+
+⚠️ Comments must be enabled on your channel
+⚠️ Post must be PUBLIC`;
+    }
+    
     // Default Telegram
     return `📱 Telegram Service
 
@@ -276,50 +430,114 @@ Example: https://t.me/yourchannel/123 | Option 1
 Enter your Telegram channel/group/post link.
 Example: https://t.me/yourchannel
 
-⚠️ Must be public and accessible.`;
+⚠️ Must be PUBLIC and accessible`;
   }
   
-  // Discord services - expanded
+  // Discord services - expanded with specific types
   if (nameLower.includes('discord') || categoryLower.includes('discord')) {
+    // Discord Server Boosts - SPECIFIC
+    if (nameLower.includes('boost') || nameLower.includes('nitro boost')) {
+      const is1Month = nameLower.includes('1 month') || nameLower.includes('1month') || nameLower.includes('30 day');
+      const is3Month = nameLower.includes('3 month') || nameLower.includes('3month') || nameLower.includes('90 day');
+      const duration = is3Month ? '3 Months' : is1Month ? '1 Month' : '1 Month';
+      
+      return `🚀 Discord Server Boost Service (${duration})
+
+⚠️ IMPORTANT - READ BEFORE ORDERING:
+
+This service adds Nitro Boosts to your Discord server to unlock perks and features.
+
+📝 HOW TO ORDER:
+1. Create a PERMANENT invite link (never expires)
+2. Make sure link has unlimited uses
+3. Enter the invite link below
+
+📝 Format:
+https://discord.gg/yourcode
+
+✅ Real Nitro Boosts
+✅ Unlock server perks (better audio, emojis, etc.)
+✅ ${duration} boost duration
+✅ Increases server level
+
+⚠️ REQUIREMENTS:
+- Invite MUST be permanent (set to never expire)
+- Invite MUST allow unlimited uses
+- Do NOT delete invite during order
+
+💡 Server Boost Benefits:
+- Level 1 (2 boosts): +50 emoji slots, 128kbps audio
+- Level 2 (7 boosts): +50 more emojis, 256kbps audio, server banner
+- Level 3 (14 boosts): +100 more emojis, 384kbps audio, vanity URL`;
+    }
+    
+    // Discord Members
     if (nameLower.includes('member') || nameLower.includes('join')) {
-      return `💬 Discord Members Service
+      const isOnline = nameLower.includes('online');
+      const isOffline = nameLower.includes('offline');
+      
+      if (isOnline) {
+        return `🟢 Discord Online Members Service
+
+✅ Members appear ONLINE in your server
+✅ Increases server activity appearance
+✅ Real accounts
+
+📝 HOW TO ORDER:
+1. Create a PERMANENT invite link
+2. Set invite to NEVER expire
+3. Allow UNLIMITED uses
+
+📝 Format:
+https://discord.gg/yourcode
+
+⚠️ REQUIREMENTS:
+- Invite MUST be permanent
+- Invite MUST be unlimited uses
+- Do NOT delete invite during delivery`;
+      }
+      
+      return `💬 Discord Members Service${isOffline ? ' (Offline)' : ''}
 
 ✅ Real Discord members
 ✅ Quality accounts
-✅ Stay in server
+✅ Members stay in server
+
+📝 HOW TO ORDER:
+1. Go to your Discord server
+2. Create an invite link
+3. Set it to NEVER EXPIRE
+4. Set to UNLIMITED USES
+5. Copy and paste the link below
 
 📝 Format:
-Enter your Discord server invite link (permanent invite).
-Example: https://discord.gg/yourserver
+https://discord.gg/yourcode
 
-⚠️ Invite link must be permanent and not expired.`;
+⚠️ IMPORTANT:
+- Invite MUST be permanent (never expires)
+- Invite MUST allow unlimited uses
+- Do NOT kick members during delivery
+- Do NOT delete the invite link`;
     }
-    if (nameLower.includes('online') || nameLower.includes('presence')) {
-      return `🟢 Discord Online Members Service
+    
+    // Discord Friend Requests
+    if (nameLower.includes('friend')) {
+      return `👥 Discord Friend Requests Service
 
-✅ Show more online members
-✅ Boost server activity appearance
-✅ Fast activation
+✅ Get friend requests on your account
+✅ Real Discord users
+✅ Fast delivery
 
 📝 Format:
-Enter your Discord server invite link.
-Example: https://discord.gg/yourserver
+Enter your Discord username with discriminator.
+Example: username#1234 or username
 
-⚠️ Link must be valid and permanent.`;
+⚠️ REQUIREMENTS:
+- Friend requests must be OPEN (not set to friends of friends only)
+- Account must not be private
+- Do not block incoming requests during delivery`;
     }
-    if (nameLower.includes('boost') || nameLower.includes('nitro')) {
-      return `🚀 Discord Server Boost Service
-
-✅ Boost your server level
-✅ Unlock perks and features
-✅ Quality boosts
-
-📝 Format:
-Enter your Discord server invite link.
-Example: https://discord.gg/yourserver
-
-⚠️ Server must be accessible.`;
-    }
+    
     // Default Discord
     return `💬 Discord Service
 
@@ -328,53 +546,91 @@ Example: https://discord.gg/yourserver
 ✅ Fast delivery
 
 📝 Format:
-Enter your Discord server invite link.
-Example: https://discord.gg/yourserver
+Enter your Discord server invite link (must be permanent).
+Example: https://discord.gg/yourcode
 
-⚠️ Server must be public and invite link must be valid.`;
+⚠️ Invite must be permanent and unlimited uses`;
   }
   
-  // Snapchat services - expanded
+  // Snapchat services - expanded with specific types
   if (nameLower.includes('snapchat') || categoryLower.includes('snapchat')) {
+    // Snapchat Followers
     if (nameLower.includes('follower') || nameLower.includes('subscriber')) {
       return `👻 Snapchat Followers Service
 
 ✅ Real Snapchat followers
 ✅ Quality profiles
-✅ Organic appearance
+✅ Organic growth
+
+📝 HOW TO ORDER:
+Enter your Snapchat USERNAME only (not link).
 
 📝 Format:
-Enter your Snapchat username.
-Example: your_snapchat_username (without @)
+yourusername
 
-⚠️ Account must be public.`;
+Example: john_doe123
+
+⚠️ REQUIREMENTS:
+- Account must be PUBLIC
+- Do NOT change to private during delivery
+- Username only, no @ symbol`;
     }
+    
+    // Snapchat Story Views
     if (nameLower.includes('view') || nameLower.includes('story')) {
       return `👁 Snapchat Story Views Service
 
-✅ Get views on your stories
+✅ Get views on your Snapchat stories
 ✅ Real viewers
 ✅ Fast delivery
 
-📝 Format:
-Enter your Snapchat username.
-Example: your_snapchat_username
+📝 HOW TO ORDER:
+Enter your Snapchat USERNAME only.
 
-⚠️ Stories must be public to view.`;
+📝 Format:
+yourusername
+
+⚠️ REQUIREMENTS:
+- Story must be PUBLIC (viewable by everyone)
+- Account must not be private
+- Order while story is still active`;
     }
+    
+    // Snapchat Score
     if (nameLower.includes('score') || nameLower.includes('snap score')) {
       return `📊 Snapchat Score Service
 
 ✅ Increase your Snap Score
-✅ Safe method
-✅ Gradual delivery
+✅ Safe and gradual
+✅ Permanent increase
+
+📝 HOW TO ORDER:
+1. Make sure your account can receive snaps from everyone
+2. Enter your username below
 
 📝 Format:
-Enter your Snapchat username.
-Example: your_snapchat_username
+yourusername
 
-⚠️ Account must be public.`;
+⚠️ REQUIREMENTS:
+- Account must be able to receive snaps from EVERYONE
+- Go to Settings > Who Can > Contact Me > Everyone
+- Do NOT change settings during delivery`;
     }
+    
+    // Snapchat Spotlight Views
+    if (nameLower.includes('spotlight')) {
+      return `✨ Snapchat Spotlight Views Service
+
+✅ Get views on your Spotlight videos
+✅ Increase visibility
+✅ Boost engagement
+
+📝 Format:
+Enter your Snapchat Spotlight video link.
+
+⚠️ Video must be PUBLIC and posted to Spotlight`;
+    }
+    
     // Default Snapchat
     return `👻 Snapchat Service
 
@@ -383,10 +639,10 @@ Example: your_snapchat_username
 ✅ Fast delivery
 
 📝 Format:
-Enter your Snapchat username.
-Example: your_snapchat_username
+Enter your Snapchat username (no @ symbol).
+Example: yourusername
 
-⚠️ Account must be public.`;
+⚠️ Account must be public`;
   }
   
   // Twitch services
