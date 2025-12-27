@@ -78,6 +78,54 @@ function generateDescription(name: string, category: string, min: string, max: s
   const nameLower = name.toLowerCase();
   const categoryLower = category.toLowerCase();
   
+  // WhatsApp Contact Save services
+  if ((nameLower.includes('whatsapp') || categoryLower.includes('whatsapp')) && 
+      (nameLower.includes('contact save') || nameLower.includes('profile save'))) {
+    return `📱 WhatsApp Contact Save Service
+
+✅ Get real users to save your contact
+✅ Nigerian profiles for local targeting
+✅ Increase your WhatsApp visibility
+
+📝 Format:
+Enter your phone number with country code.
+Example: +2348012345678
+
+⚠️ Number must be active and have WhatsApp.`;
+  }
+  
+  // WhatsApp Channel/Group Members
+  if ((nameLower.includes('whatsapp') || categoryLower.includes('whatsapp')) && 
+      (nameLower.includes('member') || nameLower.includes('community'))) {
+    return `👥 WhatsApp Members Service
+
+✅ Real WhatsApp members
+✅ High-quality profiles
+✅ Organic growth
+
+📝 Format:
+Enter your WhatsApp channel/group/community invite link.
+Example: https://whatsapp.com/channel/xxx or https://chat.whatsapp.com/xxx
+
+⚠️ Group/Channel must be public and joinable.`;
+  }
+  
+  // WhatsApp Reactions
+  if ((nameLower.includes('whatsapp') || categoryLower.includes('whatsapp')) && 
+      (nameLower.includes('reaction') || nameLower.includes('emoji') || nameLower.includes('like'))) {
+    return `❤️ WhatsApp Reactions Service
+
+✅ Boost your post engagement
+✅ Real reactions from active users
+✅ Fast delivery
+
+📝 Format:
+Enter your WhatsApp channel post link.
+Example: https://whatsapp.com/channel/xxx/123
+
+⚠️ Post must be public and visible.`;
+  }
+  
   // Check for Traffic/Keyword services - these need detailed instructions
   if ((nameLower.includes('traffic') || categoryLower.includes('traffic')) && 
       (nameLower.includes('keyword') || nameLower.includes('organic') || nameLower.includes('google') || nameLower.includes('search'))) {
@@ -261,6 +309,51 @@ Enter your profile URL. Make sure your stories are public.
 ⚠️ Stories must be visible to everyone.`;
   }
   
+  // Sign up services
+  if (nameLower.includes('sign up') || nameLower.includes('signup') || nameLower.includes('registration')) {
+    return `📝 Sign Up Service
+
+✅ Get real sign-ups to your website/app
+✅ Targeted demographics available
+✅ Quality verified accounts
+
+📝 Format:
+Enter your website/app registration URL.
+Provide any specific instructions if needed.
+
+⚠️ Registration process must be straightforward.`;
+  }
+  
+  // Music streaming services (Spotify, Boomplay, Audiomack)
+  if (nameLower.includes('stream') && (nameLower.includes('music') || categoryLower.includes('spotify') || categoryLower.includes('boomplay') || categoryLower.includes('audiomack'))) {
+    return `🎵 Music Streaming Service
+
+✅ Real plays on your tracks
+✅ Boost your streaming numbers
+✅ Algorithmic boost potential
+
+📝 Format:
+Enter your track/album/playlist URL.
+Example: https://open.spotify.com/track/xxx
+
+⚠️ Track must be publicly available.`;
+  }
+  
+  // Discord services
+  if (nameLower.includes('discord') || categoryLower.includes('discord')) {
+    return `💬 Discord Service
+
+✅ Real Discord engagement
+✅ Quality members/interactions
+✅ Fast delivery
+
+📝 Format:
+Enter your Discord server invite link.
+Example: https://discord.gg/xxx
+
+⚠️ Server must be public and invite link must be valid.`;
+  }
+  
   // Default description for other services
   let description = '';
   
@@ -280,6 +373,9 @@ Enter your profile URL. Make sure your stories are public.
     'discord': 'Discord',
     'soundcloud': 'SoundCloud',
     'threads': 'Threads',
+    'whatsapp': 'WhatsApp',
+    'boomplay': 'Boomplay',
+    'audiomack': 'Audiomack',
   };
   
   let platform = '';
@@ -305,6 +401,7 @@ Enter your profile URL. Make sure your stories are public.
     'members': 'Grow your group or channel membership.',
     'reactions': 'Get more reactions on your posts.',
     'reposts': 'Increase reposts for wider distribution.',
+    'favorites': 'Get more favorites on your content.',
   };
   
   let serviceType = '';
@@ -351,6 +448,7 @@ Enter your profile URL. Make sure your stories are public.
     'indonesia': 'Indonesia',
     'japan': 'Japan',
     'korea': 'Korea',
+    'europe': 'Europe',
   };
   
   let country = '';

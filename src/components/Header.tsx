@@ -45,7 +45,13 @@ const Header = ({ onAuthClick }: HeaderProps) => {
       <div className="max-w-7xl mx-auto px-3 sm:px-4 py-3 sm:py-5 flex items-center justify-between">
         <Link to="/" className="flex items-center gap-2 sm:gap-3 group">
           <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl overflow-hidden shadow-lg group-hover:scale-110 transition-transform">
-            <img src={logoImg} alt="QuickFollowers" className="w-full h-full object-cover" />
+            <img 
+              src={logoImg} 
+              alt="QuickFollowers" 
+              className="w-full h-full object-cover"
+              loading="eager"
+              fetchPriority="high"
+            />
           </div>
           <span className="text-lg sm:text-2xl font-black bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">QuickFollowers</span>
         </Link>
