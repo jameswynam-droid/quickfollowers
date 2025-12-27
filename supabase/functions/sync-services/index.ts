@@ -352,7 +352,7 @@ Deno.serve(async (req) => {
           rate: rate,
           min_order: parseInt(service.min),
           max_order: parseInt(service.max),
-          description: generateDescription(service.name, service.category, service.min, service.max),
+          description: null, // Will be filled in after checking existing descriptions
           provider: provider.name,
         };
       });
@@ -453,6 +453,57 @@ Deno.serve(async (req) => {
     console.log(`Successfully deleted ${deletedCount} orphaned services`);
     if (skippedDeletions.length > 0) {
       console.log(`Skipped ${skippedDeletions.length} services due to foreign key constraints`);
+    }
+
+    // Get existing descriptions to preserve custom ones
+    const existingDescriptions: { [key: string]: string } = {};
+    let descOffset = 0;
+    let hasMoreDesc = true;
+
+    while (hasMoreDesc) {
+      const { data: existingDesc, error: descError } = await supabaseClient
+        .from('services')
+        .select('id, description')
+        .range(descOffset, descOffset + 999);
+
+      if (descError) {
+        console.error('Error fetching existing descriptions:', descError);
+      } else if (existingDesc && existingDesc.length > 0) {
+        for (const svc of existingDesc) {
+          if (svc.description) {
+            existingDescriptions[svc.id] = svc.description;
+          }
+        }
+        descOffset += 1000;
+        hasMoreDesc = existingDesc.length === 1000;
+      } else {
+        hasMoreDesc = false;
+      }
+    }
+
+    console.log(`Fetched ${Object.keys(existingDescriptions).length} existing descriptions`);
+
+    // Helper function to check if description is custom/instructional
+    const isCustomDescription = (desc: string): boolean => {
+      if (!desc) return false;
+      const customIndicators = [
+        'Format:', 'URL:', 'URL |', 'Example:', 'Note:', 'Important:',
+        'Enter your', 'Provide the', 'Link format:', 'link | keywords',
+        'url | keyword', 'URL:keyword', 'Custom Comments'
+      ];
+      return customIndicators.some(indicator => desc.includes(indicator));
+    };
+
+    // Fill in descriptions for all services
+    for (const service of allServicesData) {
+      const existingDesc = existingDescriptions[service.id];
+      
+      // Keep existing custom descriptions, otherwise generate new one
+      if (existingDesc && isCustomDescription(existingDesc)) {
+        service.description = existingDesc;
+      } else {
+        service.description = generateDescription(service.name, service.category, service.min_order.toString(), service.max_order.toString());
+      }
     }
 
     // Upsert all current services
