@@ -13,6 +13,8 @@ import Services from "./pages/Services";
 import Orders from "./pages/Orders";
 import Transactions from "./pages/Transactions";
 import Admin from "./pages/Admin";
+import PaymentSuccess from "./pages/PaymentSuccess";
+import PaymentFailed from "./pages/PaymentFailed";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -28,7 +30,10 @@ const App = () => (
           <Route path="/auth" element={<Auth />} />
           <Route path="/confirm-email-change" element={<ConfirmEmailChange />} />
           <Route path="/seo-diagnostics" element={<SeoDiagnostics />} />
-          
+
+          <Route path="/payment/success" element={<PaymentSuccess />} />
+          <Route path="/payment/failed" element={<PaymentFailed />} />
+
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/services" element={<Services />} />
           <Route path="/orders" element={<Orders />} />
