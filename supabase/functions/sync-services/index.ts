@@ -14,6 +14,10 @@ interface SMMService {
   rate: string;
   min: string;
   max: string;
+  // Some providers include service-specific instructions/description text
+  desc?: string;
+  description?: string;
+  instructions?: string;
   dripfeed?: boolean;
   refill?: boolean;
   cancel?: boolean;
@@ -783,6 +787,21 @@ function cleanServiceName(name: string): string {
     .replace(/\bFollowspanel's\b/gi, "QuickFollowers'");
 }
 
+function normalizeProviderDescription(raw: unknown): string | null {
+  if (typeof raw !== 'string') return null;
+
+  const cleaned = raw
+    .replace(/\r\n/g, '\n')
+    .replace(/<\s*br\s*\/?>/gi, '\n')
+    .replace(/<\/p>\s*<p>/gi, '\n\n')
+    .replace(/<[^>]*>/g, '')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+
+  if (!cleaned) return null;
+  return cleanServiceName(cleaned);
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -917,7 +936,11 @@ Deno.serve(async (req) => {
         if (rate > 1000000) {
           rate = rate / 100;
         }
-        
+
+        const providerDesc = normalizeProviderDescription(
+          (service as any).desc ?? (service as any).description ?? (service as any).instructions,
+        );
+
         return {
           id: `${provider.name}-${service.service}`,
           name: cleanServiceName(service.name),
@@ -926,7 +949,8 @@ Deno.serve(async (req) => {
           rate: rate,
           min_order: parseInt(service.min),
           max_order: parseInt(service.max),
-          description: null, // Will be filled in after checking existing descriptions
+          // Prefer provider supplied instructions/description when present
+          description: providerDesc,
           provider: provider.name,
         };
       });
@@ -1070,13 +1094,23 @@ Deno.serve(async (req) => {
 
     // Fill in descriptions for all services
     for (const service of allServicesData) {
+      // Prefer provider-provided descriptions (already set during fetch)
+      if (typeof service.description === 'string' && service.description.trim().length > 0) {
+        continue;
+      }
+
       const existingDesc = existingDescriptions[service.id];
-      
-      // Keep existing custom descriptions, otherwise generate new one
+
+      // Keep existing custom descriptions only when provider didn't supply one
       if (existingDesc && isCustomDescription(existingDesc)) {
-        service.description = existingDesc;
+        service.description = cleanServiceName(existingDesc);
       } else {
-        service.description = generateDescription(service.name, service.category, service.min_order.toString(), service.max_order.toString());
+        service.description = generateDescription(
+          service.name,
+          service.category,
+          service.min_order.toString(),
+          service.max_order.toString(),
+        );
       }
     }
 
