@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import Header from "@/components/Header";
@@ -123,9 +123,15 @@ const Dashboard = () => {
               <Button variant="outline" size="sm" onClick={handleSignOut}>Sign Out</Button>
             </div>
           </div>
-          <p className="mt-3 sm:mt-4 text-lg sm:text-xl">
-            Welcome, <span className="font-semibold text-primary">{profile?.full_name || user?.email}</span>
-          </p>
+          {(() => {
+            const hour = new Date().getHours();
+            const greeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
+            return (
+              <p className="mt-3 sm:mt-4 text-lg sm:text-xl">
+                {greeting}, <span className="font-semibold text-primary">{profile?.full_name || user?.email}</span>
+              </p>
+            );
+          })()}
         </div>
 
         {/* Stats Grid */}
