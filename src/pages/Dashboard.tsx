@@ -112,20 +112,20 @@ const Dashboard = () => {
       <Header />
       <main className="flex-grow container mx-auto px-3 sm:px-4 py-4 sm:py-8">
         {/* Header Section */}
-        <div className="mb-6 sm:mb-8 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
-          <div>
+        <div className="mb-6 sm:mb-8">
+          <div className="flex justify-between items-center">
             <h1 className="text-2xl sm:text-4xl font-bold">Dashboard</h1>
-            <p className="text-muted-foreground mt-1 sm:mt-2 text-sm sm:text-base truncate max-w-[250px] sm:max-w-none">
-              Welcome, {profile?.full_name || user?.email}
-            </p>
+            <div className="flex gap-2 flex-wrap">
+              {isAdmin && <Button variant="outline" size="sm" onClick={() => navigate("/admin")}>Admin</Button>}
+              <Button variant="outline" size="icon" onClick={() => setSettingsOpen(true)}>
+                <Settings className="h-4 w-4" />
+              </Button>
+              <Button variant="outline" size="sm" onClick={handleSignOut}>Sign Out</Button>
+            </div>
           </div>
-          <div className="flex gap-2 flex-wrap">
-            {isAdmin && <Button variant="outline" size="sm" onClick={() => navigate("/admin")}>Admin</Button>}
-            <Button variant="outline" size="icon" onClick={() => setSettingsOpen(true)}>
-              <Settings className="h-4 w-4" />
-            </Button>
-            <Button variant="outline" size="sm" onClick={handleSignOut}>Sign Out</Button>
-          </div>
+          <p className="mt-3 sm:mt-4 text-lg sm:text-xl">
+            Welcome, <span className="font-semibold text-primary">{profile?.full_name || user?.email}</span>
+          </p>
         </div>
 
         {/* Stats Grid */}
