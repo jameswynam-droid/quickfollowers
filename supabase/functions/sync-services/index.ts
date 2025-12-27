@@ -1386,8 +1386,6 @@ Deno.serve(async (req) => {
       }
     }
 
-    }
-
     // Upsert all current services
     const batchSize = 100;
     let successCount = 0;
