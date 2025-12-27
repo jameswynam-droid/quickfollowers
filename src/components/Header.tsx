@@ -33,6 +33,8 @@ const Header = ({ onAuthClick }: HeaderProps) => {
     try {
       await supabase.auth.signOut();
       setIsAuthenticated(false);
+      // Clear theme preference on logout so homepage defaults to light
+      sessionStorage.removeItem("user-theme-preference");
       toast.success("Logged out successfully");
       navigate("/");
     } catch (error) {
@@ -101,7 +103,8 @@ const Header = ({ onAuthClick }: HeaderProps) => {
 
         {/* Auth Buttons */}
         <div className="hidden md:flex items-center gap-3">
-          <ThemeToggle />
+          {/* Only show theme toggle when authenticated */}
+          {isAuthenticated && <ThemeToggle />}
           {isAuthenticated ? (
             <Button onClick={handleLogout} variant="outline">
               <i className="fa-solid fa-right-from-bracket mr-2"></i>
@@ -122,7 +125,8 @@ const Header = ({ onAuthClick }: HeaderProps) => {
 
         {/* Mobile Menu Button */}
         <div className="flex md:hidden items-center gap-2">
-          <ThemeToggle />
+          {/* Only show theme toggle when authenticated */}
+          {isAuthenticated && <ThemeToggle />}
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             className="text-xl sm:text-2xl text-foreground p-1"
