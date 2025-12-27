@@ -1,0 +1,7 @@
+{
+  "redirects": [
+    { "source": "/favicon.ico", "destination": "/favicon.png", "permanent": true },
+    { "source": "/og-image.png", "destination": "/brand-logo.png", "permanent": true }
+  ],
+  "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
+}

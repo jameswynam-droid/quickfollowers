@@ -1,0 +1,16 @@
+[[redirects]]
+  from = "/favicon.ico"
+  to = "/favicon.png"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/og-image.png"
+  to = "/brand-logo.png"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
