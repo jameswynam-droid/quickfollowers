@@ -56,7 +56,7 @@ serve(async (req) => {
       return new Response(null, {
         status: 302,
         headers: {
-          'Location': `${redirectUrl}/dashboard?payment=failed`,
+          'Location': `${redirectUrl}/payment/failed?reference=${encodeURIComponent(reference)}`,
         },
       });
     }
@@ -139,13 +139,13 @@ serve(async (req) => {
       reference,
     });
 
-    console.log('Redirecting to:', `${redirectUrl}/dashboard?payment=success`);
+    console.log('Redirecting to:', `${redirectUrl}/payment/success`);
 
-    // Redirect to dashboard with success message
+    // Redirect to a success confirmation page (then auto-redirects to dashboard)
     return new Response(null, {
       status: 302,
       headers: {
-        'Location': `${redirectUrl}/dashboard?payment=success`,
+        'Location': `${redirectUrl}/payment/success?reference=${encodeURIComponent(reference)}`,
       },
     });
 
