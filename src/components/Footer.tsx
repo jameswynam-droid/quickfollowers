@@ -49,16 +49,6 @@ const Footer = () => {
                 Contact Us
               </a>
             </li>
-            <li>
-              <a href="#" className="hover:text-primary transition">
-                Terms
-              </a>
-            </li>
-            <li>
-              <a href="#" className="hover:text-primary transition">
-                Privacy
-              </a>
-            </li>
           </ul>
         </div>
         <div className="col-span-2 md:col-span-1">
