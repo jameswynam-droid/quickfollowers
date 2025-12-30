@@ -178,6 +178,51 @@ const Services = () => {
     setOrderQuantity("");
   };
 
+  // Parse backend errors into user-friendly messages
+  const getFriendlyErrorMessage = (error: string): string => {
+    const lowerError = error.toLowerCase();
+    
+    if (lowerError.includes('insufficient balance')) {
+      // Extract amounts if present
+      const match = error.match(/Required: ₦([\d.]+), Available: ₦([\d.]+)/);
+      if (match) {
+        return `You don't have enough funds. You need ₦${match[1]} but only have ₦${match[2]}. Please add funds to continue.`;
+      }
+      return "You don't have enough funds for this order. Please add funds to your account.";
+    }
+    
+    if (lowerError.includes('not authenticated') || lowerError.includes('session')) {
+      return "Your session has expired. Please sign in again.";
+    }
+    
+    if (lowerError.includes('service not found')) {
+      return "This service is no longer available. Please try a different one.";
+    }
+    
+    if (lowerError.includes('profile not found')) {
+      return "We couldn't find your account. Please try signing out and back in.";
+    }
+    
+    if (lowerError.includes('missing required fields') || lowerError.includes('invalid')) {
+      return "Please check that all fields are filled in correctly.";
+    }
+    
+    if (lowerError.includes('link')) {
+      return "Please enter a valid link for this service.";
+    }
+    
+    if (lowerError.includes('quantity') || lowerError.includes('min') || lowerError.includes('max')) {
+      return "The quantity you entered is outside the allowed range.";
+    }
+    
+    if (lowerError.includes('provider') || lowerError.includes('key not configured')) {
+      return "This service is temporarily unavailable. Please try again later.";
+    }
+    
+    // Generic fallback - don't expose technical details
+    return "Something went wrong while placing your order. Please try again.";
+  };
+
   const handlePlaceOrder = async () => {
     if (!selectedService || !orderLink || !orderQuantity) {
       toast.error("Please fill all fields");
@@ -193,12 +238,12 @@ const Services = () => {
     const totalCost = ((quantity / 1000) * selectedService.markedUpRate).toFixed(2);
 
     try {
-      // Ensure we pass the logged-in user's access token to the backend function.
-      // Without it, the function receives the anon token and will fail as "Not authenticated".
       const { data: { session }, error: sessionError } = await supabase.auth.getSession();
 
       if (sessionError) {
-        throw sessionError;
+        toast.error("Your session has expired. Please sign in again.");
+        navigate("/auth");
+        return;
       }
 
       if (!session?.access_token) {
@@ -219,13 +264,13 @@ const Services = () => {
       });
 
       if (error) {
-        const errorMessage = error.message || (error as any).error || "Failed to place order";
-        toast.error(errorMessage);
+        const rawMessage = error.message || (error as any).error || "";
+        toast.error(getFriendlyErrorMessage(rawMessage));
         return;
       }
 
       if (data?.error) {
-        toast.error(data.error);
+        toast.error(getFriendlyErrorMessage(data.error));
         return;
       }
 
@@ -235,8 +280,8 @@ const Services = () => {
       setOrderQuantity("");
       navigate("/dashboard");
     } catch (error: any) {
-      const errorMessage = error?.message || error?.error || "Failed to place order";
-      toast.error(errorMessage);
+      const rawMessage = error?.message || error?.error || "";
+      toast.error(getFriendlyErrorMessage(rawMessage));
     }
   };
 
