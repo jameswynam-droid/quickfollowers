@@ -284,6 +284,12 @@ const Services = () => {
       }
 
       toast.success(`Order placed! Total cost: ₦${totalCost}`);
+      
+      // Refresh user balance
+      if (user?.id) {
+        fetchUserBalance(user.id);
+      }
+      
       setOrderDialogOpen(false);
       setOrderLink("");
       setOrderQuantity("");
