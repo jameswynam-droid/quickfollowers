@@ -1216,6 +1216,52 @@ Deno.serve(async (req) => {
       allServicesData = allServicesData.concat(providerServicesData);
     }
 
+    // Filter out services where the name doesn't match the category
+    // This fixes issues where the source API has miscategorized services
+    // e.g., "TikTok Followers" under "TikTok Comments | Verified Profiles"
+    const filteredServicesData = allServicesData.filter(service => {
+      const nameLower = service.name.toLowerCase();
+      const categoryLower = service.category.toLowerCase();
+      
+      // Check for common mismatches
+      const categoryIndicators = {
+        'comment': ['comment'],
+        'follower': ['follower'],
+        'like': ['like'],
+        'view': ['view'],
+        'share': ['share'],
+        'subscriber': ['subscriber'],
+        'member': ['member'],
+      };
+      
+      // If category contains a specific service type, name should match
+      for (const [type, keywords] of Object.entries(categoryIndicators)) {
+        const categoryHasType = keywords.some(k => categoryLower.includes(k));
+        const nameHasType = keywords.some(k => nameLower.includes(k));
+        
+        // If category is specifically about comments, followers, etc.
+        // but name is about a different type, filter it out
+        if (categoryHasType) {
+          // Check if name has a DIFFERENT primary type
+          for (const [otherType, otherKeywords] of Object.entries(categoryIndicators)) {
+            if (otherType !== type) {
+              const nameHasOtherType = otherKeywords.some(k => nameLower.includes(k));
+              // If category says "comments" but name says "followers", filter out
+              if (nameHasOtherType && !nameHasType) {
+                console.log(`Filtering out miscategorized service: "${service.name}" in category "${service.category}"`);
+                return false;
+              }
+            }
+          }
+        }
+      }
+      
+      return true;
+    });
+    
+    console.log(`Filtered ${allServicesData.length - filteredServicesData.length} miscategorized services`);
+    allServicesData = filteredServicesData;
+
     // Don't proceed with deletion if we got significantly fewer services than expected
     if (allServicesData.length === 0) {
       throw new Error('No services fetched from any provider');
