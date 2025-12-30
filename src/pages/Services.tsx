@@ -193,7 +193,24 @@ const Services = () => {
     const totalCost = ((quantity / 1000) * selectedService.markedUpRate).toFixed(2);
 
     try {
+      // Ensure we pass the logged-in user's access token to the backend function.
+      // Without it, the function receives the anon token and will fail as "Not authenticated".
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+
+      if (sessionError) {
+        throw sessionError;
+      }
+
+      if (!session?.access_token) {
+        toast.error("Your session has expired. Please sign in again.");
+        navigate("/auth");
+        return;
+      }
+
       const { data, error } = await supabase.functions.invoke("place-order", {
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
         body: {
           service_id: selectedService.id,
           link: orderLink,
@@ -202,7 +219,7 @@ const Services = () => {
       });
 
       if (error) {
-        const errorMessage = error.message || error.error || "Failed to place order";
+        const errorMessage = error.message || (error as any).error || "Failed to place order";
         toast.error(errorMessage);
         return;
       }
