@@ -47,15 +47,22 @@ Deno.serve(async (req) => {
       throw new Error('No authorization header');
     }
 
+    // In edge functions there is no browser storage/session.
+    // Always pass the JWT explicitly to auth.getUser(jwt) instead of relying on an in-memory session.
+    const jwt = authHeader.replace(/^Bearer\s+/i, '').trim();
+    if (!jwt) {
+      throw new Error('Missing JWT');
+    }
+
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      { global: { headers: { Authorization: authHeader } } }
+      { global: { headers: { Authorization: `Bearer ${jwt}` } } }
     );
 
     // Get the authenticated user
-    const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
-    
+    const { data: { user }, error: userError } = await supabaseClient.auth.getUser(jwt);
+
     if (userError || !user) {
       console.error('Auth error:', userError);
       throw new Error('Not authenticated');
