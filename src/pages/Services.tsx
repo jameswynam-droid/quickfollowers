@@ -18,6 +18,7 @@ import { useNoIndex } from "@/hooks/useNoIndex";
 const Services = () => {
   useNoIndex(); // Prevent search engine indexing
   const [user, setUser] = useState<any>(null);
+  const [userBalance, setUserBalance] = useState<number>(0);
   const [isAdmin, setIsAdmin] = useState(false);
   const [organizedCategories, setOrganizedCategories] = useState<ServiceCategory[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
@@ -44,6 +45,18 @@ const Services = () => {
     });
   };
 
+  const fetchUserBalance = async (userId: string) => {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("balance")
+      .eq("id", userId)
+      .single();
+    
+    if (profile) {
+      setUserBalance(profile.balance);
+    }
+  };
+
   useEffect(() => {
     const checkAuth = async () => {
       const { data: { session } } = await supabase.auth.getSession();
@@ -52,6 +65,7 @@ const Services = () => {
         return;
       }
       setUser(session.user);
+      fetchUserBalance(session.user.id);
       
       // Check if user is admin
       const { data: roles } = await supabase
@@ -183,12 +197,7 @@ const Services = () => {
     const lowerError = error.toLowerCase();
     
     if (lowerError.includes('insufficient balance')) {
-      // Extract amounts if present
-      const match = error.match(/Required: ₦([\d.]+), Available: ₦([\d.]+)/);
-      if (match) {
-        return `You don't have enough funds. You need ₦${match[1]} but only have ₦${match[2]}. Please add funds to continue.`;
-      }
-      return "You don't have enough funds for this order. Please add funds to your account.";
+      return "Insufficient funds. Please add funds to your account.";
     }
     
     if (lowerError.includes('not authenticated') || lowerError.includes('session')) {
@@ -384,11 +393,9 @@ const Services = () => {
                             <CardTitle className="text-xs sm:text-sm leading-tight line-clamp-2 group-hover:text-primary transition-colors">
                               {service.name.replace(/[🎉✨⚡️🔥💎🌟]/g, '').trim()}
                             </CardTitle>
-                            {service.description && (
-                              <CardDescription className="text-xs text-muted-foreground line-clamp-2">
-                                {service.description}
-                              </CardDescription>
-                            )}
+                            <CardDescription className="text-xs text-muted-foreground line-clamp-2">
+                              Order range: {service.min_order.toLocaleString()} - {service.max_order.toLocaleString()}
+                            </CardDescription>
                             <div className="flex items-center gap-2">
                               <span className="text-xs px-2 py-1 rounded-full bg-primary/10 text-primary font-medium">
                                 {service.pricePerThousand}
@@ -432,6 +439,14 @@ const Services = () => {
             <DialogTitle className="text-lg">Place Order</DialogTitle>
             <DialogDescription className="text-xs sm:text-sm">{selectedService?.name}</DialogDescription>
           </DialogHeader>
+          
+          {/* Show user's current balance */}
+          <div className="p-3 bg-muted/50 border border-border rounded-lg">
+            <div className="flex justify-between items-center text-sm">
+              <span className="text-muted-foreground">Your Balance:</span>
+              <span className="font-bold text-primary">₦{userBalance.toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+            </div>
+          </div>
           
           {/* Show instructional description if available */}
           {selectedService?.description && (
