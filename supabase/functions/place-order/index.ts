@@ -53,6 +53,16 @@ Deno.serve(async (req) => {
       { global: { headers: { Authorization: authHeader } } }
     );
 
+    // Get the authenticated user
+    const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
+    
+    if (userError || !user) {
+      console.error('Auth error:', userError);
+      throw new Error('Not authenticated');
+    }
+
+    console.log('Authenticated user:', user.id);
+
     const { service_id, link, quantity }: OrderRequest = await req.json();
 
     // Validate input
@@ -68,6 +78,7 @@ Deno.serve(async (req) => {
       .single();
 
     if (serviceError || !service) {
+      console.error('Service error:', serviceError);
       throw new Error('Service not found');
     }
 
@@ -84,13 +95,15 @@ Deno.serve(async (req) => {
 
     console.log(`Service: ${service.name}, Original rate: ${service.rate}, Marked up rate: ${markedUpRate}, Quantity: ${quantity}, Charge: ${charge}`);
 
-    // Check user balance (RLS ensures this is the current user)
+    // Check user balance - explicitly filter by user ID
     const { data: profile, error: profileError } = await supabaseClient
       .from('profiles')
       .select('id, balance')
+      .eq('id', user.id)
       .single();
 
     if (profileError || !profile) {
+      console.error('Profile error:', profileError);
       throw new Error('Profile not found');
     }
 
