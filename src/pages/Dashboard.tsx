@@ -10,7 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { AddFundsModal } from "@/components/AddFundsModal";
+
 import { AccountSettingsModal } from "@/components/AccountSettingsModal";
 import { DashboardSkeleton } from "@/components/LoadingSkeleton";
 import { toast } from "sonner";
@@ -37,7 +37,7 @@ const Dashboard = () => {
   const [paymentAmount, setPaymentAmount] = useState("");
   const [bankDetails, setBankDetails] = useState("");
   const [notes, setNotes] = useState("");
-  const [addFundsOpen, setAddFundsOpen] = useState(false);
+  
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
@@ -152,7 +152,7 @@ const Dashboard = () => {
             </CardHeader>
             <CardContent className="p-3 sm:p-6 pt-0">
               <div className="text-lg sm:text-3xl font-bold truncate">₦{parseFloat(profile?.balance || 0).toFixed(2)}</div>
-              <Button className="w-full mt-3 sm:mt-4 text-xs sm:text-sm" size="sm" onClick={() => setAddFundsOpen(true)}>
+              <Button className="w-full mt-3 sm:mt-4 text-xs sm:text-sm" size="sm" onClick={() => navigate("/add-funds")}>
                 <Wallet className="mr-2 h-3 w-3 sm:h-4 sm:w-4" />Add Funds
               </Button>
             </CardContent>
@@ -230,7 +230,7 @@ const Dashboard = () => {
         </Card>
       </main>
       <Footer />
-      <AddFundsModal open={addFundsOpen} onOpenChange={setAddFundsOpen} />
+      
       <AccountSettingsModal open={settingsOpen} onOpenChange={setSettingsOpen} userEmail={user?.email || ""} />
       <Dialog open={paymentDialogOpen} onOpenChange={setPaymentDialogOpen}>
         <DialogContent>
