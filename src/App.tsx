@@ -13,6 +13,7 @@ import Services from "./pages/Services";
 import Orders from "./pages/Orders";
 import Transactions from "./pages/Transactions";
 import Admin from "./pages/Admin";
+import AddFunds from "./pages/AddFunds";
 import PaymentSuccess from "./pages/PaymentSuccess";
 import PaymentFailed from "./pages/PaymentFailed";
 import NotFound from "./pages/NotFound";
@@ -31,6 +32,7 @@ const App = () => (
           <Route path="/confirm-email-change" element={<ConfirmEmailChange />} />
           <Route path="/seo-diagnostics" element={<SeoDiagnostics />} />
 
+          <Route path="/add-funds" element={<AddFunds />} />
           <Route path="/payment/success" element={<PaymentSuccess />} />
           <Route path="/payment/failed" element={<PaymentFailed />} />
 
