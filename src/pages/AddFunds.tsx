@@ -6,10 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, CreditCard, Wallet, ArrowLeft, CheckCircle2, Sparkles } from "lucide-react";
+import { Loader2, CreditCard, Wallet, ArrowLeft, CheckCircle2 } from "lucide-react";
 import { useRouteTheme } from "@/hooks/useRouteTheme";
 import { cn } from "@/lib/utils";
 
@@ -234,10 +233,7 @@ export default function AddFunds() {
                       <div className="flex items-center gap-2">
                         <span className="font-semibold text-foreground">{method.name}</span>
                         {method.recommended && (
-                          <Badge variant="secondary" className="gap-1 bg-primary/10 text-primary border-primary/20">
-                            <Sparkles className="h-3 w-3" />
-                            Recommended
-                          </Badge>
+                          <span className="text-xs font-medium text-green-500">• Best option</span>
                         )}
                       </div>
                       <p className="text-sm text-muted-foreground mt-0.5">{method.description}</p>
