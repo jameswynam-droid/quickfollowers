@@ -145,9 +145,9 @@ Deno.serve(async (req: Request) => {
 
     console.log("Payment verified and balance updated:", { userId, amount, newBalance });
 
-    // If this is a redirect request (GET), redirect to success page
+    // If this is a redirect request (GET), redirect directly to dashboard
     if (req.method === "GET") {
-      return Response.redirect(`${redirectBase}/payment/success`, 302);
+      return Response.redirect(`${redirectBase}/dashboard`, 302);
     }
 
     // For webhook POST, return success
