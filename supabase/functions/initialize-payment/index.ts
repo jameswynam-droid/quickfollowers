@@ -47,11 +47,14 @@ serve(async (req) => {
       );
     }
 
-    // Calculate Paystack fee (local card: 1.5% + ₦100, waive ₦100 if < ₦2,500)
+    // Calculate Paystack fee (local card: 1.5% + ₦100, capped at ₦2,000)
+    // If ≤ ₦2,500: only 1.5% (₦100 waived)
+    // If > ₦2,500: ₦100 + 1.5%, max ₦2,000 total fee
     const baseAmount = parseFloat(amount);
-    const percentageFee = baseAmount * 0.015; // 1.5% for local cards
-    const fixedFee = baseAmount < 2500 ? 0 : 100; // Waive ₦100 if under ₦2,500
-    const totalFee = percentageFee + fixedFee;
+    const percentageFee = baseAmount * 0.015; // 1.5%
+    const fixedFee = baseAmount <= 2500 ? 0 : 100; // Waive ₦100 if ₦2,500 or less
+    const uncappedFee = percentageFee + fixedFee;
+    const totalFee = Math.min(uncappedFee, 2000); // Cap at ₦2,000
     const totalAmount = baseAmount + totalFee;
 
     console.log('Payment calculation:', {
