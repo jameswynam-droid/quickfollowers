@@ -26,27 +26,31 @@ interface PaymentMethodOption {
 
 const paymentMethods: PaymentMethodOption[] = [
   {
-    id: "paystack",
-    name: "Paystack",
-    description: "Pay with card or bank transfer",
-    fee: "No fees",
-    feeCalculation: () => 0,
-    recommended: true,
-    icon: <CreditCard className="h-6 w-6" />,
-  },
-  {
     id: "korapay",
     name: "Kora Pay",
     description: "Pay with card, bank transfer, or USSD",
-    fee: "1.61% fee",
-    feeCalculation: (amount: number) => amount * 0.0161,
+    fee: "No fees",
+    feeCalculation: () => 0,
+    recommended: true,
     icon: <Wallet className="h-6 w-6" />,
+  },
+  {
+    id: "paystack",
+    name: "Paystack",
+    description: "Pay with card or bank transfer",
+    fee: "1.5% + ₦100 (waived under ₦2,500)",
+    feeCalculation: (amount: number) => {
+      const percentageFee = amount * 0.015;
+      const fixedFee = amount < 2500 ? 0 : 100;
+      return percentageFee + fixedFee;
+    },
+    icon: <CreditCard className="h-6 w-6" />,
   },
 ];
 
 export default function AddFunds() {
   const [amount, setAmount] = useState("");
-  const [selectedMethod, setSelectedMethod] = useState<PaymentMethod>("paystack");
+  const [selectedMethod, setSelectedMethod] = useState<PaymentMethod>("korapay");
   const [loading, setLoading] = useState(false);
   const [checkingAuth, setCheckingAuth] = useState(true);
   const { toast } = useToast();
