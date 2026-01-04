@@ -38,11 +38,12 @@ const paymentMethods: PaymentMethodOption[] = [
     id: "paystack",
     name: "Paystack",
     description: "Pay with card or bank transfer",
-    fee: "1.5% + ₦100 (waived under ₦2,500)",
+    fee: "1.5% + ₦100 (≤ ₦2,500 waived, capped ₦2,000)",
     feeCalculation: (amount: number) => {
       const percentageFee = amount * 0.015;
-      const fixedFee = amount < 2500 ? 0 : 100;
-      return percentageFee + fixedFee;
+      const fixedFee = amount <= 2500 ? 0 : 100;
+      const uncappedFee = percentageFee + fixedFee;
+      return Math.min(uncappedFee, 2000);
     },
     icon: <CreditCard className="h-6 w-6" />,
   },
