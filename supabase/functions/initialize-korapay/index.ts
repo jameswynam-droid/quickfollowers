@@ -38,6 +38,12 @@ Deno.serve(async (req: Request) => {
       throw new Error("Minimum amount is 100 NGN");
     }
 
+    // Calculate Kora Pay fee (1.61%)
+    const baseAmount = parseFloat(amount);
+    const feeAmount = baseAmount * 0.0161;
+    const totalAmount = baseAmount + feeAmount;
+    console.log("Fee calculation:", { baseAmount, feeAmount, totalAmount });
+
     // Get user's profile for email
     const { data: profile, error: profileError } = await supabaseAdmin
       .from("profiles")
@@ -72,7 +78,7 @@ Deno.serve(async (req: Request) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        amount: amount,
+        amount: totalAmount, // Total including fee
         currency: "NGN",
         reference: reference,
         notification_url: callbackUrl,
@@ -83,9 +89,10 @@ Deno.serve(async (req: Request) => {
         },
         metadata: {
           user_id: user.id,
-          base_amount: amount,
+          base_amount: baseAmount, // Original amount user wants to add
+          fee_amount: feeAmount,
         },
-        merchant_bears_cost: true, // No fees for customer
+        merchant_bears_cost: false, // Customer pays the fee
       }),
     });
 
