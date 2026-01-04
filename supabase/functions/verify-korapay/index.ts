@@ -16,9 +16,11 @@ Deno.serve(async (req: Request) => {
   const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 
   try {
-    // Get reference from query params or body
+    // Get reference and origin from query params or body
     const url = new URL(req.url);
     let reference = url.searchParams.get("reference");
+    const origin = url.searchParams.get("origin") || "";
+    const redirectBase = origin || url.origin;
 
     // If this is a webhook POST, parse the body
     if (req.method === "POST") {
@@ -67,7 +69,7 @@ Deno.serve(async (req: Request) => {
       
       // If this is a redirect request, redirect to failure page
       if (req.method === "GET") {
-        return Response.redirect(`${url.origin}/payment/failed?reason=not_successful`, 302);
+        return Response.redirect(`${redirectBase}/payment/failed?reason=payment_${transaction.status}`, 302);
       }
       
       return new Response(
@@ -95,7 +97,7 @@ Deno.serve(async (req: Request) => {
       console.log("Transaction already processed:", reference);
       
       if (req.method === "GET") {
-        return Response.redirect(`${url.origin}/payment/success?already_processed=true`, 302);
+        return Response.redirect(`${redirectBase}/payment/success?already_processed=true`, 302);
       }
       
       return new Response(
@@ -145,7 +147,7 @@ Deno.serve(async (req: Request) => {
 
     // If this is a redirect request (GET), redirect to success page
     if (req.method === "GET") {
-      return Response.redirect(`${url.origin}/payment/success`, 302);
+      return Response.redirect(`${redirectBase}/payment/success`, 302);
     }
 
     // For webhook POST, return success
@@ -158,8 +160,9 @@ Deno.serve(async (req: Request) => {
     
     // For GET requests, redirect to failure page
     if (req.method === "GET") {
-      const url = new URL(req.url);
-      return Response.redirect(`${url.origin}/payment/failed?reason=${encodeURIComponent(error.message)}`, 302);
+      const failUrl = new URL(req.url);
+      const failOrigin = failUrl.searchParams.get("origin") || failUrl.origin;
+      return Response.redirect(`${failOrigin}/payment/failed?reason=${encodeURIComponent(error.message)}`, 302);
     }
     
     return new Response(

@@ -59,8 +59,11 @@ Deno.serve(async (req: Request) => {
       throw new Error("Kora Pay secret key not configured");
     }
 
-    // Callback URL for verification
+    // Callback URL for webhook notifications
     const callbackUrl = `${supabaseUrl}/functions/v1/verify-korapay?reference=${reference}`;
+    
+    // Redirect URL goes to verify-korapay which will verify payment status before redirecting to success/failure
+    const verifyRedirectUrl = `${supabaseUrl}/functions/v1/verify-korapay?reference=${reference}&origin=${encodeURIComponent(redirect_url || '')}`;
     
     const korapayResponse = await fetch("https://api.korapay.com/merchant/api/v1/charges/initialize", {
       method: "POST",
@@ -73,7 +76,7 @@ Deno.serve(async (req: Request) => {
         currency: "NGN",
         reference: reference,
         notification_url: callbackUrl,
-        redirect_url: redirect_url ? `${redirect_url}/payment/success?reference=${reference}&gateway=korapay` : undefined,
+        redirect_url: verifyRedirectUrl,
         customer: {
           name: profile.full_name || profile.email.split("@")[0],
           email: profile.email,
