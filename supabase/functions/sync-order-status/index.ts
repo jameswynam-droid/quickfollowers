@@ -191,6 +191,25 @@ async function processRefund(supabaseClient: any, order: any) {
       return;
     }
 
+    // Check if refund was already processed for this order
+    const { data: existingRefund, error: refundCheckError } = await supabaseClient
+      .from('transactions')
+      .select('id')
+      .eq('reference_id', order.id)
+      .eq('type', 'refund')
+      .single();
+
+    if (refundCheckError && refundCheckError.code !== 'PGRST116') {
+      // PGRST116 = no rows returned, which is expected if no refund exists
+      console.error(`Error checking existing refund:`, refundCheckError);
+      return;
+    }
+
+    if (existingRefund) {
+      console.log(`Refund already processed for order ${order.id}, skipping`);
+      return;
+    }
+
     console.log(`Processing refund of ${refundAmount} for order ${order.id} to user ${order.user_id}`);
 
     // Get current user balance
