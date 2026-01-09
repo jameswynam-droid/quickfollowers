@@ -191,28 +191,46 @@ async function processRefund(supabaseClient: any, order: any) {
       return;
     }
 
-    // Check if refund was already processed for this order
-    const { data: existingRefund, error: refundCheckError } = await supabaseClient
+    // Check if refund was already processed for this order FIRST
+    const { data: existingRefunds, error: refundCheckError } = await supabaseClient
       .from('transactions')
       .select('id')
       .eq('reference_id', order.id)
-      .eq('type', 'refund')
-      .single();
+      .eq('type', 'refund');
 
-    if (refundCheckError && refundCheckError.code !== 'PGRST116') {
-      // PGRST116 = no rows returned, which is expected if no refund exists
+    if (refundCheckError) {
       console.error(`Error checking existing refund:`, refundCheckError);
       return;
     }
 
-    if (existingRefund) {
+    if (existingRefunds && existingRefunds.length > 0) {
       console.log(`Refund already processed for order ${order.id}, skipping`);
       return;
     }
 
     console.log(`Processing refund of ${refundAmount} for order ${order.id} to user ${order.user_id}`);
 
-    // Get current user balance
+    // Create refund transaction FIRST to prevent duplicates (acts as a lock)
+    const { data: newTransaction, error: transactionError } = await supabaseClient
+      .from('transactions')
+      .insert({
+        user_id: order.user_id,
+        type: 'refund',
+        amount: refundAmount,
+        balance_after: 0, // Temporary, will update after balance update
+        description: `Refund for cancelled order #${order.id.slice(0, 8)}`,
+        reference_id: order.id,
+      })
+      .select('id')
+      .single();
+
+    if (transactionError) {
+      // If insert fails due to unique constraint or other error, refund may already exist
+      console.error(`Error creating refund transaction (may be duplicate):`, transactionError);
+      return;
+    }
+
+    // Now get current balance and update it atomically
     const { data: profile, error: profileError } = await supabaseClient
       .from('profiles')
       .select('balance')
@@ -238,22 +256,11 @@ async function processRefund(supabaseClient: any, order: any) {
       return;
     }
 
-    // Create refund transaction record
-    const { error: transactionError } = await supabaseClient
+    // Update the transaction with correct balance_after
+    await supabaseClient
       .from('transactions')
-      .insert({
-        user_id: order.user_id,
-        type: 'refund',
-        amount: refundAmount,
-        balance_after: newBalance,
-        description: `Refund for cancelled order #${order.id.slice(0, 8)}`,
-        reference_id: order.id,
-      });
-
-    if (transactionError) {
-      console.error(`Error creating refund transaction:`, transactionError);
-      return;
-    }
+      .update({ balance_after: newBalance })
+      .eq('id', newTransaction.id);
 
     console.log(`Refund of ${refundAmount} processed successfully for order ${order.id}. New balance: ${newBalance}`);
   } catch (error) {
