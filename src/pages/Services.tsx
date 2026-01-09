@@ -31,6 +31,7 @@ const Services = () => {
   const [orderLink, setOrderLink] = useState("");
   const [orderQuantity, setOrderQuantity] = useState("");
   const [openCategories, setOpenCategories] = useState<Set<string>>(new Set());
+  const [placingOrder, setPlacingOrder] = useState(false);
   const navigate = useNavigate();
 
   const toggleCategory = (category: string) => {
@@ -238,6 +239,10 @@ const Services = () => {
       return;
     }
 
+    if (placingOrder) {
+      return; // Prevent double-tap
+    }
+
     const quantity = parseInt(orderQuantity);
     if (quantity < selectedService.min_order || quantity > selectedService.max_order) {
       toast.error(`Quantity must be between ${selectedService.min_order} and ${selectedService.max_order}`);
@@ -246,16 +251,21 @@ const Services = () => {
 
     const totalCost = ((quantity / 1000) * selectedService.markedUpRate).toFixed(2);
 
+    setPlacingOrder(true);
+    toast.loading("Placing your order...", { id: "placing-order" });
+
     try {
       const { data: { session }, error: sessionError } = await supabase.auth.getSession();
 
       if (sessionError) {
+        toast.dismiss("placing-order");
         toast.error("Your session has expired. Please sign in again.");
         navigate("/auth");
         return;
       }
 
       if (!session?.access_token) {
+        toast.dismiss("placing-order");
         toast.error("Your session has expired. Please sign in again.");
         navigate("/auth");
         return;
@@ -271,6 +281,8 @@ const Services = () => {
           quantity,
         },
       });
+
+      toast.dismiss("placing-order");
 
       if (error) {
         const rawMessage = error.message || (error as any).error || "";
@@ -295,8 +307,11 @@ const Services = () => {
       setOrderQuantity("");
       navigate("/dashboard");
     } catch (error: any) {
+      toast.dismiss("placing-order");
       const rawMessage = error?.message || error?.error || "";
       toast.error(getFriendlyErrorMessage(rawMessage));
+    } finally {
+      setPlacingOrder(false);
     }
   };
 
@@ -497,8 +512,8 @@ const Services = () => {
                 </div>
               </div>
             )}
-            <Button onClick={handlePlaceOrder} className="w-full">
-              Confirm Order
+            <Button onClick={handlePlaceOrder} className="w-full" disabled={placingOrder}>
+              {placingOrder ? "Placing Order..." : "Confirm Order"}
             </Button>
           </div>
         </DialogContent>
