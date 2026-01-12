@@ -33,8 +33,7 @@ const Header = ({ onAuthClick }: HeaderProps) => {
     try {
       await supabase.auth.signOut();
       setIsAuthenticated(false);
-      // Clear theme preference on logout so homepage defaults to light
-      sessionStorage.removeItem("user-theme-preference");
+      // Theme preference persists in localStorage - user's choice is remembered
       toast.success("Logged out successfully");
       navigate("/");
     } catch (error) {
