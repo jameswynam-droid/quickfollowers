@@ -9,7 +9,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2, CreditCard, Wallet, ArrowLeft, CheckCircle2 } from "lucide-react";
-import { useRouteTheme } from "@/hooks/useRouteTheme";
 import { cn } from "@/lib/utils";
 
 type PaymentMethod = "korapay" | "paystack";
@@ -57,7 +56,7 @@ export default function AddFunds() {
   const { toast } = useToast();
   const navigate = useNavigate();
 
-  useRouteTheme("dark");
+  // Theme is now handled globally by ThemeProvider with localStorage persistence
 
   useEffect(() => {
     const checkAuth = async () => {

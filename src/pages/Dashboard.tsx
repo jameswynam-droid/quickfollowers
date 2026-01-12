@@ -1,6 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { useTheme } from "next-themes";
 import { supabase } from "@/integrations/supabase/client";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
@@ -18,15 +17,7 @@ import { Wallet, Settings } from "lucide-react";
 import { useNoIndex } from "@/hooks/useNoIndex";
 
 const Dashboard = () => {
-  const { setTheme } = useTheme();
-
-  // Set dark theme as default for dashboard
-  useEffect(() => {
-    const hasUserPreference = sessionStorage.getItem("user-theme-preference");
-    if (!hasUserPreference) {
-      setTheme("dark");
-    }
-  }, [setTheme]);
+  // Theme is now handled globally by ThemeProvider with localStorage persistence
   useNoIndex(); // Prevent search engine indexing
   const [user, setUser] = useState<any>(null);
   const [profile, setProfile] = useState<any>(null);

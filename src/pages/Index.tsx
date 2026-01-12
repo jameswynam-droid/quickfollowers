@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useTheme } from "next-themes";
 import { supabase } from "@/integrations/supabase/client";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
@@ -19,15 +18,7 @@ interface Service {
 
 const Index = () => {
   const navigate = useNavigate();
-  const { setTheme } = useTheme();
-
-  // Set light theme as default for homepage
-  useEffect(() => {
-    const hasUserPreference = sessionStorage.getItem("user-theme-preference");
-    if (!hasUserPreference) {
-      setTheme("light");
-    }
-  }, [setTheme]);
+  // Theme is now handled globally by ThemeProvider with localStorage persistence
   const [services, setServices] = useState([
     {
       icon: "fa-brands fa-instagram",

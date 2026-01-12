@@ -10,6 +10,13 @@ export const ThemeToggle = () => {
     setMounted(true);
   }, []);
 
+  const handleToggle = () => {
+    const newTheme = theme === "dark" ? "light" : "dark";
+    // Save user preference to localStorage so it persists
+    localStorage.setItem("user-theme-preference", newTheme);
+    setTheme(newTheme);
+  };
+
   if (!mounted) {
     return (
       <Button variant="ghost" size="icon" className="w-9 h-9">
@@ -23,7 +30,7 @@ export const ThemeToggle = () => {
       variant="ghost"
       size="icon"
       className="w-9 h-9"
-      onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+      onClick={handleToggle}
       aria-label="Toggle theme"
     >
       {theme === "dark" ? (
