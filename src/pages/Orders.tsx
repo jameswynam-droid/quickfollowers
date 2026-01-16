@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { formatPrice } from "@/utils/serviceOrganizer";
-import { RefreshCw, ExternalLink, ZoomIn, ZoomOut } from "lucide-react";
+import { RefreshCw, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
 import { useNoIndex } from "@/hooks/useNoIndex";
 
@@ -22,7 +22,6 @@ const Orders = () => {
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
-  const [zoomLevel, setZoomLevel] = useState(100);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -125,14 +124,6 @@ const Orders = () => {
     });
   };
 
-  const handleZoomIn = () => {
-    setZoomLevel(prev => Math.min(prev + 20, 200));
-  };
-
-  const handleZoomOut = () => {
-    setZoomLevel(prev => Math.max(prev - 20, 60));
-  };
-
   if (loading) {
     return <FullPageLoader message="Loading orders..." />;
   }
@@ -165,21 +156,12 @@ const Orders = () => {
           </Card>
         ) : (
           <Card>
-            <CardHeader className="p-3 sm:p-6 flex flex-row items-center justify-between">
+            <CardHeader className="p-3 sm:p-6">
               <CardTitle className="text-base sm:text-lg">All Orders ({orders.length})</CardTitle>
-              <div className="flex items-center gap-2">
-                <Button variant="outline" size="icon" className="h-8 w-8" onClick={handleZoomOut} title="Zoom Out">
-                  <ZoomOut className="h-4 w-4" />
-                </Button>
-                <span className="text-xs text-muted-foreground w-10 text-center">{zoomLevel}%</span>
-                <Button variant="outline" size="icon" className="h-8 w-8" onClick={handleZoomIn} title="Zoom In">
-                  <ZoomIn className="h-4 w-4" />
-                </Button>
-              </div>
             </CardHeader>
             <CardContent className="p-0 sm:p-6 sm:pt-0">
               <ScrollArea className="w-full">
-                <div style={{ fontSize: `${zoomLevel}%` }}>
+                <div>
                   <Table>
                     <TableHeader>
                       <TableRow>
