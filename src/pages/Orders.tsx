@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { formatPrice } from "@/utils/serviceOrganizer";
 import { RefreshCw, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
@@ -160,8 +160,8 @@ const Orders = () => {
               <CardTitle className="text-base sm:text-lg">All Orders ({orders.length})</CardTitle>
             </CardHeader>
             <CardContent className="p-0 sm:p-6 sm:pt-0">
-              <div className="overflow-x-auto">
-                <div className="min-w-[700px]">
+              <ScrollArea className="w-full">
+                <div>
                   <Table>
                     <TableHeader>
                       <TableRow>
@@ -180,13 +180,13 @@ const Orders = () => {
                           className="cursor-pointer hover:bg-muted/50"
                           onClick={() => setSelectedOrder(order)}
                         >
-                          <TableCell className="whitespace-nowrap text-muted-foreground text-xs sm:text-sm">
+                          <TableCell className="whitespace-nowrap text-muted-foreground">
                             {formatDate(order.created_at)}
                           </TableCell>
-                          <TableCell className="whitespace-nowrap text-xs sm:text-sm max-w-[120px] sm:max-w-[180px] truncate" title={order.services?.name}>
+                          <TableCell className="max-w-[150px] truncate" title={order.services?.name}>
                             {order.services?.name || "Unknown"}
                           </TableCell>
-                          <TableCell className="whitespace-nowrap text-xs sm:text-sm max-w-[120px] sm:max-w-[200px]">
+                          <TableCell className="max-w-[180px]">
                             <a 
                               href={order.link} 
                               target="_blank" 
@@ -195,17 +195,17 @@ const Orders = () => {
                               onClick={(e) => e.stopPropagation()}
                               title={order.link}
                             >
-                              {order.link.length > 25 ? order.link.substring(0, 25) + '...' : order.link}
+                              {order.link.length > 30 ? order.link.substring(0, 30) + '...' : order.link}
                             </a>
                           </TableCell>
-                          <TableCell className="text-right whitespace-nowrap text-xs sm:text-sm">
+                          <TableCell className="text-right whitespace-nowrap">
                             {order.quantity.toLocaleString()}
                           </TableCell>
-                          <TableCell className="text-right whitespace-nowrap font-semibold text-xs sm:text-sm">
+                          <TableCell className="text-right whitespace-nowrap font-semibold">
                             ₦{formatPrice(order.charge)}
                           </TableCell>
-                          <TableCell className="whitespace-nowrap">
-                            <Badge variant={getStatusColor(order.status)} className="capitalize text-xs">
+                          <TableCell>
+                            <Badge variant={getStatusColor(order.status)} className="capitalize">
                               {order.status}
                             </Badge>
                           </TableCell>
@@ -214,7 +214,7 @@ const Orders = () => {
                     </TableBody>
                   </Table>
                 </div>
-              </div>
+              </ScrollArea>
             </CardContent>
           </Card>
         )}
