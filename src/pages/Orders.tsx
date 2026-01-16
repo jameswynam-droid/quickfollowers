@@ -8,17 +8,21 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { formatPrice } from "@/utils/serviceOrganizer";
-import { RefreshCw } from "lucide-react";
+import { RefreshCw, ExternalLink, ZoomIn, ZoomOut } from "lucide-react";
 import { toast } from "sonner";
 import { useNoIndex } from "@/hooks/useNoIndex";
 
 const Orders = () => {
-  useNoIndex(); // Prevent search engine indexing
+  useNoIndex();
   const [user, setUser] = useState<any>(null);
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
+  const [selectedOrder, setSelectedOrder] = useState<any>(null);
+  const [zoomLevel, setZoomLevel] = useState(100);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -33,7 +37,6 @@ const Orders = () => {
         return;
       }
       setUser(session.user);
-      // Sync order statuses first, then fetch orders
       await syncOrderStatuses();
       await fetchOrders(session.user.id);
     } catch (error) {
@@ -95,10 +98,39 @@ const Orders = () => {
       case "pending":
         return "outline";
       case "cancelled":
+      case "failed":
         return "destructive";
       default:
         return "outline";
     }
+  };
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-GB', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
+  };
+
+  const formatDateTime = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleString('en-GB', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
+  const handleZoomIn = () => {
+    setZoomLevel(prev => Math.min(prev + 20, 200));
+  };
+
+  const handleZoomOut = () => {
+    setZoomLevel(prev => Math.max(prev - 20, 60));
   };
 
   if (loading) {
@@ -117,13 +149,10 @@ const Orders = () => {
           <div className="flex gap-2">
             <Button variant="outline" size="sm" onClick={handleRefresh} disabled={syncing}>
               <RefreshCw className={`h-4 w-4 mr-2 ${syncing ? 'animate-spin' : ''}`} />
-              <span className="hidden sm:inline">{syncing ? 'Syncing...' : 'Refresh Status'}</span>
+              <span className="hidden sm:inline">{syncing ? 'Syncing...' : 'Refresh'}</span>
               <span className="sm:hidden">{syncing ? '...' : 'Refresh'}</span>
             </Button>
-            <Button size="sm" onClick={() => navigate("/services")}>
-              <span className="hidden sm:inline">New Order</span>
-              <span className="sm:hidden">New</span>
-            </Button>
+            <Button size="sm" onClick={() => navigate("/services")}>New</Button>
           </div>
         </div>
 
@@ -136,53 +165,149 @@ const Orders = () => {
           </Card>
         ) : (
           <Card>
-            <CardHeader className="p-3 sm:p-6">
+            <CardHeader className="p-3 sm:p-6 flex flex-row items-center justify-between">
               <CardTitle className="text-base sm:text-lg">All Orders ({orders.length})</CardTitle>
+              <div className="flex items-center gap-2">
+                <Button variant="outline" size="icon" className="h-8 w-8" onClick={handleZoomOut} title="Zoom Out">
+                  <ZoomOut className="h-4 w-4" />
+                </Button>
+                <span className="text-xs text-muted-foreground w-10 text-center">{zoomLevel}%</span>
+                <Button variant="outline" size="icon" className="h-8 w-8" onClick={handleZoomIn} title="Zoom In">
+                  <ZoomIn className="h-4 w-4" />
+                </Button>
+              </div>
             </CardHeader>
             <CardContent className="p-0 sm:p-6 sm:pt-0">
-              <div className="w-full">
-                <Table className="w-full table-fixed">
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="text-[10px] sm:text-sm w-[25%] sm:w-auto">Service</TableHead>
-                      <TableHead className="text-[10px] sm:text-sm w-[25%] sm:w-auto">Link</TableHead>
-                      <TableHead className="text-[10px] sm:text-sm w-[12%] sm:w-auto">Qty</TableHead>
-                      <TableHead className="text-[10px] sm:text-sm w-[15%] sm:w-auto">Cost</TableHead>
-                      <TableHead className="text-[10px] sm:text-sm w-[18%] sm:w-auto">Status</TableHead>
-                      <TableHead className="text-[10px] sm:text-sm hidden lg:table-cell">Date</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {orders.map((order) => (
-                      <TableRow key={order.id}>
-                        <TableCell className="text-[10px] sm:text-sm truncate p-1 sm:p-4">
-                          {order.services?.name || "Unknown"}
-                        </TableCell>
-                        <TableCell className="text-[10px] sm:text-sm truncate p-1 sm:p-4">
-                          <span className="block truncate max-w-full">{order.link}</span>
-                        </TableCell>
-                        <TableCell className="text-[10px] sm:text-sm p-1 sm:p-4">
-                          {order.quantity.toLocaleString()}
-                        </TableCell>
-                        <TableCell className="text-[10px] sm:text-sm font-semibold p-1 sm:p-4">
-                          ₦{formatPrice(order.charge)}
-                        </TableCell>
-                        <TableCell className="p-1 sm:p-4">
-                          <Badge variant={getStatusColor(order.status)} className="text-[8px] sm:text-xs px-1 sm:px-2">
-                            {order.status}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-xs text-muted-foreground hidden lg:table-cell">
-                          {new Date(order.created_at).toLocaleDateString()}
-                        </TableCell>
+              <ScrollArea className="w-full">
+                <div style={{ fontSize: `${zoomLevel}%` }}>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="whitespace-nowrap">Date</TableHead>
+                        <TableHead className="whitespace-nowrap">Service</TableHead>
+                        <TableHead className="whitespace-nowrap">Link</TableHead>
+                        <TableHead className="whitespace-nowrap text-right">Qty</TableHead>
+                        <TableHead className="whitespace-nowrap text-right">Cost</TableHead>
+                        <TableHead className="whitespace-nowrap">Status</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
+                    </TableHeader>
+                    <TableBody>
+                      {orders.map((order) => (
+                        <TableRow 
+                          key={order.id} 
+                          className="cursor-pointer hover:bg-muted/50"
+                          onClick={() => setSelectedOrder(order)}
+                        >
+                          <TableCell className="whitespace-nowrap text-muted-foreground">
+                            {formatDate(order.created_at)}
+                          </TableCell>
+                          <TableCell className="max-w-[150px] truncate" title={order.services?.name}>
+                            {order.services?.name || "Unknown"}
+                          </TableCell>
+                          <TableCell className="max-w-[180px]">
+                            <a 
+                              href={order.link} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="text-primary hover:underline truncate block"
+                              onClick={(e) => e.stopPropagation()}
+                              title={order.link}
+                            >
+                              {order.link.length > 30 ? order.link.substring(0, 30) + '...' : order.link}
+                            </a>
+                          </TableCell>
+                          <TableCell className="text-right whitespace-nowrap">
+                            {order.quantity.toLocaleString()}
+                          </TableCell>
+                          <TableCell className="text-right whitespace-nowrap font-semibold">
+                            ₦{formatPrice(order.charge)}
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant={getStatusColor(order.status)} className="capitalize">
+                              {order.status}
+                            </Badge>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </ScrollArea>
             </CardContent>
           </Card>
         )}
+
+        {/* Order Details Dialog */}
+        <Dialog open={!!selectedOrder} onOpenChange={() => setSelectedOrder(null)}>
+          <DialogContent className="max-w-lg">
+            <DialogHeader>
+              <DialogTitle>Order Details</DialogTitle>
+            </DialogHeader>
+            {selectedOrder && (
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm text-muted-foreground">Date</p>
+                    <p className="font-medium">{formatDateTime(selectedOrder.created_at)}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Status</p>
+                    <Badge variant={getStatusColor(selectedOrder.status)} className="capitalize mt-1">
+                      {selectedOrder.status}
+                    </Badge>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Quantity</p>
+                    <p className="font-medium">{selectedOrder.quantity.toLocaleString()}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Cost</p>
+                    <p className="font-semibold text-primary">₦{formatPrice(selectedOrder.charge)}</p>
+                  </div>
+                  {selectedOrder.start_count !== null && (
+                    <div>
+                      <p className="text-sm text-muted-foreground">Start Count</p>
+                      <p className="font-medium">{selectedOrder.start_count?.toLocaleString() || 'N/A'}</p>
+                    </div>
+                  )}
+                  {selectedOrder.remains !== null && (
+                    <div>
+                      <p className="text-sm text-muted-foreground">Remains</p>
+                      <p className="font-medium">{selectedOrder.remains?.toLocaleString() || '0'}</p>
+                    </div>
+                  )}
+                </div>
+                
+                <div>
+                  <p className="text-sm text-muted-foreground mb-1">Service</p>
+                  <p className="font-medium">{selectedOrder.services?.name || "Unknown"}</p>
+                </div>
+
+                <div>
+                  <p className="text-sm text-muted-foreground mb-1">Link</p>
+                  <div className="bg-muted p-3 rounded-lg break-all">
+                    <a 
+                      href={selectedOrder.link}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-primary hover:underline flex items-start gap-2"
+                    >
+                      <span className="flex-1">{selectedOrder.link}</span>
+                      <ExternalLink className="h-4 w-4 flex-shrink-0 mt-0.5" />
+                    </a>
+                  </div>
+                </div>
+
+                {selectedOrder.api_order_id && (
+                  <div>
+                    <p className="text-sm text-muted-foreground mb-1">Order ID</p>
+                    <p className="font-mono text-sm">{selectedOrder.api_order_id}</p>
+                  </div>
+                )}
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
       </main>
       <Footer />
     </div>
