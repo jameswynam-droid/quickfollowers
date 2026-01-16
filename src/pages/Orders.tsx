@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import Header from "@/components/Header";
@@ -9,9 +9,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { formatPrice } from "@/utils/serviceOrganizer";
-import { RefreshCw, ExternalLink } from "lucide-react";
+import { RefreshCw, ExternalLink, Search, X } from "lucide-react";
 import { toast } from "sonner";
 import { useNoIndex } from "@/hooks/useNoIndex";
 
@@ -22,7 +23,22 @@ const Orders = () => {
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
   const navigate = useNavigate();
+
+  const filteredOrders = useMemo(() => {
+    return orders.filter((order) => {
+      const matchesSearch = searchQuery === "" || 
+        order.services?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        order.link?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        order.api_order_id?.toLowerCase().includes(searchQuery.toLowerCase());
+      
+      const matchesStatus = statusFilter === "all" || order.status === statusFilter;
+      
+      return matchesSearch && matchesStatus;
+    });
+  }, [orders, searchQuery, statusFilter]);
 
   useEffect(() => {
     checkAuth();
@@ -129,7 +145,7 @@ const Orders = () => {
   }
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col touch-manipulation">
       <Header />
       <main className="flex-grow container mx-auto px-3 sm:px-4 py-4 sm:py-8">
         <div className="mb-6 sm:mb-8 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
@@ -147,6 +163,42 @@ const Orders = () => {
           </div>
         </div>
 
+        {/* Search and Filter */}
+        {orders.length > 0 && (
+          <div className="mb-4 flex flex-col sm:flex-row gap-3">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search by service, link, or order ID..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-9 pr-9"
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery("")}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              )}
+            </div>
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-full sm:w-[150px]">
+                <SelectValue placeholder="All Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Status</SelectItem>
+                <SelectItem value="pending">Pending</SelectItem>
+                <SelectItem value="processing">Processing</SelectItem>
+                <SelectItem value="completed">Completed</SelectItem>
+                <SelectItem value="cancelled">Cancelled</SelectItem>
+                <SelectItem value="failed">Failed</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        )}
+
         {orders.length === 0 ? (
           <Card>
             <CardContent className="py-16 text-center">
@@ -157,64 +209,81 @@ const Orders = () => {
         ) : (
           <Card>
             <CardHeader className="p-3 sm:p-6">
-              <CardTitle className="text-base sm:text-lg">All Orders ({orders.length})</CardTitle>
+              <CardTitle className="text-base sm:text-lg">
+                {searchQuery || statusFilter !== "all" 
+                  ? `Showing ${filteredOrders.length} of ${orders.length} Orders`
+                  : `All Orders (${orders.length})`
+                }
+              </CardTitle>
             </CardHeader>
             <CardContent className="p-0 sm:p-6 sm:pt-0">
-              <div className="overflow-x-auto">
-                <div className="min-w-[700px]">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead className="whitespace-nowrap">Date</TableHead>
-                        <TableHead className="whitespace-nowrap">Service</TableHead>
-                        <TableHead className="whitespace-nowrap">Link</TableHead>
-                        <TableHead className="whitespace-nowrap text-right">Qty</TableHead>
-                        <TableHead className="whitespace-nowrap text-right">Cost</TableHead>
-                        <TableHead className="whitespace-nowrap">Status</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {orders.map((order) => (
-                        <TableRow 
-                          key={order.id} 
-                          className="cursor-pointer hover:bg-muted/50"
-                          onClick={() => setSelectedOrder(order)}
-                        >
-                          <TableCell className="whitespace-nowrap text-muted-foreground text-xs sm:text-sm">
-                            {formatDate(order.created_at)}
-                          </TableCell>
-                          <TableCell className="whitespace-nowrap text-xs sm:text-sm max-w-[120px] sm:max-w-[180px] truncate" title={order.services?.name}>
-                            {order.services?.name || "Unknown"}
-                          </TableCell>
-                          <TableCell className="whitespace-nowrap text-xs sm:text-sm max-w-[120px] sm:max-w-[200px]">
-                            <a 
-                              href={order.link} 
-                              target="_blank" 
-                              rel="noopener noreferrer"
-                              className="text-primary hover:underline truncate block"
-                              onClick={(e) => e.stopPropagation()}
-                              title={order.link}
-                            >
-                              {order.link.length > 25 ? order.link.substring(0, 25) + '...' : order.link}
-                            </a>
-                          </TableCell>
-                          <TableCell className="text-right whitespace-nowrap text-xs sm:text-sm">
-                            {order.quantity.toLocaleString()}
-                          </TableCell>
-                          <TableCell className="text-right whitespace-nowrap font-semibold text-xs sm:text-sm">
-                            ₦{formatPrice(order.charge)}
-                          </TableCell>
-                          <TableCell className="whitespace-nowrap">
-                            <Badge variant={getStatusColor(order.status)} className="capitalize text-xs">
-                              {order.status}
-                            </Badge>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
+              {filteredOrders.length === 0 ? (
+                <div className="py-8 text-center text-muted-foreground">
+                  <p>No orders match your search</p>
+                  <Button 
+                    variant="link" 
+                    onClick={() => { setSearchQuery(""); setStatusFilter("all"); }}
+                  >
+                    Clear filters
+                  </Button>
                 </div>
-              </div>
+              ) : (
+                <div className="overflow-x-auto touch-pan-x touch-pan-y">
+                  <div className="min-w-[700px]">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="whitespace-nowrap">Date</TableHead>
+                          <TableHead className="whitespace-nowrap">Service</TableHead>
+                          <TableHead className="whitespace-nowrap">Link</TableHead>
+                          <TableHead className="whitespace-nowrap text-right">Qty</TableHead>
+                          <TableHead className="whitespace-nowrap text-right">Cost</TableHead>
+                          <TableHead className="whitespace-nowrap">Status</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {filteredOrders.map((order) => (
+                          <TableRow 
+                            key={order.id} 
+                            className="cursor-pointer hover:bg-muted/50"
+                            onClick={() => setSelectedOrder(order)}
+                          >
+                            <TableCell className="whitespace-nowrap text-muted-foreground text-xs sm:text-sm">
+                              {formatDate(order.created_at)}
+                            </TableCell>
+                            <TableCell className="whitespace-nowrap text-xs sm:text-sm max-w-[120px] sm:max-w-[180px] truncate" title={order.services?.name}>
+                              {order.services?.name || "Unknown"}
+                            </TableCell>
+                            <TableCell className="whitespace-nowrap text-xs sm:text-sm max-w-[120px] sm:max-w-[200px]">
+                              <a 
+                                href={order.link} 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                                className="text-primary hover:underline truncate block"
+                                onClick={(e) => e.stopPropagation()}
+                                title={order.link}
+                              >
+                                {order.link.length > 25 ? order.link.substring(0, 25) + '...' : order.link}
+                              </a>
+                            </TableCell>
+                            <TableCell className="text-right whitespace-nowrap text-xs sm:text-sm">
+                              {order.quantity.toLocaleString()}
+                            </TableCell>
+                            <TableCell className="text-right whitespace-nowrap font-semibold text-xs sm:text-sm">
+                              ₦{formatPrice(order.charge)}
+                            </TableCell>
+                            <TableCell className="whitespace-nowrap">
+                              <Badge variant={getStatusColor(order.status)} className="capitalize text-xs">
+                                {order.status}
+                              </Badge>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
         )}
