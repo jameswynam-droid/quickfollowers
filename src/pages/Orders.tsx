@@ -229,7 +229,7 @@ const Orders = () => {
                 </div>
               ) : (
                 <div className="overflow-x-auto touch-auto" style={{ WebkitOverflowScrolling: 'touch' }}>
-                  <div className="min-w-[800px]">
+                  <div className="min-w-[900px]">
                     <Table>
                       <TableHeader>
                         <TableRow>
@@ -238,6 +238,7 @@ const Orders = () => {
                           <TableHead className="whitespace-nowrap">Service</TableHead>
                           <TableHead className="whitespace-nowrap">Link</TableHead>
                           <TableHead className="whitespace-nowrap text-right">Qty</TableHead>
+                          <TableHead className="whitespace-nowrap text-right">Remains</TableHead>
                           <TableHead className="whitespace-nowrap text-right">Cost</TableHead>
                           <TableHead className="whitespace-nowrap">Status</TableHead>
                         </TableRow>
@@ -272,6 +273,9 @@ const Orders = () => {
                             </TableCell>
                             <TableCell className="text-right whitespace-nowrap text-xs sm:text-sm">
                               {order.quantity.toLocaleString()}
+                            </TableCell>
+                            <TableCell className="text-right whitespace-nowrap text-xs sm:text-sm text-muted-foreground">
+                              {order.remains !== null ? order.remains.toLocaleString() : '-'}
                             </TableCell>
                             <TableCell className="text-right whitespace-nowrap font-semibold text-xs sm:text-sm">
                               ₦{formatPrice(order.charge)}

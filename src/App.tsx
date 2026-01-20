@@ -13,6 +13,8 @@ import Services from "./pages/Services";
 import Orders from "./pages/Orders";
 import Transactions from "./pages/Transactions";
 import Admin from "./pages/Admin";
+import AdminTickets from "./pages/AdminTickets";
+import Tickets from "./pages/Tickets";
 import AddFunds from "./pages/AddFunds";
 import PaymentSuccess from "./pages/PaymentSuccess";
 import PaymentFailed from "./pages/PaymentFailed";
@@ -40,7 +42,9 @@ const App = () => (
           <Route path="/services" element={<Services />} />
           <Route path="/orders" element={<Orders />} />
           <Route path="/transactions" element={<Transactions />} />
+          <Route path="/tickets" element={<Tickets />} />
           <Route path="/admin" element={<Admin />} />
+          <Route path="/admin/tickets" element={<AdminTickets />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
