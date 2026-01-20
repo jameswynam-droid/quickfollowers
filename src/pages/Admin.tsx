@@ -131,9 +131,14 @@ const Admin = () => {
             <h1 className="text-2xl sm:text-4xl font-bold mb-1 sm:mb-2">Admin Panel</h1>
             <p className="text-muted-foreground text-sm sm:text-base">Manage payments and services</p>
           </div>
-          <Button onClick={syncServices} size="sm">
-            Sync Services
-          </Button>
+          <div className="flex gap-2">
+            <Button onClick={() => navigate("/admin/tickets")} variant="outline" size="sm">
+              Support Tickets
+            </Button>
+            <Button onClick={syncServices} size="sm">
+              Sync Services
+            </Button>
+          </div>
         </div>
 
         <Card>
