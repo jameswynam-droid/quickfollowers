@@ -207,7 +207,7 @@ const Orders = () => {
             </CardContent>
           </Card>
         ) : (
-          <Card>
+          <Card className="touch-manipulation">
             <CardHeader className="p-3 sm:p-6">
               <CardTitle className="text-base sm:text-lg">
                 {searchQuery || statusFilter !== "all" 
@@ -228,11 +228,12 @@ const Orders = () => {
                   </Button>
                 </div>
               ) : (
-                <div className="overflow-x-auto touch-pan-x touch-pan-y">
-                  <div className="min-w-[700px]">
+                <div className="overflow-x-auto touch-auto" style={{ WebkitOverflowScrolling: 'touch' }}>
+                  <div className="min-w-[800px]">
                     <Table>
                       <TableHeader>
                         <TableRow>
+                          <TableHead className="whitespace-nowrap">Order ID</TableHead>
                           <TableHead className="whitespace-nowrap">Date</TableHead>
                           <TableHead className="whitespace-nowrap">Service</TableHead>
                           <TableHead className="whitespace-nowrap">Link</TableHead>
@@ -248,6 +249,9 @@ const Orders = () => {
                             className="cursor-pointer hover:bg-muted/50"
                             onClick={() => setSelectedOrder(order)}
                           >
+                            <TableCell className="whitespace-nowrap font-mono text-xs text-muted-foreground">
+                              {order.api_order_id || order.id.slice(0, 8)}
+                            </TableCell>
                             <TableCell className="whitespace-nowrap text-muted-foreground text-xs sm:text-sm">
                               {formatDate(order.created_at)}
                             </TableCell>
@@ -290,12 +294,18 @@ const Orders = () => {
 
         {/* Order Details Dialog */}
         <Dialog open={!!selectedOrder} onOpenChange={() => setSelectedOrder(null)}>
-          <DialogContent className="max-w-lg">
-            <DialogHeader>
+          <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
+            <DialogHeader className="sticky top-0 bg-background pb-2 z-10">
               <DialogTitle>Order Details</DialogTitle>
             </DialogHeader>
             {selectedOrder && (
-              <div className="space-y-4">
+              <div className="space-y-4 pb-4">
+                {/* Order ID first */}
+                <div className="bg-muted/50 p-3 rounded-lg">
+                  <p className="text-sm text-muted-foreground mb-1">Order ID</p>
+                  <p className="font-mono text-sm font-medium">{selectedOrder.api_order_id || selectedOrder.id.slice(0, 8)}</p>
+                </div>
+
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <p className="text-sm text-muted-foreground">Date</p>
@@ -348,13 +358,6 @@ const Orders = () => {
                     </a>
                   </div>
                 </div>
-
-                {selectedOrder.api_order_id && (
-                  <div>
-                    <p className="text-sm text-muted-foreground mb-1">Order ID</p>
-                    <p className="font-mono text-sm">{selectedOrder.api_order_id}</p>
-                  </div>
-                )}
               </div>
             )}
           </DialogContent>
