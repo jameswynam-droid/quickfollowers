@@ -11,13 +11,14 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { formatPrice } from "@/utils/serviceOrganizer";
-import { RefreshCw, ExternalLink, Search, X } from "lucide-react";
+import { RefreshCw, ExternalLink, Search, X, RotateCcw, Copy } from "lucide-react";
 import { toast } from "sonner";
 import { useNoIndex } from "@/hooks/useNoIndex";
+import { useCurrency } from "@/hooks/useCurrency";
 
 const Orders = () => {
   useNoIndex();
+  const { formatPrice } = useCurrency();
   const [user, setUser] = useState<any>(null);
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -25,6 +26,7 @@ const Orders = () => {
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [actionLoading, setActionLoading] = useState<string | null>(null);
   const navigate = useNavigate();
 
   const filteredOrders = useMemo(() => {
@@ -91,7 +93,7 @@ const Orders = () => {
     try {
       const { data, error } = await supabase
         .from("orders")
-        .select("*, services(name, category)")
+        .select("*, services(name, category, provider)")
         .eq("user_id", userId)
         .order("created_at", { ascending: false });
       
@@ -101,6 +103,41 @@ const Orders = () => {
       console.error("Error fetching orders:", error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleRefill = async (orderId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setActionLoading(orderId);
+    try {
+      const { data, error } = await supabase.functions.invoke('refill-order', {
+        body: { order_id: orderId }
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      toast.success("Refill request submitted!");
+    } catch (error: any) {
+      toast.error(error.message || "Failed to request refill");
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleReorder = async (orderId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setActionLoading(orderId);
+    try {
+      const { data, error } = await supabase.functions.invoke('reorder', {
+        body: { order_id: orderId }
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      toast.success("Reorder placed successfully!");
+      if (user) await fetchOrders(user.id);
+    } catch (error: any) {
+      toast.error(error.message || "Failed to reorder");
+    } finally {
+      setActionLoading(null);
     }
   };
 
@@ -241,6 +278,7 @@ const Orders = () => {
                           <TableHead className="whitespace-nowrap text-right">Remains</TableHead>
                           <TableHead className="whitespace-nowrap text-right">Cost</TableHead>
                           <TableHead className="whitespace-nowrap">Status</TableHead>
+                          <TableHead className="whitespace-nowrap">Actions</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -278,7 +316,38 @@ const Orders = () => {
                               {order.remains !== null ? order.remains.toLocaleString() : '-'}
                             </TableCell>
                             <TableCell className="text-right whitespace-nowrap font-semibold text-xs sm:text-sm">
-                              ₦{formatPrice(order.charge)}
+                              {formatPrice(order.charge)}
+                            </TableCell>
+                            <TableCell className="whitespace-nowrap">
+                              <Badge variant={getStatusColor(order.status)} className="capitalize text-xs">
+                                {order.status}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="whitespace-nowrap">
+                              <div className="flex gap-1">
+                                {order.services?.provider === 'owlet' && (
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-7 px-2 text-xs"
+                                    onClick={(e) => handleReorder(order.id, e)}
+                                    disabled={actionLoading === order.id}
+                                  >
+                                    <Copy className="h-3 w-3" />
+                                  </Button>
+                                )}
+                                {order.status === 'completed' && (
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-7 px-2 text-xs"
+                                    onClick={(e) => handleRefill(order.id, e)}
+                                    disabled={actionLoading === order.id}
+                                  >
+                                    <RotateCcw className="h-3 w-3" />
+                                  </Button>
+                                )}
+                              </div>
                             </TableCell>
                             <TableCell className="whitespace-nowrap">
                               <Badge variant={getStatusColor(order.status)} className="capitalize text-xs">

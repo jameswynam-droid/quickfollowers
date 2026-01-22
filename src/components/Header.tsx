@@ -4,6 +4,8 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { NotificationBell } from "@/components/NotificationBell";
+import { CurrencySelector } from "@/components/CurrencySelector";
 import logoImg from "@/assets/logo.png";
 
 interface HeaderProps {
@@ -33,7 +35,6 @@ const Header = ({ onAuthClick }: HeaderProps) => {
     try {
       await supabase.auth.signOut();
       setIsAuthenticated(false);
-      // Theme preference persists in localStorage - user's choice is remembered
       toast.success("Logged out successfully");
       navigate("/");
     } catch (error) {
@@ -105,8 +106,12 @@ const Header = ({ onAuthClick }: HeaderProps) => {
 
         {/* Auth Buttons */}
         <div className="hidden md:flex items-center gap-3">
-          {/* Only show theme toggle when authenticated */}
-          {isAuthenticated && <ThemeToggle />}
+          {isAuthenticated && (
+            <>
+              <NotificationBell />
+              <ThemeToggle />
+            </>
+          )}
           {isAuthenticated ? (
             <Button onClick={handleLogout} variant="outline">
               <i className="fa-solid fa-right-from-bracket mr-2"></i>
@@ -127,8 +132,12 @@ const Header = ({ onAuthClick }: HeaderProps) => {
 
         {/* Mobile Menu Button */}
         <div className="flex md:hidden items-center gap-2">
-          {/* Only show theme toggle when authenticated */}
-          {isAuthenticated && <ThemeToggle />}
+          {isAuthenticated && (
+            <>
+              <NotificationBell />
+              <ThemeToggle />
+            </>
+          )}
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             className="text-xl sm:text-2xl text-foreground p-1"
@@ -178,6 +187,13 @@ const Header = ({ onAuthClick }: HeaderProps) => {
               >
                 Tickets
               </Link>
+              <Link
+                to="/account"
+                className="block py-2 text-foreground/80 hover:text-primary"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                Account
+              </Link>
               <a
                 href="https://wa.me/+2348071365600"
                 target="_blank"
@@ -186,6 +202,13 @@ const Header = ({ onAuthClick }: HeaderProps) => {
               >
                 Contact Us
               </a>
+              
+              {/* Currency Selector in Mobile Menu */}
+              <div className="py-3 border-t border-b">
+                <p className="text-xs text-muted-foreground mb-2">Currency</p>
+                <CurrencySelector variant="compact" />
+              </div>
+              
               <Button onClick={handleLogout} variant="outline" className="w-full mt-2">
                 Log out
               </Button>

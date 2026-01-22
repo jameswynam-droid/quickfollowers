@@ -1,24 +1,24 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
-import { AccountSettingsModal } from "@/components/AccountSettingsModal";
 import { DashboardSkeleton } from "@/components/LoadingSkeleton";
 import { toast } from "sonner";
-import { Wallet, Settings } from "lucide-react";
+import { Wallet } from "lucide-react";
 import { useNoIndex } from "@/hooks/useNoIndex";
+import { useCurrency } from "@/hooks/useCurrency";
 
 const Dashboard = () => {
-  // Theme is now handled globally by ThemeProvider with localStorage persistence
-  useNoIndex(); // Prevent search engine indexing
+  useNoIndex();
+  const { formatPrice, userLocation } = useCurrency();
   const [user, setUser] = useState<any>(null);
   const [profile, setProfile] = useState<any>(null);
   const [orders, setOrders] = useState<any[]>([]);
@@ -28,8 +28,6 @@ const Dashboard = () => {
   const [paymentAmount, setPaymentAmount] = useState("");
   const [bankDetails, setBankDetails] = useState("");
   const [notes, setNotes] = useState("");
-  
-  const [settingsOpen, setSettingsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
 
@@ -69,11 +67,9 @@ const Dashboard = () => {
   };
 
   const fetchOrders = async (userId: string) => {
-    // Fetch recent orders for display
     const { data } = await supabase.from("orders").select("*, services(name)").eq("user_id", userId).order("created_at", { ascending: false }).limit(10);
     setOrders(data || []);
     
-    // Fetch total order count separately
     const { count } = await supabase.from("orders").select("*", { count: "exact", head: true }).eq("user_id", userId);
     setTotalOrders(count || 0);
   };
@@ -83,17 +79,32 @@ const Dashboard = () => {
     setIsAdmin(!!data);
   };
 
-  const handleSignOut = async () => {
-    await supabase.auth.signOut();
-    navigate("/");
-  };
-
   const handlePaymentRequest = async () => {
     if (!paymentAmount || !bankDetails) return toast.error("Fill all fields");
     const { error } = await supabase.from("payments").insert({ user_id: user.id, amount: parseFloat(paymentAmount), bank_details: bankDetails, notes });
     if (error) return toast.error("Failed to submit");
     toast.success("Payment request submitted!");
     setPaymentDialogOpen(false);
+  };
+
+  // Get greeting based on time and location
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    let timeGreeting = "";
+    
+    if (hour < 12) {
+      timeGreeting = "Good morning";
+    } else if (hour < 17) {
+      timeGreeting = "Good afternoon";
+    } else {
+      timeGreeting = "Good evening";
+    }
+    
+    if (userLocation) {
+      return `${timeGreeting} from ${userLocation}`;
+    }
+    
+    return timeGreeting;
   };
 
   if (isLoading) {
@@ -116,23 +127,15 @@ const Dashboard = () => {
         <div className="mb-6 sm:mb-8">
           <div className="flex justify-between items-center">
             <h1 className="text-2xl sm:text-4xl font-bold">Dashboard</h1>
-            <div className="flex gap-2 flex-wrap">
-              {isAdmin && <Button variant="outline" size="sm" onClick={() => navigate("/admin")}>Admin</Button>}
-              <Button variant="outline" size="icon" onClick={() => setSettingsOpen(true)}>
-                <Settings className="h-4 w-4" />
+            {isAdmin && (
+              <Button variant="outline" size="sm" onClick={() => navigate("/admin")}>
+                Admin
               </Button>
-              <Button variant="outline" size="sm" onClick={handleSignOut}>Sign Out</Button>
-            </div>
+            )}
           </div>
-          {(() => {
-            const hour = new Date().getHours();
-            const greeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
-            return (
-              <p className="mt-3 sm:mt-4 text-lg sm:text-xl">
-                {greeting}, <span className="font-semibold text-primary">{profile?.full_name || user?.email}</span>
-              </p>
-            );
-          })()}
+          <p className="mt-3 sm:mt-4 text-lg sm:text-xl">
+            {getGreeting()}, <span className="font-semibold text-primary">{profile?.full_name || user?.email}</span>
+          </p>
         </div>
 
         {/* Stats Grid */}
@@ -142,7 +145,9 @@ const Dashboard = () => {
               <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground">Balance</CardTitle>
             </CardHeader>
             <CardContent className="p-3 sm:p-6 pt-0">
-              <div className="text-lg sm:text-3xl font-bold truncate">₦{parseFloat(profile?.balance || 0).toFixed(2)}</div>
+              <div className="text-lg sm:text-3xl font-bold truncate">
+                {formatPrice(parseFloat(profile?.balance || 0))}
+              </div>
               <Button className="w-full mt-3 sm:mt-4 text-xs sm:text-sm" size="sm" onClick={() => navigate("/add-funds")}>
                 <Wallet className="mr-2 h-3 w-3 sm:h-4 sm:w-4" />Add Funds
               </Button>
@@ -209,7 +214,7 @@ const Dashboard = () => {
                       <TableRow key={o.id}>
                         <TableCell className="text-xs sm:text-sm max-w-[120px] sm:max-w-none truncate">{o.services?.name}</TableCell>
                         <TableCell className="text-xs sm:text-sm hidden sm:table-cell">{o.quantity}</TableCell>
-                        <TableCell className="text-xs sm:text-sm">₦{o.charge}</TableCell>
+                        <TableCell className="text-xs sm:text-sm">{formatPrice(o.charge)}</TableCell>
                         <TableCell className="text-xs sm:text-sm capitalize">{o.status}</TableCell>
                       </TableRow>
                     ))}
@@ -222,7 +227,6 @@ const Dashboard = () => {
       </main>
       <Footer />
       
-      <AccountSettingsModal open={settingsOpen} onOpenChange={setSettingsOpen} userEmail={user?.email || ""} />
       <Dialog open={paymentDialogOpen} onOpenChange={setPaymentDialogOpen}>
         <DialogContent>
           <DialogHeader>
