@@ -18,7 +18,7 @@ import { useCurrency } from "@/hooks/useCurrency";
 
 const Dashboard = () => {
   useNoIndex();
-  const { formatPrice, userLocation } = useCurrency();
+  const { formatPrice } = useCurrency();
   const [user, setUser] = useState<any>(null);
   const [profile, setProfile] = useState<any>(null);
   const [orders, setOrders] = useState<any[]>([]);
@@ -87,24 +87,32 @@ const Dashboard = () => {
     setPaymentDialogOpen(false);
   };
 
-  // Get greeting based on time and location
+  // Get greeting based on user's timezone
   const getGreeting = () => {
-    const hour = new Date().getHours();
-    let timeGreeting = "";
-    
-    if (hour < 12) {
-      timeGreeting = "Good morning";
-    } else if (hour < 17) {
-      timeGreeting = "Good afternoon";
-    } else {
-      timeGreeting = "Good evening";
+    try {
+      // Get current hour in user's timezone
+      const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      const now = new Date();
+      const formatter = new Intl.DateTimeFormat('en-US', {
+        hour: 'numeric',
+        hour12: false,
+        timeZone: userTimezone,
+      });
+      const hour = parseInt(formatter.format(now), 10);
+      
+      if (hour >= 5 && hour < 12) {
+        return "Good morning";
+      } else if (hour >= 12 && hour < 17) {
+        return "Good afternoon";
+      } else if (hour >= 17 && hour < 21) {
+        return "Good evening";
+      } else {
+        return "Hi";
+      }
+    } catch {
+      // Fallback if timezone detection fails
+      return "Hi";
     }
-    
-    if (userLocation) {
-      return `${timeGreeting} from ${userLocation}`;
-    }
-    
-    return timeGreeting;
   };
 
   if (isLoading) {

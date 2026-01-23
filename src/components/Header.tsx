@@ -78,12 +78,12 @@ const Header = ({ onAuthClick }: HeaderProps) => {
                 Tickets
               </Link>
               <a
-                href="https://wa.me/+2348071365600"
+                href="https://wa.me/+2348071365600?text=Hello%20QuickFollowers"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-foreground/80 hover:text-primary transition"
               >
-                Contact Us
+                Contact Us on WhatsApp
               </a>
             </>
           ) : (
@@ -195,12 +195,12 @@ const Header = ({ onAuthClick }: HeaderProps) => {
                 Account
               </Link>
               <a
-                href="https://wa.me/+2348071365600"
+                href="https://wa.me/+2348071365600?text=Hello%20QuickFollowers"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="block py-2 text-foreground/80 hover:text-primary"
               >
-                Contact Us
+                Contact Us on WhatsApp
               </a>
               
               {/* Currency Selector in Mobile Menu */}

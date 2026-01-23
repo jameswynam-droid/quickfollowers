@@ -75,19 +75,41 @@ const Account = () => {
   };
 
   const handleStartPasswordChange = async () => {
+    // Verify current password first
+    if (!currentPassword) {
+      toast.error("Please enter your current password");
+      return;
+    }
+    
     setPasswordLoading(true);
     try {
+      // Verify current password by attempting to sign in
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: user.email,
+        password: currentPassword,
+      });
+      
+      if (signInError) {
+        toast.error("Current password is incorrect");
+        setPasswordLoading(false);
+        return;
+      }
+      
       const response = await supabase.functions.invoke('send-otp', {
         body: { email: user.email, type: 'password_change' }
       });
-      if (response.error) throw new Error(response.error.message);
+      if (response.error) {
+        const errorMsg = response.error.message || "Failed to send verification code";
+        throw new Error(errorMsg.includes("edge function") ? "Unable to send verification code. Please try again." : errorMsg);
+      }
       if (response.data?.error) throw new Error(response.data.error);
       
       toast.success("Verification code sent to your email!");
       setPasswordMode("otp");
       setResendCooldown(60);
     } catch (error: any) {
-      toast.error(error.message || "Failed to send OTP");
+      const errorMsg = error.message || "Failed to send verification code";
+      toast.error(errorMsg.includes("edge function") ? "Unable to send verification code. Please try again." : errorMsg);
     } finally {
       setPasswordLoading(false);
     }
@@ -155,16 +177,30 @@ const Account = () => {
 
     setEmailLoading(true);
     try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        toast.error("Your session has expired. Please sign in again.");
+        navigate("/auth");
+        return;
+      }
+      
       const response = await supabase.functions.invoke('initiate-email-change', {
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
         body: { newEmail }
       });
-      if (response.error) throw new Error(response.error.message);
+      if (response.error) {
+        const errorMsg = response.error.message || "Failed to initiate email change";
+        throw new Error(errorMsg.includes("edge function") ? "Unable to initiate email change. Please try again." : errorMsg);
+      }
       if (response.data?.error) throw new Error(response.data.error);
       
       toast.success("Confirmation email sent to your current email address!");
       setNewEmail("");
     } catch (error: any) {
-      toast.error(error.message || "Failed to initiate email change");
+      const errorMsg = error.message || "Failed to initiate email change";
+      toast.error(errorMsg.includes("edge function") ? "Unable to initiate email change. Please try again." : errorMsg);
     } finally {
       setEmailLoading(false);
     }
@@ -204,17 +240,42 @@ const Account = () => {
               </p>
             </div>
           </div>
-          <div className="mt-4 flex justify-end">
-            <Button
-              variant="secondary"
-              className="bg-white/20 hover:bg-white/30 text-white border-0"
-              onClick={() => setNewEmail(user.email)}
-            >
-              <Mail className="h-4 w-4 mr-2" />
-              Change Email
-            </Button>
-          </div>
         </div>
+
+        {/* Change Email Card */}
+        <Card className="mb-4">
+          <CardContent className="p-4 sm:p-6">
+            <div className="flex items-center gap-2 mb-4">
+              <Mail className="h-5 w-5" />
+              <h2 className="font-semibold">Change email</h2>
+            </div>
+            <div className="space-y-4">
+              <div>
+                <Label>Current email</Label>
+                <Input value={user?.email || ""} disabled className="bg-muted" />
+              </div>
+              <div>
+                <Label>New email address</Label>
+                <Input
+                  type="email"
+                  value={newEmail}
+                  onChange={(e) => setNewEmail(e.target.value)}
+                  placeholder="Enter new email address"
+                />
+              </div>
+              <Button
+                onClick={handleChangeEmail}
+                disabled={emailLoading || !newEmail}
+                className="w-full"
+              >
+                {emailLoading ? "Sending..." : "Change Email"}
+              </Button>
+              <p className="text-xs text-muted-foreground">
+                A confirmation link will be sent to your current email address.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Change Password */}
         <Card className="mb-4">
