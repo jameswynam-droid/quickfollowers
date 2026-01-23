@@ -10,11 +10,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { ChevronDown, RefreshCw, Info } from "lucide-react";
+import { ChevronDown, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { organizeServices, OrganizedService, ServiceCategory } from "@/utils/serviceOrganizer";
 import { useNoIndex } from "@/hooks/useNoIndex";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { FloatingNotificationBell } from "@/components/FloatingNotificationBell";
 
 const Services = () => {
   useNoIndex(); // Prevent search engine indexing
@@ -33,7 +34,6 @@ const Services = () => {
   const [orderQuantity, setOrderQuantity] = useState("");
   const [openCategories, setOpenCategories] = useState<Set<string>>(new Set());
   const [placingOrder, setPlacingOrder] = useState(false);
-  const [infoDialogOpen, setInfoDialogOpen] = useState(false);
   const navigate = useNavigate();
 
   const toggleCategory = (category: string) => {
@@ -334,36 +334,25 @@ const Services = () => {
               <h1 className="text-2xl sm:text-4xl font-bold mb-1 sm:mb-2">SMM Services</h1>
               <p className="text-muted-foreground text-sm sm:text-base">Professional social media marketing services</p>
             </div>
-            <div className="flex flex-col sm:flex-row sm:items-center gap-2">
-              <Button
-                onClick={() => setInfoDialogOpen(true)}
-                variant="outline"
-                size="sm"
-                className="gap-2"
-              >
-                <Info className="h-4 w-4" />
-                Important Info
-              </Button>
-              {isAdmin && (
-                <div className="flex flex-col sm:items-end gap-2">
-                  <Button 
-                    onClick={handleManualSync} 
-                    disabled={syncing}
-                    variant="outline"
-                    size="sm"
-                    className="gap-2"
-                  >
-                    <RefreshCw className={`h-4 w-4 ${syncing ? 'animate-spin' : ''}`} />
-                    {syncing ? 'Syncing...' : 'Sync Now'}
-                  </Button>
-                  {lastSyncTime && (
-                    <p className="text-xs text-muted-foreground">
-                      Last synced: {lastSyncTime.toLocaleString()}
-                    </p>
-                  )}
-                </div>
-              )}
-            </div>
+            {isAdmin && (
+              <div className="flex flex-col sm:items-end gap-2">
+                <Button 
+                  onClick={handleManualSync} 
+                  disabled={syncing}
+                  variant="outline"
+                  size="sm"
+                  className="gap-2"
+                >
+                  <RefreshCw className={`h-4 w-4 ${syncing ? 'animate-spin' : ''}`} />
+                  {syncing ? 'Syncing...' : 'Sync Now'}
+                </Button>
+                {lastSyncTime && (
+                  <p className="text-xs text-muted-foreground">
+                    Last synced: {lastSyncTime.toLocaleString()}
+                  </p>
+                )}
+              </div>
+            )}
           </div>
         </div>
 
@@ -532,63 +521,7 @@ const Services = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Important Info Dialog */}
-      <Dialog open={infoDialogOpen} onOpenChange={setInfoDialogOpen}>
-        <DialogContent className="max-w-[95vw] sm:max-w-lg max-h-[90vh]">
-          <DialogHeader>
-            <DialogTitle className="text-lg flex items-center gap-2">
-              <Info className="h-5 w-5 text-primary" />
-              Important Update
-            </DialogTitle>
-            <DialogDescription>About Drops on Instagram and TikTok</DialogDescription>
-          </DialogHeader>
-          <ScrollArea className="max-h-[60vh] pr-4">
-            <div className="space-y-4 text-sm">
-              <div>
-                <h3 className="font-semibold mb-2">What you may notice</h3>
-                <p className="text-muted-foreground">
-                  You may see followers, likes, or views reduce after a purchase. Instagram and TikTok use strong detection systems. They monitor how fast an account grows. If an account stays stable for a long time then gets a sharp increase, the system flags it as paid activity. The platform removes part of the growth. This action comes from the platform, not from us.
-                </p>
-              </div>
-              
-              <div>
-                <h3 className="font-semibold mb-2">Why it happens</h3>
-                <p className="text-muted-foreground">
-                  Sharp spikes are the most common trigger. The platform compares past activity with new activity. When the change is too fast, the system reacts. There are other factors that cause drops. Platform updates, new detection rules, user activity levels, and changes in the algorithm can also lead to removals. These factors change often, but spike detection is the most consistent pattern we have seen.
-                </p>
-              </div>
-              
-              <div>
-                <h3 className="font-semibold mb-2">How you can grow safely</h3>
-                <p className="text-muted-foreground">
-                  Buy in smaller steps. Keep your growth steady. Slow and consistent growth reduces the risk of removal. Large instant boosts increase the risk. If you need a large boost for a project, be ready for the chance of drops.
-                </p>
-              </div>
-              
-              <div>
-                <h3 className="font-semibold mb-2">What we invest</h3>
-                <p className="text-muted-foreground">
-                  We also spend to fund every promotion you receive. When the platform removes results, the funds used for that promotion are lost. We carry that cost with you. We do not remove your results.
-                </p>
-              </div>
-              
-              <div>
-                <h3 className="font-semibold mb-2">What we ask from you</h3>
-                <p className="text-muted-foreground">
-                  Give us patience. Understand that these drops come from the platform system, not from us. We stay committed to supporting you, fixing what we can, and helping you grow in a safer way.
-                </p>
-              </div>
-              
-              <div className="pt-2 border-t">
-                <p className="text-muted-foreground italic">Thank you for trusting us.</p>
-              </div>
-            </div>
-          </ScrollArea>
-          <Button onClick={() => setInfoDialogOpen(false)} className="w-full mt-2">
-            Got it
-          </Button>
-        </DialogContent>
-      </Dialog>
+      <FloatingNotificationBell />
     </div>
   );
 };
