@@ -26,17 +26,12 @@ const NotificationContext = createContext<NotificationContextType | undefined>(u
 const DEFAULT_NOTIFICATIONS: Omit<Notification, "id" | "createdAt" | "read">[] = [
   {
     title: "Welcome to QuickFollowers! 🎉",
-    message: "Start growing your social media presence today. Add funds to your wallet and place your first order!",
+    message: "Welcome to QuickFollowers! We're excited to have you here. Start growing your social media presence today by adding funds to your wallet and placing your first order. Browse our wide range of services including Instagram, TikTok, YouTube, Twitter, and many more platforms. All orders are processed quickly and safely. Thank you for choosing QuickFollowers!",
     type: "success",
   },
   {
-    title: "New Services Available",
-    message: "We've added new Instagram and TikTok services. Check out our services page for the latest offerings!",
-    type: "info",
-  },
-  {
-    title: "24/7 Support",
-    message: "Need help? Our support team is available around the clock. Create a ticket or contact us on WhatsApp.",
+    title: "24/7 Customer Support 💬",
+    message: "Our dedicated support team is available around the clock to assist you with any questions or issues. You can reach us through our ticket system for detailed inquiries, or contact us directly on WhatsApp for quick responses. We typically respond within minutes! Your satisfaction is our top priority, and we're here to help you succeed on social media.",
     type: "info",
   },
 ];

@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { RefreshCw, ExternalLink, Search, X, RotateCcw, Copy } from "lucide-react";
+import { RefreshCw, ExternalLink, Search, X } from "lucide-react";
 import { toast } from "sonner";
 import { useNoIndex } from "@/hooks/useNoIndex";
 import { useCurrency } from "@/hooks/useCurrency";
@@ -113,11 +113,14 @@ const Orders = () => {
       const { data, error } = await supabase.functions.invoke('refill-order', {
         body: { order_id: orderId }
       });
-      if (error) throw error;
+      if (error) {
+        const errorMsg = error.message || "Failed to request refill";
+        throw new Error(errorMsg.includes("edge function") ? "Unable to process refill. Please try again later." : errorMsg);
+      }
       if (data?.error) throw new Error(data.error);
       toast.success("Refill request submitted!");
     } catch (error: any) {
-      toast.error(error.message || "Failed to request refill");
+      toast.error(error.message || "Unable to process refill. Please try again later.");
     } finally {
       setActionLoading(null);
     }
@@ -130,12 +133,15 @@ const Orders = () => {
       const { data, error } = await supabase.functions.invoke('reorder', {
         body: { order_id: orderId }
       });
-      if (error) throw error;
+      if (error) {
+        const errorMsg = error.message || "Failed to reorder";
+        throw new Error(errorMsg.includes("edge function") ? "Unable to process reorder. Please try again later." : errorMsg);
+      }
       if (data?.error) throw new Error(data.error);
       toast.success("Reorder placed successfully!");
       if (user) await fetchOrders(user.id);
     } catch (error: any) {
-      toast.error(error.message || "Failed to reorder");
+      toast.error(error.message || "Unable to process reorder. Please try again later.");
     } finally {
       setActionLoading(null);
     }
@@ -327,32 +333,27 @@ const Orders = () => {
                               <div className="flex gap-1">
                                 {order.services?.provider === 'owlet' && (
                                   <Button
-                                    variant="ghost"
+                                    variant="outline"
                                     size="sm"
                                     className="h-7 px-2 text-xs"
                                     onClick={(e) => handleReorder(order.id, e)}
                                     disabled={actionLoading === order.id}
                                   >
-                                    <Copy className="h-3 w-3" />
+                                    {actionLoading === order.id ? '...' : 'Re-order'}
                                   </Button>
                                 )}
                                 {order.status === 'completed' && (
                                   <Button
-                                    variant="ghost"
+                                    variant="outline"
                                     size="sm"
                                     className="h-7 px-2 text-xs"
                                     onClick={(e) => handleRefill(order.id, e)}
                                     disabled={actionLoading === order.id}
                                   >
-                                    <RotateCcw className="h-3 w-3" />
+                                    {actionLoading === order.id ? '...' : 'Re-fill'}
                                   </Button>
                                 )}
                               </div>
-                            </TableCell>
-                            <TableCell className="whitespace-nowrap">
-                              <Badge variant={getStatusColor(order.status)} className="capitalize text-xs">
-                                {order.status}
-                              </Badge>
                             </TableCell>
                           </TableRow>
                         ))}

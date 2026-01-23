@@ -56,7 +56,7 @@ const Footer = () => {
           <ul className="space-y-1.5 sm:space-y-2 text-xs sm:text-sm">
             <li>
               <a
-                href="https://wa.me/+2348071365600"
+                href="https://wa.me/+2348071365600?text=Hello%20QuickFollowers"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="hover:text-primary transition inline-flex items-center gap-2"
