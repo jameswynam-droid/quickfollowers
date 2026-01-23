@@ -106,25 +106,6 @@ const Orders = () => {
     }
   };
 
-  const handleRefill = async (orderId: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    setActionLoading(orderId);
-    try {
-      const { data, error } = await supabase.functions.invoke('refill-order', {
-        body: { order_id: orderId }
-      });
-      if (error) {
-        const errorMsg = error.message || "Failed to request refill";
-        throw new Error(errorMsg.includes("edge function") ? "Unable to process refill. Please try again later." : errorMsg);
-      }
-      if (data?.error) throw new Error(data.error);
-      toast.success("Refill request submitted!");
-    } catch (error: any) {
-      toast.error(error.message || "Unable to process refill. Please try again later.");
-    } finally {
-      setActionLoading(null);
-    }
-  };
 
   const handleReorder = async (orderId: string, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -330,30 +311,17 @@ const Orders = () => {
                               </Badge>
                             </TableCell>
                             <TableCell className="whitespace-nowrap">
-                              <div className="flex gap-1">
-                                {order.services?.provider === 'owlet' && (
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    className="h-7 px-2 text-xs"
-                                    onClick={(e) => handleReorder(order.id, e)}
-                                    disabled={actionLoading === order.id}
-                                  >
-                                    {actionLoading === order.id ? '...' : 'Re-order'}
-                                  </Button>
-                                )}
-                                {order.status === 'completed' && (
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    className="h-7 px-2 text-xs"
-                                    onClick={(e) => handleRefill(order.id, e)}
-                                    disabled={actionLoading === order.id}
-                                  >
-                                    {actionLoading === order.id ? '...' : 'Re-fill'}
-                                  </Button>
-                                )}
-                              </div>
+                              {order.services?.provider === 'owlet' && (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="h-7 px-2 text-xs"
+                                  onClick={(e) => handleReorder(order.id, e)}
+                                  disabled={actionLoading === order.id}
+                                >
+                                  {actionLoading === order.id ? '...' : 'Re-order'}
+                                </Button>
+                              )}
                             </TableCell>
                           </TableRow>
                         ))}

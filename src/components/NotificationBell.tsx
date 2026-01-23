@@ -85,7 +85,7 @@ export const NotificationBell = () => {
             </Button>
           )}
         </div>
-        <ScrollArea className="h-[300px]">
+        <ScrollArea className="h-[400px]">
           {notifications.length === 0 ? (
             <div className="p-4 text-center text-muted-foreground">
               No notifications
@@ -109,15 +109,15 @@ export const NotificationBell = () => {
                       )}
                     />
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-start justify-between gap-2">
-                        <p className="font-medium text-sm truncate">
+                      <div className="flex items-start justify-between gap-2 mb-2">
+                        <p className="font-medium text-sm">
                           {notification.title}
                         </p>
                         <span className="text-xs text-muted-foreground shrink-0">
                           {formatTime(notification.createdAt)}
                         </span>
                       </div>
-                      <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
+                      <p className="text-sm text-muted-foreground leading-relaxed">
                         {notification.message}
                       </p>
                     </div>
