@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Bell } from "lucide-react";
+import { Bell, ChevronDown, ChevronUp } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -14,27 +14,47 @@ const IMPORTANT_INFO = [
   {
     id: "info-1",
     title: "⚠️ Instagram & TikTok Drops",
-    content: "Due to platform changes, Instagram and TikTok services may experience occasional drops. This is normal and expected. We recommend ordering slightly more than your target amount to account for potential drops. All our services are processed as described.",
+    summary: "Learn about platform drops and how to grow safely",
+    content: `**What you may notice**
+You may see followers, likes, or views reduce after a purchase. Instagram and TikTok use strong detection systems. They monitor how fast an account grows. If an account stays stable for a long time then gets a sharp increase, the system flags it as paid activity. The platform removes part of the growth. This action comes from the platform, not from us.
+
+**Why it happens**
+Sharp spikes are the most common trigger. The platform compares past activity with new activity. When the change is too fast, the system reacts. There are other factors that cause drops. Platform updates, new detection rules, user activity levels, and changes in the algorithm can also lead to removals. These factors change often, but spike detection is the most consistent pattern we have seen.
+
+**How you can grow safely**
+Buy in smaller steps. Keep your growth steady. Slow and consistent growth reduces the risk of removal. Large instant boosts increase the risk. If you need a large boost for a project, be ready for the chance of drops.
+
+**What we invest**
+We also spend to fund every promotion you receive. When the platform removes results, the funds used for that promotion are lost. We carry that cost with you. We do not remove your results.
+
+**What we ask from you**
+Give us patience. Understand that these drops come from the platform system, not from us. We stay committed to supporting you, fixing what we can, and helping you grow in a safer way.
+
+Thank you for trusting us.`,
   },
   {
     id: "info-2", 
     title: "📱 Link Format Requirements",
-    content: "Make sure your profile/post is PUBLIC before ordering. For Instagram, use full URLs (https://instagram.com/username). For TikTok, use the full video URL. Private accounts cannot receive any services.",
+    summary: "Make sure your profile/post is PUBLIC before ordering",
+    content: `Make sure your profile/post is PUBLIC before ordering. For Instagram, use full URLs (https://instagram.com/username). For TikTok, use the full video URL. Private accounts cannot receive any services.`,
   },
   {
     id: "info-3",
     title: "⏱️ Processing Times",
-    content: "Most orders start within 0-12 hours. During high demand periods, orders may take up to 24-72 hours to complete. Speed varies by service type - instant services start immediately, while gradual/drip-feed services are spread over time for natural growth.",
+    summary: "Learn about order processing and delivery times",
+    content: `Most orders start within 0-12 hours. During high demand periods, orders may take up to 24-72 hours to complete. Speed varies by service type - instant services start immediately, while gradual/drip-feed services are spread over time for natural growth.`,
   },
   {
     id: "info-4",
     title: "💰 Refund Policy",
-    content: "Refunds are only available for orders that cannot be completed due to technical issues on our end. Once an order starts processing, it cannot be cancelled. Please double-check your link and quantity before placing an order.",
+    summary: "Understand our refund and cancellation policy",
+    content: `Refunds are only available for orders that cannot be completed due to technical issues on our end. Once an order starts processing, it cannot be cancelled. Please double-check your link and quantity before placing an order.`,
   },
 ];
 
 export const FloatingNotificationBell = () => {
   const [open, setOpen] = useState(false);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
   const [hasOpened, setHasOpened] = useState(() => {
     return localStorage.getItem("important_info_opened") === "true";
   });
@@ -47,7 +67,28 @@ export const FloatingNotificationBell = () => {
     }
   };
 
+  const toggleExpand = (id: string) => {
+    setExpandedId(expandedId === id ? null : id);
+  };
+
   const shouldShake = !hasOpened;
+
+  const formatContent = (content: string) => {
+    return content.split('\n\n').map((paragraph, index) => {
+      if (paragraph.startsWith('**') && paragraph.includes('**')) {
+        const match = paragraph.match(/\*\*(.+?)\*\*([\s\S]*)/);
+        if (match) {
+          return (
+            <div key={index} className="mb-3">
+              <h4 className="font-semibold text-foreground mb-1">{match[1]}</h4>
+              <p className="text-muted-foreground">{match[2].trim()}</p>
+            </div>
+          );
+        }
+      }
+      return <p key={index} className="text-muted-foreground mb-2">{paragraph}</p>;
+    });
+  };
 
   return (
     <>
@@ -73,16 +114,35 @@ export const FloatingNotificationBell = () => {
             <DialogTitle>Important Information</DialogTitle>
           </DialogHeader>
           <ScrollArea className="max-h-[60vh] pr-4">
-            <div className="space-y-4">
+            <div className="space-y-3">
               {IMPORTANT_INFO.map((info) => (
                 <div
                   key={info.id}
-                  className="p-4 rounded-lg border bg-card"
+                  className="rounded-lg border bg-card overflow-hidden"
                 >
-                  <h3 className="font-semibold mb-2">{info.title}</h3>
-                  <p className="text-sm text-muted-foreground leading-relaxed">
-                    {info.content}
-                  </p>
+                  <button
+                    onClick={() => toggleExpand(info.id)}
+                    className="w-full p-4 flex items-center justify-between text-left hover:bg-muted/50 transition-colors"
+                  >
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-semibold">{info.title}</h3>
+                      {expandedId !== info.id && (
+                        <p className="text-sm text-muted-foreground mt-1 truncate">
+                          {info.summary}
+                        </p>
+                      )}
+                    </div>
+                    {expandedId === info.id ? (
+                      <ChevronUp className="h-5 w-5 text-muted-foreground shrink-0 ml-2" />
+                    ) : (
+                      <ChevronDown className="h-5 w-5 text-muted-foreground shrink-0 ml-2" />
+                    )}
+                  </button>
+                  {expandedId === info.id && (
+                    <div className="px-4 pb-4 text-sm border-t pt-4">
+                      {formatContent(info.content)}
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
