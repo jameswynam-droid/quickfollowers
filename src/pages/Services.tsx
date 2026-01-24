@@ -35,6 +35,20 @@ const Services = () => {
   const [orderQuantity, setOrderQuantity] = useState("");
   const [customComments, setCustomComments] = useState("");
   const [openCategories, setOpenCategories] = useState<Set<string>>(new Set());
+
+  // Check if service requires custom comments
+  const isCustomCommentService = (service: OrganizedService | null) => {
+    if (!service) return false;
+    const nameLower = service.name.toLowerCase();
+    return nameLower.includes('custom comment') || 
+      (nameLower.includes('comment') && nameLower.includes('custom'));
+  };
+
+  // Count lines in custom comments (for quantity)
+  const getCommentLineCount = (comments: string) => {
+    if (!comments.trim()) return 0;
+    return comments.split('\n').filter(line => line.trim()).length;
+  };
   const [placingOrder, setPlacingOrder] = useState(false);
   const navigate = useNavigate();
 
@@ -494,35 +508,59 @@ const Services = () => {
                 className="text-sm"
               />
             </div>
-            <div>
-              <Label htmlFor="quantity" className="text-sm">Quantity</Label>
-              <Input
-                id="quantity"
-                type="number"
-                value={orderQuantity}
-                onChange={(e) => setOrderQuantity(e.target.value)}
-                placeholder={`Min: ${selectedService?.min_order}, Max: ${selectedService?.max_order}`}
-                min={selectedService?.min_order}
-                max={selectedService?.max_order}
-                className="text-sm"
-              />
-            </div>
-            {/* Custom Comments field for comment services */}
-            {selectedService && (selectedService.name.toLowerCase().includes('custom comment') || 
-              (selectedService.name.toLowerCase().includes('comment') && selectedService.name.toLowerCase().includes('custom'))) && (
+            {/* Custom Comments field for comment services - FIRST */}
+            {isCustomCommentService(selectedService) && (
               <div>
-                <Label htmlFor="comments" className="text-sm">Custom Comments</Label>
+                <Label htmlFor="comments" className="text-sm">Custom Comments <span className="text-destructive">*</span></Label>
                 <Textarea
                   id="comments"
                   value={customComments}
-                  onChange={(e) => setCustomComments(e.target.value)}
+                  onChange={(e) => {
+                    setCustomComments(e.target.value);
+                    // Auto-set quantity based on comment lines
+                    const lineCount = getCommentLineCount(e.target.value);
+                    if (lineCount > 0) {
+                      setOrderQuantity(lineCount.toString());
+                    } else {
+                      setOrderQuantity("");
+                    }
+                  }}
                   placeholder="Enter your comments here, one per line..."
                   className="text-sm min-h-[120px]"
                   rows={5}
                 />
                 <p className="text-xs text-muted-foreground mt-1">
-                  Each line will be a separate comment
+                  Each line = 1 comment. You have <span className="font-semibold text-primary">{getCommentLineCount(customComments)}</span> comment(s).
+                  {selectedService && ` Min: ${selectedService.min_order}, Max: ${selectedService.max_order}`}
                 </p>
+              </div>
+            )}
+            {/* Regular quantity field - only for non-custom-comment services */}
+            {!isCustomCommentService(selectedService) && (
+              <div>
+                <Label htmlFor="quantity" className="text-sm">Quantity</Label>
+                <Input
+                  id="quantity"
+                  type="number"
+                  value={orderQuantity}
+                  onChange={(e) => setOrderQuantity(e.target.value)}
+                  placeholder={`Min: ${selectedService?.min_order}, Max: ${selectedService?.max_order}`}
+                  min={selectedService?.min_order}
+                  max={selectedService?.max_order}
+                  className="text-sm"
+                />
+              </div>
+            )}
+            {/* Show quantity as read-only for custom comment services */}
+            {isCustomCommentService(selectedService) && getCommentLineCount(customComments) > 0 && (
+              <div>
+                <Label className="text-sm">Quantity (auto-calculated)</Label>
+                <Input
+                  type="number"
+                  value={orderQuantity}
+                  readOnly
+                  className="text-sm bg-muted"
+                />
               </div>
             )}
             {orderQuantity && selectedService && (
