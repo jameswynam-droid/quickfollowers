@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Bell, ChevronDown, ChevronUp } from "lucide-react";
+import { useMemo, useState } from "react";
+import { ArrowLeft, Bell } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -15,7 +15,9 @@ const IMPORTANT_INFO = [
     id: "info-1",
     title: "⚠️ Instagram & TikTok Drops",
     summary: "Learn about platform drops and how to grow safely",
-    content: `**What you may notice**
+    content: `About Drops on Instagram and TikTok
+
+**What you may notice**
 You may see followers, likes, or views reduce after a purchase. Instagram and TikTok use strong detection systems. They monitor how fast an account grows. If an account stays stable for a long time then gets a sharp increase, the system flags it as paid activity. The platform removes part of the growth. This action comes from the platform, not from us.
 
 **Why it happens**
@@ -54,7 +56,7 @@ Thank you for trusting us.`,
 
 export const FloatingNotificationBell = () => {
   const [open, setOpen] = useState(false);
-  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [activeInfoId, setActiveInfoId] = useState<string | null>(null);
   const [hasOpened, setHasOpened] = useState(() => {
     return localStorage.getItem("important_info_opened") === "true";
   });
@@ -65,28 +67,46 @@ export const FloatingNotificationBell = () => {
       setHasOpened(true);
       localStorage.setItem("important_info_opened", "true");
     }
-  };
-
-  const toggleExpand = (id: string) => {
-    setExpandedId(expandedId === id ? null : id);
+    if (!isOpen) setActiveInfoId(null);
   };
 
   const shouldShake = !hasOpened;
 
+  const activeInfo = useMemo(() => {
+    if (!activeInfoId) return null;
+    return IMPORTANT_INFO.find((i) => i.id === activeInfoId) ?? null;
+  }, [activeInfoId]);
+
   const formatContent = (content: string) => {
-    return content.split('\n\n').map((paragraph, index) => {
-      if (paragraph.startsWith('**') && paragraph.includes('**')) {
-        const match = paragraph.match(/\*\*(.+?)\*\*([\s\S]*)/);
+    const blocks = content.split("\n\n");
+    return blocks.map((block, index) => {
+      // Section headers in **bold** form
+      if (block.startsWith("**") && block.includes("**")) {
+        const match = block.match(/\*\*(.+?)\*\*([\s\S]*)/);
         if (match) {
           return (
-            <div key={index} className="mb-3">
-              <h4 className="font-semibold text-foreground mb-1">{match[1]}</h4>
-              <p className="text-muted-foreground">{match[2].trim()}</p>
-            </div>
+            <section key={index} className="mb-4">
+              <h3 className="font-semibold text-foreground mb-2">{match[1]}</h3>
+              <p className="text-sm leading-relaxed text-muted-foreground">{match[2].trim()}</p>
+            </section>
           );
         }
       }
-      return <p key={index} className="text-muted-foreground mb-2">{paragraph}</p>;
+
+      // First line title (e.g. "About Drops...")
+      if (index === 0) {
+        return (
+          <h2 key={index} className="text-base font-semibold text-foreground">
+            {block.trim()}
+          </h2>
+        );
+      }
+
+      return (
+        <p key={index} className="text-sm leading-relaxed text-muted-foreground">
+          {block}
+        </p>
+      );
     });
   };
 
@@ -109,44 +129,53 @@ export const FloatingNotificationBell = () => {
       </button>
 
       <Dialog open={open} onOpenChange={handleOpen}>
-        <DialogContent className="max-w-md max-h-[80vh]">
-          <DialogHeader>
-            <DialogTitle>Important Information</DialogTitle>
-          </DialogHeader>
-          <ScrollArea className="max-h-[60vh] pr-4">
-            <div className="space-y-3">
-              {IMPORTANT_INFO.map((info) => (
-                <div
-                  key={info.id}
-                  className="rounded-lg border bg-card overflow-hidden"
-                >
-                  <button
-                    onClick={() => toggleExpand(info.id)}
-                    className="w-full p-4 flex items-center justify-between text-left hover:bg-muted/50 transition-colors"
-                  >
-                    <div className="flex-1 min-w-0">
-                      <h3 className="font-semibold">{info.title}</h3>
-                      {expandedId !== info.id && (
-                        <p className="text-sm text-muted-foreground mt-1 truncate">
-                          {info.summary}
-                        </p>
-                      )}
-                    </div>
-                    {expandedId === info.id ? (
-                      <ChevronUp className="h-5 w-5 text-muted-foreground shrink-0 ml-2" />
-                    ) : (
-                      <ChevronDown className="h-5 w-5 text-muted-foreground shrink-0 ml-2" />
-                    )}
-                  </button>
-                  {expandedId === info.id && (
-                    <div className="px-4 pb-4 text-sm border-t pt-4">
-                      {formatContent(info.content)}
-                    </div>
-                  )}
+        <DialogContent className="max-w-md max-h-[85vh]">
+          {!activeInfo ? (
+            <>
+              <DialogHeader>
+                <DialogTitle>Important Information</DialogTitle>
+              </DialogHeader>
+              <ScrollArea className="h-[65vh] pr-4">
+                <div className="space-y-3">
+                  {IMPORTANT_INFO.map((info) => (
+                    <button
+                      key={info.id}
+                      onClick={() => setActiveInfoId(info.id)}
+                      className="w-full rounded-lg border bg-card p-4 text-left hover:bg-muted/50 transition-colors"
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <h3 className="font-semibold text-foreground">{info.title}</h3>
+                          <p className="text-sm text-muted-foreground mt-1">
+                            {info.summary}
+                          </p>
+                        </div>
+                      </div>
+                    </button>
+                  ))}
                 </div>
-              ))}
-            </div>
-          </ScrollArea>
+              </ScrollArea>
+            </>
+          ) : (
+            <>
+              <div className="flex items-center gap-2 mb-2">
+                <button
+                  type="button"
+                  onClick={() => setActiveInfoId(null)}
+                  className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                  Back
+                </button>
+              </div>
+              <DialogHeader>
+                <DialogTitle>{activeInfo.title}</DialogTitle>
+              </DialogHeader>
+              <ScrollArea className="h-[65vh] pr-4">
+                <div className="space-y-4 pb-2">{formatContent(activeInfo.content)}</div>
+              </ScrollArea>
+            </>
+          )}
         </DialogContent>
       </Dialog>
 
