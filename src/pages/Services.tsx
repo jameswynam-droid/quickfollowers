@@ -16,6 +16,7 @@ import { organizeServices, OrganizedService, ServiceCategory } from "@/utils/ser
 import { useNoIndex } from "@/hooks/useNoIndex";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { FloatingNotificationBell } from "@/components/FloatingNotificationBell";
+import { Textarea } from "@/components/ui/textarea";
 
 const Services = () => {
   useNoIndex(); // Prevent search engine indexing
@@ -32,6 +33,7 @@ const Services = () => {
   const [selectedService, setSelectedService] = useState<OrganizedService | null>(null);
   const [orderLink, setOrderLink] = useState("");
   const [orderQuantity, setOrderQuantity] = useState("");
+  const [customComments, setCustomComments] = useState("");
   const [openCategories, setOpenCategories] = useState<Set<string>>(new Set());
   const [placingOrder, setPlacingOrder] = useState(false);
   const navigate = useNavigate();
@@ -193,6 +195,7 @@ const Services = () => {
     setOrderDialogOpen(true);
     setOrderLink("");
     setOrderQuantity("");
+    setCustomComments("");
   };
 
   // Parse backend errors into user-friendly messages
@@ -281,6 +284,7 @@ const Services = () => {
           service_id: selectedService.id,
           link: orderLink,
           quantity,
+          comments: customComments || undefined,
         },
       });
 
@@ -307,6 +311,7 @@ const Services = () => {
       setOrderDialogOpen(false);
       setOrderLink("");
       setOrderQuantity("");
+      setCustomComments("");
       navigate("/dashboard");
     } catch (error: any) {
       toast.dismiss("placing-order");
@@ -502,6 +507,24 @@ const Services = () => {
                 className="text-sm"
               />
             </div>
+            {/* Custom Comments field for comment services */}
+            {selectedService && (selectedService.name.toLowerCase().includes('custom comment') || 
+              (selectedService.name.toLowerCase().includes('comment') && selectedService.name.toLowerCase().includes('custom'))) && (
+              <div>
+                <Label htmlFor="comments" className="text-sm">Custom Comments</Label>
+                <Textarea
+                  id="comments"
+                  value={customComments}
+                  onChange={(e) => setCustomComments(e.target.value)}
+                  placeholder="Enter your comments here, one per line..."
+                  className="text-sm min-h-[120px]"
+                  rows={5}
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Each line will be a separate comment
+                </p>
+              </div>
+            )}
             {orderQuantity && selectedService && (
               <div className="p-3 sm:p-4 bg-primary/10 border border-primary/20 rounded-lg space-y-2">
                 <div className="flex justify-between text-xs sm:text-sm">
