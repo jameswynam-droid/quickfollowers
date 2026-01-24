@@ -365,7 +365,7 @@ const Orders = () => {
                   </div>
                   <div>
                     <p className="text-sm text-muted-foreground">Cost</p>
-                    <p className="font-semibold text-primary">₦{formatPrice(selectedOrder.charge)}</p>
+                    <p className="font-semibold text-primary">{formatPrice(selectedOrder.charge)}</p>
                   </div>
                   {selectedOrder.start_count !== null && (
                     <div>

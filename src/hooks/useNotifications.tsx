@@ -36,9 +36,37 @@ const DEFAULT_NOTIFICATIONS: Omit<Notification, "id" | "createdAt" | "read">[] =
   },
 ];
 
+// The global (top) notification bell should ONLY ever show these.
+const ALLOWED_NOTIFICATION_TITLES = new Set<string>([
+  "Welcome to QuickFollowers! 🎉",
+  "24/7 Customer Support 💬",
+]);
+
 export const NotificationProvider = ({ children }: { children: ReactNode }) => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [hasEverOpened, setHasEverOpenedState] = useState(false);
+
+  const sanitizeAndMergeDefaults = (raw: Notification[]) => {
+    // 1) Strip anything not allowed (e.g. legacy "New Services Available").
+    const filtered = raw.filter((n) => ALLOWED_NOTIFICATION_TITLES.has(n.title));
+
+    // 2) Ensure the two defaults exist (for users with partial/empty localStorage).
+    const byTitle = new Map(filtered.map((n) => [n.title, n] as const));
+    const merged: Notification[] = DEFAULT_NOTIFICATIONS.map((n, i) => {
+      const existing = byTitle.get(n.title);
+      return (
+        existing ?? {
+          ...n,
+          id: `default-${i}`,
+          createdAt: new Date(Date.now() - i * 3600000),
+          read: false,
+        }
+      );
+    });
+
+    // Sort newest first.
+    return merged.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+  };
 
   useEffect(() => {
     // Load from localStorage
@@ -50,10 +78,14 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        setNotifications(parsed.map((n: any) => ({
+        const mapped: Notification[] = parsed.map((n: any) => ({
           ...n,
           createdAt: new Date(n.createdAt),
-        })));
+        }));
+
+        const sanitized = sanitizeAndMergeDefaults(mapped);
+        setNotifications(sanitized);
+        saveToStorage(sanitized);
       } catch {
         initializeDefaults();
       }
@@ -101,6 +133,9 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const addNotification = (notification: Omit<Notification, "id" | "createdAt" | "read">) => {
+    // Global bell is intentionally limited to the two default notifications.
+    if (!ALLOWED_NOTIFICATION_TITLES.has(notification.title)) return;
+
     const newNotif: Notification = {
       ...notification,
       id: `notif-${Date.now()}`,
@@ -108,7 +143,7 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
       read: false,
     };
     setNotifications((prev) => {
-      const updated = [newNotif, ...prev];
+      const updated = sanitizeAndMergeDefaults([newNotif, ...prev]);
       saveToStorage(updated);
       return updated;
     });
