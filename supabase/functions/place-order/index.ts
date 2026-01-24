@@ -9,6 +9,7 @@ interface OrderRequest {
   service_id: string;
   link: string;
   quantity: number;
+  comments?: string;
 }
 
 // Markup calculation - must match frontend serviceOrganizer.ts
@@ -70,7 +71,7 @@ Deno.serve(async (req) => {
 
     console.log('Authenticated user:', user.id);
 
-    const { service_id, link, quantity }: OrderRequest = await req.json();
+    const { service_id, link, quantity, comments }: OrderRequest = await req.json();
 
     // Validate input
     if (!service_id || !link || !quantity) {
@@ -138,18 +139,26 @@ Deno.serve(async (req) => {
 
     console.log(`Placing order with ${provider} API...`);
     
+    // Build the order payload
+    const orderPayload: Record<string, any> = {
+      key: apiKey,
+      action: 'add',
+      service: parseInt(actualServiceId),
+      link: link,
+      quantity: quantity,
+    };
+
+    // Add comments for custom comment services
+    if (comments) {
+      orderPayload.comments = comments;
+    }
+
     const apiResponse = await fetch(apiUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        key: apiKey,
-        action: 'add',
-        service: parseInt(actualServiceId),
-        link: link,
-        quantity: quantity,
-      }),
+      body: JSON.stringify(orderPayload),
     });
 
     const apiResult = await apiResponse.json();

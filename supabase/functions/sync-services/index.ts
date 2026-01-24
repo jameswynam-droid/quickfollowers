@@ -1195,6 +1195,7 @@ Deno.serve(async (req) => {
           rate = rate / 100;
         }
 
+        // Use the exact description from the API (with brand replacement only)
         const providerDesc = normalizeProviderDescription(
           (service as any).desc ?? (service as any).description ?? (service as any).instructions,
         );
@@ -1207,7 +1208,7 @@ Deno.serve(async (req) => {
           rate: rate,
           min_order: parseInt(service.min),
           max_order: parseInt(service.max),
-          // Prefer provider supplied instructions/description when present
+          // Use only the API description (with brand replacement), no generated fallbacks
           description: providerDesc,
           provider: provider.name,
         };
