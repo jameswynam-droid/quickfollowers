@@ -22,7 +22,7 @@ interface NotificationContextType {
 
 const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
 
-// Default notifications for new users
+// Default notifications for new users - Only Welcome and 24/7 Support
 const DEFAULT_NOTIFICATIONS: Omit<Notification, "id" | "createdAt" | "read">[] = [
   {
     title: "Welcome to QuickFollowers! 🎉",
