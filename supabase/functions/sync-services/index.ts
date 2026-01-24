@@ -1036,9 +1036,42 @@ Example: https://discord.gg/xxx
 }
 
 // Clean service names by removing provider references
+// Sanitize invalid Unicode sequences (unpaired surrogates) - compatible version
+function sanitizeUnicode(str: string): string {
+  // Convert to array of code points and filter out unpaired surrogates
+  let result = '';
+  for (let i = 0; i < str.length; i++) {
+    const code = str.charCodeAt(i);
+    // Check for high surrogate (0xD800-0xDBFF)
+    if (code >= 0xD800 && code <= 0xDBFF) {
+      // Check if followed by low surrogate (0xDC00-0xDFFF)
+      if (i + 1 < str.length) {
+        const next = str.charCodeAt(i + 1);
+        if (next >= 0xDC00 && next <= 0xDFFF) {
+          // Valid surrogate pair, keep both
+          result += str[i] + str[i + 1];
+          i++; // Skip the next character as we've already processed it
+          continue;
+        }
+      }
+      // Unpaired high surrogate, skip it
+      continue;
+    }
+    // Check for low surrogate without preceding high surrogate
+    if (code >= 0xDC00 && code <= 0xDFFF) {
+      // Unpaired low surrogate, skip it
+      continue;
+    }
+    // Regular character
+    result += str[i];
+  }
+  return result;
+}
+
 function cleanServiceName(name: string): string {
-  // Remove provider names from service names
-  return name
+  // First sanitize Unicode, then replace provider names
+  const sanitized = sanitizeUnicode(name);
+  return sanitized
     .replace(/\bOwlet\b/gi, 'QuickFollowers')
     .replace(/\bFollowspanel\b/gi, 'QuickFollowers')
     .replace(/\bOwlet's\b/gi, "QuickFollowers'")
@@ -1057,6 +1090,7 @@ function normalizeProviderDescription(raw: unknown): string | null {
     .trim();
 
   if (!cleaned) return null;
+  // cleanServiceName already handles Unicode sanitization
   return cleanServiceName(cleaned);
 }
 
@@ -1410,16 +1444,22 @@ Deno.serve(async (req) => {
       return markers.some(m => desc.includes(m));
     };
 
-    // Fill in descriptions for all services - NO fallback generation
-    // Only use exact API descriptions or null
+    // Fill in descriptions for all services
+    // Use API descriptions when available, smart fallback when not
     for (const service of allServicesData) {
-      // If provider already supplied a description, keep it
+      // If provider already supplied a description, keep it (with brand replacement)
       if (typeof service.description === 'string' && service.description.trim().length > 0) {
+        service.description = cleanServiceName(service.description);
         continue;
       }
       
-      // If no API description, set to null (no generic fallback)
-      service.description = null;
+      // No API description - generate a smart description based on name and category
+      service.description = generateDescription(
+        service.name,
+        service.category,
+        service.min_order.toString(),
+        service.max_order.toString(),
+      );
     }
 
     // Upsert all current services
