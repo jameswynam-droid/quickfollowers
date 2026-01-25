@@ -1035,29 +1035,78 @@ Example: https://discord.gg/xxx
   return description;
 }
 
-// Clean service names by removing provider references
+// Clean service names by removing provider references and decoding HTML entities
 function cleanServiceName(name: string): string {
   // First sanitize any invalid Unicode
   const sanitized = sanitizeUnicode(name);
+  // Decode common HTML entities
+  const decoded = decodeHtmlEntities(sanitized);
   // Remove provider names from service names
-  return sanitized
+  return decoded
     .replace(/\bOwlet\b/gi, 'QuickFollowers')
     .replace(/\bFollowspanel\b/gi, 'QuickFollowers')
     .replace(/\bOwlet's\b/gi, "QuickFollowers'")
     .replace(/\bFollowspanel's\b/gi, "QuickFollowers'");
 }
 
-// Sanitize invalid Unicode surrogates that cause JSON parsing errors
+// Decode common HTML entities to their actual characters
+// Handles double-encoding (e.g., &amp;amp; -> &)
+function decodeHtmlEntities(str: string): string {
+  let result = str;
+  let previous = '';
+  
+  // Keep decoding until no more changes (handles double/triple encoding)
+  while (result !== previous) {
+    previous = result;
+    result = result
+      .replace(/&amp;/gi, '&')
+      .replace(/&lt;/gi, '<')
+      .replace(/&gt;/gi, '>')
+      .replace(/&quot;/gi, '"')
+      .replace(/&#039;/gi, "'")
+      .replace(/&#x27;/gi, "'")
+      .replace(/&apos;/gi, "'")
+      .replace(/&nbsp;/gi, ' ')
+      .replace(/&#(\d+);/g, (_, num) => String.fromCharCode(parseInt(num, 10)))
+      .replace(/&#x([0-9a-fA-F]+);/gi, (_, hex) => String.fromCharCode(parseInt(hex, 16)));
+  }
+  
+  return result;
+}
+
+// Sanitize invalid Unicode surrogates while preserving valid emoji pairs
+// Emojis use surrogate pairs: high surrogate (D800-DBFF) followed by low surrogate (DC00-DFFF)
 function sanitizeUnicode(str: string): string {
-  // Remove unpaired surrogates (low surrogates without preceding high surrogates)
-  // High surrogates: \uD800-\uDBFF, Low surrogates: \uDC00-\uDFFF
-  return str
-    // Remove standalone low surrogates
-    .replace(/[\uDC00-\uDFFF](?![\uD800-\uDBFF])/g, '')
-    // Remove standalone high surrogates not followed by low surrogates
-    .replace(/[\uD800-\uDBFF](?![\uDC00-\uDFFF])/g, '')
-    // Remove any other problematic control characters
-    .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '');
+  let result = '';
+  for (let i = 0; i < str.length; i++) {
+    const code = str.charCodeAt(i);
+    
+    // High surrogate - check if followed by valid low surrogate
+    if (code >= 0xD800 && code <= 0xDBFF) {
+      const nextCode = str.charCodeAt(i + 1);
+      // Valid surrogate pair - keep both characters (emoji preserved)
+      if (nextCode >= 0xDC00 && nextCode <= 0xDFFF) {
+        result += str[i] + str[i + 1];
+        i++; // Skip the low surrogate since we already added it
+      }
+      // Orphaned high surrogate - skip it
+      continue;
+    }
+    
+    // Orphaned low surrogate (not preceded by high surrogate) - skip it
+    if (code >= 0xDC00 && code <= 0xDFFF) {
+      continue;
+    }
+    
+    // Control characters to remove
+    if ((code >= 0x00 && code <= 0x08) || code === 0x0B || code === 0x0C ||
+        (code >= 0x0E && code <= 0x1F) || code === 0x7F) {
+      continue;
+    }
+    
+    result += str[i];
+  }
+  return result;
 }
 
 
