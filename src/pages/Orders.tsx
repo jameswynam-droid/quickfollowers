@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { RefreshCw, ExternalLink, Search, X } from "lucide-react";
+import { ExternalLink, Search, X } from "lucide-react";
 import { toast } from "sonner";
 import { useNoIndex } from "@/hooks/useNoIndex";
 import { useCurrency } from "@/hooks/useCurrency";
@@ -22,7 +22,6 @@ const Orders = () => {
   const [user, setUser] = useState<any>(null);
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [syncing, setSyncing] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -68,8 +67,14 @@ const Orders = () => {
       )
       .subscribe();
 
+    // Set up periodic sync with external providers (every 30 seconds)
+    const syncInterval = setInterval(() => {
+      syncOrderStatuses();
+    }, 30000);
+
     return () => {
       supabase.removeChannel(channel);
+      clearInterval(syncInterval);
     };
   }, [user]);
 
@@ -101,20 +106,6 @@ const Orders = () => {
       console.error("Error syncing order statuses:", error);
     }
   };
-
-  const handleSync = async () => {
-    if (!user) return;
-    setSyncing(true);
-    try {
-      await syncOrderStatuses();
-      toast.success("Order statuses synced");
-    } catch (error) {
-      toast.error("Failed to sync statuses");
-    } finally {
-      setSyncing(false);
-    }
-  };
-
   const fetchOrders = async (userId: string) => {
     try {
       const { data, error } = await supabase
@@ -203,14 +194,7 @@ const Orders = () => {
             <h1 className="text-2xl sm:text-4xl font-bold">Order History</h1>
             <p className="text-muted-foreground mt-1 sm:mt-2 text-sm sm:text-base">View all your past orders</p>
           </div>
-          <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={handleSync} disabled={syncing}>
-              <RefreshCw className={`h-4 w-4 mr-2 ${syncing ? 'animate-spin' : ''}`} />
-              <span className="hidden sm:inline">{syncing ? 'Syncing...' : 'Sync Status'}</span>
-              <span className="sm:hidden">{syncing ? '...' : 'Sync'}</span>
-            </Button>
-            <Button size="sm" onClick={() => navigate("/services")}>New</Button>
-          </div>
+          <Button size="sm" onClick={() => navigate("/services")}>New Order</Button>
         </div>
 
         {/* Search and Filter */}
