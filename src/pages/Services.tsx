@@ -17,9 +17,11 @@ import { useNoIndex } from "@/hooks/useNoIndex";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { FloatingNotificationBell } from "@/components/FloatingNotificationBell";
 import { Textarea } from "@/components/ui/textarea";
+import { useCurrency } from "@/hooks/useCurrency";
 
 const Services = () => {
   useNoIndex(); // Prevent search engine indexing
+  const { formatPrice, convertFromNGN } = useCurrency();
   const [user, setUser] = useState<any>(null);
   const [userBalance, setUserBalance] = useState<number>(0);
   const [isAdmin, setIsAdmin] = useState(false);
@@ -315,7 +317,7 @@ const Services = () => {
         return;
       }
 
-      toast.success(`Order placed! Total cost: ₦${totalCost}`);
+      toast.success(`Order placed! Total cost: ${formatPrice(parseFloat(totalCost))}`);
       
       // Refresh user balance
       if (user?.id) {
@@ -433,14 +435,14 @@ const Services = () => {
                         <Card key={service.id} className="group hover:shadow-xl hover:border-primary/50 transition-all duration-300">
                           <CardHeader className="p-3 sm:pb-3 space-y-2">
                             <CardTitle className="text-xs sm:text-sm leading-tight line-clamp-2 group-hover:text-primary transition-colors">
-                              {service.name.replace(/[🎉✨⚡️🔥💎🌟]/g, '').trim()}
+                              {service.name}
                             </CardTitle>
                             <CardDescription className="text-xs text-muted-foreground line-clamp-2">
                               Order range: {service.min_order.toLocaleString()} - {service.max_order.toLocaleString()}
                             </CardDescription>
                             <div className="flex items-center gap-2">
                               <span className="text-xs px-2 py-1 rounded-full bg-primary/10 text-primary font-medium">
-                                {service.pricePerThousand}
+                                {formatPrice(service.markedUpRate)} per 1K
                               </span>
                             </div>
                           </CardHeader>
@@ -486,7 +488,7 @@ const Services = () => {
           <div className="p-3 bg-muted/50 border border-border rounded-lg">
             <div className="flex justify-between items-center text-sm">
               <span className="text-muted-foreground">Your Balance:</span>
-              <span className="font-bold text-primary">₦{userBalance.toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+              <span className="font-bold text-primary">{formatPrice(userBalance)}</span>
             </div>
           </div>
           
@@ -567,11 +569,11 @@ const Services = () => {
               <div className="p-3 sm:p-4 bg-primary/10 border border-primary/20 rounded-lg space-y-2">
                 <div className="flex justify-between text-xs sm:text-sm">
                   <span className="text-muted-foreground">Rate per 1000:</span>
-                  <span className="font-medium">{selectedService.pricePerThousand}</span>
+                  <span className="font-medium">{formatPrice(selectedService.markedUpRate)}</span>
                 </div>
                 <div className="flex justify-between text-sm sm:text-lg font-bold">
                   <span>Total Cost:</span>
-                  <span className="text-primary">₦{((parseInt(orderQuantity || "0") / 1000) * selectedService.markedUpRate).toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                  <span className="text-primary">{formatPrice((parseInt(orderQuantity || "0") / 1000) * selectedService.markedUpRate)}</span>
                 </div>
               </div>
             )}

@@ -46,6 +46,33 @@ const Orders = () => {
     checkAuth();
   }, []);
 
+  // Set up real-time subscription for orders
+  useEffect(() => {
+    if (!user) return;
+
+    const channel = supabase
+      .channel('orders-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'orders',
+          filter: `user_id=eq.${user.id}`,
+        },
+        (payload) => {
+          console.log('Real-time order update:', payload);
+          // Refetch orders when any change occurs
+          fetchOrders(user.id);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user]);
+
   const checkAuth = async () => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -75,15 +102,14 @@ const Orders = () => {
     }
   };
 
-  const handleRefresh = async () => {
+  const handleSync = async () => {
     if (!user) return;
     setSyncing(true);
     try {
       await syncOrderStatuses();
-      await fetchOrders(user.id);
-      toast.success("Orders refreshed");
+      toast.success("Order statuses synced");
     } catch (error) {
-      toast.error("Failed to refresh orders");
+      toast.error("Failed to sync statuses");
     } finally {
       setSyncing(false);
     }
@@ -178,10 +204,10 @@ const Orders = () => {
             <p className="text-muted-foreground mt-1 sm:mt-2 text-sm sm:text-base">View all your past orders</p>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={handleRefresh} disabled={syncing}>
+            <Button variant="outline" size="sm" onClick={handleSync} disabled={syncing}>
               <RefreshCw className={`h-4 w-4 mr-2 ${syncing ? 'animate-spin' : ''}`} />
-              <span className="hidden sm:inline">{syncing ? 'Syncing...' : 'Refresh'}</span>
-              <span className="sm:hidden">{syncing ? '...' : 'Refresh'}</span>
+              <span className="hidden sm:inline">{syncing ? 'Syncing...' : 'Sync Status'}</span>
+              <span className="sm:hidden">{syncing ? '...' : 'Sync'}</span>
             </Button>
             <Button size="sm" onClick={() => navigate("/services")}>New</Button>
           </div>
