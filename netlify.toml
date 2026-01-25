@@ -33,6 +33,13 @@
   status = 301
   force = true
 
+# Serve .well-known files directly (for Apple Pay domain verification)
+[[redirects]]
+  from = "/.well-known/*"
+  to = "/.well-known/:splat"
+  status = 200
+  force = true
+
 [[redirects]]
   from = "/*"
   to = "/index.html"
