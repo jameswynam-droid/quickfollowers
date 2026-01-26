@@ -926,14 +926,25 @@ Example: https://discord.gg/xxx
     'boomplay': 'Boomplay',
     'audiomack': 'Audiomack',
   };
-  
-  let platform = '';
-  for (const [key, value] of Object.entries(platforms)) {
-    if (nameLower.includes(key) || categoryLower.includes(key)) {
-      platform = value;
-      break;
+
+  // IMPORTANT: categories can contain multiple platforms (e.g. "{ TikTok, Instagram, Facebook }")
+  // so we must prioritize platform detection from the SERVICE NAME first.
+  const getMatchingPlatforms = (text: string): string[] => {
+    const matches: string[] = [];
+    for (const [key, value] of Object.entries(platforms)) {
+      // Prefer whole-word-ish matches; fall back to substring for cases like emojis/formatting.
+      const wholeWord = new RegExp(`\\b${key}\\b`, 'i');
+      if (wholeWord.test(text) || text.includes(key)) {
+        matches.push(value);
+      }
     }
-  }
+    return Array.from(new Set(matches));
+  };
+
+  const platformFromName = getMatchingPlatforms(nameLower)[0] || '';
+  const categoryPlatforms = getMatchingPlatforms(categoryLower);
+  const platformFromCategory = categoryPlatforms.length === 1 ? categoryPlatforms[0] : '';
+  const platform = platformFromName || platformFromCategory;
   
   // Service type detection
   const serviceTypes: { [key: string]: string } = {
