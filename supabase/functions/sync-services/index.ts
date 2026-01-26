@@ -1356,6 +1356,39 @@ Deno.serve(async (req) => {
     if (allServicesData.length === 0) {
       throw new Error('No services fetched from any provider');
     }
+    
+    // CRITICAL SAFETY: Block sync entirely if ANY provider returned 0 services
+    // This prevents mass deletions when API keys are invalid/expired
+    const failedProviders = Object.entries(providerResults)
+      .filter(([_, count]) => count === 0)
+      .map(([name]) => name);
+    
+    if (failedProviders.length > 0) {
+      const errorMsg = `Sync aborted: Provider(s) ${failedProviders.join(', ')} returned 0 services. This usually means the API key is invalid or expired. Please update the API key(s) and try again.`;
+      console.error(errorMsg);
+      
+      // Send notification about the failed provider
+      await sendSyncNotification(
+        'Sync Blocked - Provider API Failure',
+        `<strong>Sync was blocked to prevent data loss.</strong><br><br>` +
+        `<strong>Failed Provider(s):</strong> ${failedProviders.join(', ')}<br>` +
+        `<strong>Reason:</strong> API returned 0 services (likely invalid/expired API key)<br><br>` +
+        `<strong>Action Required:</strong> Update the API key(s) in Cloud secrets and run sync again.`,
+        true
+      );
+      
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: errorMsg,
+          providerResults,
+        }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 400,
+        },
+      );
+    }
 
     console.log(`Total services fetched: ${allServicesData.length}`);
     console.log(`Provider breakdown:`, providerResults);
