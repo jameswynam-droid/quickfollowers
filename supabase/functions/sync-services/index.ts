@@ -961,7 +961,7 @@ Example: https://discord.gg/xxx
     }
   }
   
-  // Quality indicators
+  // Quality indicators - parse accurately from service name
   const qualityIndicators: string[] = [];
   if (nameLower.includes('hq') || nameLower.includes('high quality')) qualityIndicators.push('High Quality');
   if (nameLower.includes('real')) qualityIndicators.push('Real Users');
@@ -969,7 +969,20 @@ Example: https://discord.gg/xxx
   if (nameLower.includes('instant')) qualityIndicators.push('Instant Start');
   if (nameLower.includes('fast')) qualityIndicators.push('Fast Delivery');
   if (nameLower.includes('lifetime') || nameLower.includes('non drop')) qualityIndicators.push('Lifetime Guarantee');
-  if (nameLower.includes('refill')) qualityIndicators.push('Refill Included');
+  
+  // Correctly parse refill status - check for [Refill: Yes] vs [Refill: No]
+  if (nameLower.includes('refill: yes') || nameLower.includes('[refill]') || 
+      (nameLower.includes('refill') && !nameLower.includes('refill: no') && !nameLower.includes('no refill'))) {
+    // Only add refill if explicitly "yes" or just "refill" without "no"
+    // But NOT if it says "refill: no" or "no refill"
+    if (!nameLower.includes('refill: no') && !nameLower.includes('no refill')) {
+      qualityIndicators.push('Refill Included');
+    }
+  }
+  if (nameLower.includes('refill: no') || nameLower.includes('no refill')) {
+    qualityIndicators.push('No Refill');
+  }
+  
   if (nameLower.includes('no drop')) qualityIndicators.push('No Drop');
   if (nameLower.includes('organic')) qualityIndicators.push('Organic Growth');
   if (nameLower.includes('active')) qualityIndicators.push('Active Users');
