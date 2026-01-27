@@ -22,42 +22,42 @@ const Index = () => {
   const [services, setServices] = useState([
     {
       icon: "fa-brands fa-instagram",
-      iconColor: "text-pink-600",
+      iconColor: "text-pink-500",
       title: "Instagram Services",
       description: "Loading...",
       price: "₦0",
     },
     {
       icon: "fa-brands fa-tiktok",
-      iconColor: "text-black",
+      iconColor: "text-foreground",
       title: "TikTok Services",
       description: "Loading...",
       price: "₦0",
     },
     {
       icon: "fa-brands fa-youtube",
-      iconColor: "text-red-600",
+      iconColor: "text-red-500",
       title: "YouTube Services",
       description: "Loading...",
       price: "₦0",
     },
     {
       icon: "fa-brands fa-x-twitter",
-      iconColor: "text-slate-900",
+      iconColor: "text-foreground",
       title: "X Services",
       description: "Loading...",
       price: "₦0",
     },
     {
       icon: "fa-brands fa-facebook",
-      iconColor: "text-blue-600",
+      iconColor: "text-blue-500",
       title: "Facebook Services",
       description: "Loading...",
       price: "₦0",
     },
     {
       icon: "fa-brands fa-spotify",
-      iconColor: "text-green-600",
+      iconColor: "text-green-500",
       title: "Spotify Services",
       description: "Loading...",
       price: "₦0",
@@ -88,12 +88,12 @@ const Index = () => {
 
       if (data) {
         const platformMap: { [key: string]: { icon: string; color: string; keyword: string } } = {
-          instagram: { icon: "fa-brands fa-instagram", color: "text-pink-600", keyword: "Instagram" },
-          tiktok: { icon: "fa-brands fa-tiktok", color: "text-black", keyword: "TikTok" },
-          youtube: { icon: "fa-brands fa-youtube", color: "text-red-600", keyword: "YouTube" },
-          twitter: { icon: "fa-brands fa-x-twitter", color: "text-slate-900", keyword: "Twitter" },
-          facebook: { icon: "fa-brands fa-facebook", color: "text-blue-600", keyword: "Facebook" },
-          spotify: { icon: "fa-brands fa-spotify", color: "text-green-600", keyword: "Spotify" },
+          instagram: { icon: "fa-brands fa-instagram", color: "text-pink-500", keyword: "Instagram" },
+          tiktok: { icon: "fa-brands fa-tiktok", color: "text-foreground", keyword: "TikTok" },
+          youtube: { icon: "fa-brands fa-youtube", color: "text-red-500", keyword: "YouTube" },
+          twitter: { icon: "fa-brands fa-x-twitter", color: "text-foreground", keyword: "Twitter" },
+          facebook: { icon: "fa-brands fa-facebook", color: "text-blue-500", keyword: "Facebook" },
+          spotify: { icon: "fa-brands fa-spotify", color: "text-green-500", keyword: "Spotify" },
         };
 
         const updatedServices = Object.entries(platformMap).map(([platform, config]) => {
@@ -190,14 +190,14 @@ const Index = () => {
       </section>
 
       {/* Services Section */}
-      <section id="services" className="py-12 sm:py-24 bg-gradient-to-b from-background to-muted/30">
+      <section id="services" className="py-12 sm:py-24 bg-gradient-to-b from-background to-muted/20 dark:from-background dark:to-muted/10">
         <div className="max-w-7xl mx-auto px-4">
           <div className="text-center mb-8 sm:mb-16">
-            <div className="inline-block mb-3 sm:mb-4 px-3 sm:px-4 py-1.5 sm:py-2 bg-primary/10 rounded-full text-xs sm:text-sm font-semibold text-primary">
+            <div className="inline-block mb-3 sm:mb-4 px-3 sm:px-4 py-1.5 sm:py-2 bg-primary/10 dark:bg-primary/20 rounded-full text-xs sm:text-sm font-semibold text-primary">
               Premium Services
             </div>
-            <h2 className="text-2xl sm:text-4xl md:text-5xl font-black mb-3 sm:mb-4">Choose Your Platform</h2>
-            <p className="text-foreground text-sm sm:text-lg max-w-2xl mx-auto px-4">
+            <h2 className="text-2xl sm:text-4xl md:text-5xl font-black mb-3 sm:mb-4 text-foreground">Choose Your Platform</h2>
+            <p className="text-muted-foreground text-sm sm:text-lg max-w-2xl mx-auto px-4">
               High-quality engagement delivered instantly. All services come with a 30-day refill guarantee.
             </p>
           </div>
@@ -214,47 +214,47 @@ const Index = () => {
       </section>
 
       {/* How It Works */}
-      <section id="how" className="py-12 sm:py-24">
+      <section id="how" className="py-12 sm:py-24 bg-background">
         <div className="max-w-6xl mx-auto px-4">
           <div className="text-center mb-8 sm:mb-16">
-            <h2 className="text-2xl sm:text-4xl md:text-5xl font-black mb-3 sm:mb-4">How It Works</h2>
-            <p className="text-foreground text-sm sm:text-lg">Start growing in minutes with our simple process</p>
+            <h2 className="text-2xl sm:text-4xl md:text-5xl font-black mb-3 sm:mb-4 text-foreground">How It Works</h2>
+            <p className="text-muted-foreground text-sm sm:text-lg">Start growing in minutes with our simple process</p>
           </div>
           <div className="grid md:grid-cols-3 gap-4 sm:gap-8">
-            <div className="relative p-4 sm:p-8 bg-gradient-card rounded-xl sm:rounded-2xl border border-border/50 shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-2">
-              <div className="absolute -top-3 sm:-top-4 left-4 sm:left-8 w-8 h-8 sm:w-12 sm:h-12 rounded-lg sm:rounded-xl bg-gradient-primary flex items-center justify-center text-white text-sm sm:text-xl font-black shadow-lg">
+            <div className="relative p-4 sm:p-8 bg-card/80 dark:bg-card/60 backdrop-blur-sm rounded-xl sm:rounded-2xl border border-border dark:border-border/80 shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-2">
+              <div className="absolute -top-3 sm:-top-4 left-4 sm:left-8 w-8 h-8 sm:w-12 sm:h-12 rounded-lg sm:rounded-xl gradient-primary flex items-center justify-center text-white text-sm sm:text-xl font-black shadow-lg">
                 1
               </div>
               <div className="mt-4 sm:mt-6">
-                <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-xl sm:rounded-2xl bg-primary/10 flex items-center justify-center mb-3 sm:mb-4 mx-auto">
+                <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-xl sm:rounded-2xl bg-primary/10 dark:bg-primary/20 flex items-center justify-center mb-3 sm:mb-4 mx-auto">
                   <i className="fa-solid fa-user-plus text-primary text-lg sm:text-2xl"></i>
                 </div>
-                <h3 className="text-lg sm:text-2xl font-bold mb-2 sm:mb-3 text-center">Create Account</h3>
-                <p className="text-foreground text-center leading-relaxed text-xs sm:text-base">Quick registration with email verification. Get started in under 60 seconds.</p>
+                <h3 className="text-lg sm:text-2xl font-bold mb-2 sm:mb-3 text-center text-foreground">Create Account</h3>
+                <p className="text-muted-foreground text-center leading-relaxed text-xs sm:text-base">Quick registration with email verification. Get started in under 60 seconds.</p>
               </div>
             </div>
-            <div className="relative p-4 sm:p-8 bg-gradient-card rounded-xl sm:rounded-2xl border border-border/50 shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-2">
-              <div className="absolute -top-3 sm:-top-4 left-4 sm:left-8 w-8 h-8 sm:w-12 sm:h-12 rounded-lg sm:rounded-xl bg-gradient-primary flex items-center justify-center text-white text-sm sm:text-xl font-black shadow-lg">
+            <div className="relative p-4 sm:p-8 bg-card/80 dark:bg-card/60 backdrop-blur-sm rounded-xl sm:rounded-2xl border border-border dark:border-border/80 shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-2">
+              <div className="absolute -top-3 sm:-top-4 left-4 sm:left-8 w-8 h-8 sm:w-12 sm:h-12 rounded-lg sm:rounded-xl gradient-primary flex items-center justify-center text-white text-sm sm:text-xl font-black shadow-lg">
                 2
               </div>
               <div className="mt-4 sm:mt-6">
-                <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-xl sm:rounded-2xl bg-success/10 flex items-center justify-center mb-3 sm:mb-4 mx-auto">
+                <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-xl sm:rounded-2xl bg-success/10 dark:bg-success/20 flex items-center justify-center mb-3 sm:mb-4 mx-auto">
                   <i className="fa-solid fa-wallet text-success text-lg sm:text-2xl"></i>
                 </div>
-                <h3 className="text-lg sm:text-2xl font-bold mb-2 sm:mb-3 text-center">Add Funds</h3>
-                <p className="text-foreground text-center leading-relaxed text-xs sm:text-base">Secure bank transfer deposit. Funds credited instantly to your account.</p>
+                <h3 className="text-lg sm:text-2xl font-bold mb-2 sm:mb-3 text-center text-foreground">Add Funds</h3>
+                <p className="text-muted-foreground text-center leading-relaxed text-xs sm:text-base">Secure bank transfer deposit. Funds credited instantly to your account.</p>
               </div>
             </div>
-            <div className="relative p-4 sm:p-8 bg-gradient-card rounded-xl sm:rounded-2xl border border-border/50 shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-2">
-              <div className="absolute -top-3 sm:-top-4 left-4 sm:left-8 w-8 h-8 sm:w-12 sm:h-12 rounded-lg sm:rounded-xl bg-gradient-primary flex items-center justify-center text-white text-sm sm:text-xl font-black shadow-lg">
+            <div className="relative p-4 sm:p-8 bg-card/80 dark:bg-card/60 backdrop-blur-sm rounded-xl sm:rounded-2xl border border-border dark:border-border/80 shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-2">
+              <div className="absolute -top-3 sm:-top-4 left-4 sm:left-8 w-8 h-8 sm:w-12 sm:h-12 rounded-lg sm:rounded-xl gradient-primary flex items-center justify-center text-white text-sm sm:text-xl font-black shadow-lg">
                 3
               </div>
               <div className="mt-4 sm:mt-6">
-                <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-xl sm:rounded-2xl bg-secondary/10 flex items-center justify-center mb-3 sm:mb-4 mx-auto">
+                <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-xl sm:rounded-2xl bg-secondary/10 dark:bg-secondary/20 flex items-center justify-center mb-3 sm:mb-4 mx-auto">
                   <i className="fa-solid fa-rocket text-secondary text-lg sm:text-2xl"></i>
                 </div>
-                <h3 className="text-lg sm:text-2xl font-bold mb-2 sm:mb-3 text-center">Place Order</h3>
-                <p className="text-foreground text-center leading-relaxed text-xs sm:text-base">Choose service, paste link, and watch your growth skyrocket instantly.</p>
+                <h3 className="text-lg sm:text-2xl font-bold mb-2 sm:mb-3 text-center text-foreground">Place Order</h3>
+                <p className="text-muted-foreground text-center leading-relaxed text-xs sm:text-base">Choose service, paste link, and watch your growth skyrocket instantly.</p>
               </div>
             </div>
           </div>
@@ -262,42 +262,42 @@ const Index = () => {
       </section>
 
       {/* FAQ Section */}
-      <section id="faq" className="py-12 sm:py-24 bg-gradient-to-b from-background to-muted/20">
+      <section id="faq" className="py-12 sm:py-24 bg-gradient-to-b from-background to-muted/10 dark:from-background dark:to-muted/5">
         <div className="max-w-4xl mx-auto px-4">
           <div className="text-center mb-8 sm:mb-16">
-            <div className="inline-block mb-3 sm:mb-4 px-3 sm:px-4 py-1.5 sm:py-2 bg-primary/10 rounded-full text-xs sm:text-sm font-semibold text-primary">
+            <div className="inline-block mb-3 sm:mb-4 px-3 sm:px-4 py-1.5 sm:py-2 bg-primary/10 dark:bg-primary/20 rounded-full text-xs sm:text-sm font-semibold text-primary">
               FAQ
             </div>
-            <h2 className="text-2xl sm:text-4xl md:text-5xl font-black mb-3 sm:mb-4">Frequently Asked Questions</h2>
-            <p className="text-foreground text-sm sm:text-lg">Everything you need to know about our services</p>
+            <h2 className="text-2xl sm:text-4xl md:text-5xl font-black mb-3 sm:mb-4 text-foreground">Frequently Asked Questions</h2>
+            <p className="text-muted-foreground text-sm sm:text-lg">Everything you need to know about our services</p>
           </div>
           <div className="space-y-3 sm:space-y-4">
-            <details className="group bg-card rounded-xl sm:rounded-2xl shadow-lg px-4 sm:px-8 py-4 sm:py-6 open:shadow-xl transition-all border border-border/50 hover:border-primary/50">
-              <summary className="font-bold text-sm sm:text-lg cursor-pointer list-none flex items-center justify-between">
+            <details className="group bg-card/80 dark:bg-card/60 backdrop-blur-sm rounded-xl sm:rounded-2xl shadow-lg px-4 sm:px-8 py-4 sm:py-6 open:shadow-xl transition-all border border-border dark:border-border/80 hover:border-primary/50">
+              <summary className="font-bold text-sm sm:text-lg cursor-pointer list-none flex items-center justify-between text-foreground">
                 Are the followers real?
                 <i className="fa-solid fa-chevron-down text-primary group-open:rotate-180 transition-transform text-xs sm:text-base"></i>
               </summary>
-              <p className="text-foreground mt-3 sm:mt-4 leading-relaxed text-xs sm:text-base">
+              <p className="text-muted-foreground mt-3 sm:mt-4 leading-relaxed text-xs sm:text-base">
                 We deliver a mix of real and high-quality accounts that look authentic. Drops are rare, but we
                 offer 30-day refill on eligible services.
               </p>
             </details>
-            <details className="group bg-card rounded-xl sm:rounded-2xl shadow-lg px-4 sm:px-8 py-4 sm:py-6 open:shadow-xl transition-all border border-border/50 hover:border-primary/50">
-              <summary className="font-bold text-sm sm:text-lg cursor-pointer list-none flex items-center justify-between">
+            <details className="group bg-card/80 dark:bg-card/60 backdrop-blur-sm rounded-xl sm:rounded-2xl shadow-lg px-4 sm:px-8 py-4 sm:py-6 open:shadow-xl transition-all border border-border dark:border-border/80 hover:border-primary/50">
+              <summary className="font-bold text-sm sm:text-lg cursor-pointer list-none flex items-center justify-between text-foreground">
                 How long does it take to start?
                 <i className="fa-solid fa-chevron-down text-primary group-open:rotate-180 transition-transform text-xs sm:text-base"></i>
               </summary>
-              <p className="text-foreground mt-3 sm:mt-4 leading-relaxed text-xs sm:text-base">
+              <p className="text-muted-foreground mt-3 sm:mt-4 leading-relaxed text-xs sm:text-base">
                 Most orders start within 30-60 seconds. Larger campaigns may take up to 12 hours to ramp up
                 gradually.
               </p>
             </details>
-            <details className="group bg-card rounded-xl sm:rounded-2xl shadow-lg px-4 sm:px-8 py-4 sm:py-6 open:shadow-xl transition-all border border-border/50 hover:border-primary/50">
-              <summary className="font-bold text-sm sm:text-lg cursor-pointer list-none flex items-center justify-between">
+            <details className="group bg-card/80 dark:bg-card/60 backdrop-blur-sm rounded-xl sm:rounded-2xl shadow-lg px-4 sm:px-8 py-4 sm:py-6 open:shadow-xl transition-all border border-border dark:border-border/80 hover:border-primary/50">
+              <summary className="font-bold text-sm sm:text-lg cursor-pointer list-none flex items-center justify-between text-foreground">
                 Can I resell your services?
                 <i className="fa-solid fa-chevron-down text-primary group-open:rotate-180 transition-transform text-xs sm:text-base"></i>
               </summary>
-              <p className="text-foreground mt-3 sm:mt-4 leading-relaxed text-xs sm:text-base">
+              <p className="text-muted-foreground mt-3 sm:mt-4 leading-relaxed text-xs sm:text-base">
                 Absolutely. Open a sub-account and set your own prices. We keep no branding on delivered
                 engagement.
               </p>
