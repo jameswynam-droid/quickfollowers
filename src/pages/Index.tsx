@@ -190,7 +190,7 @@ const Index = () => {
       </section>
 
       {/* Services Section */}
-      <section id="services" className="py-12 sm:py-24 bg-gradient-to-b from-background to-muted/20 dark:from-background dark:to-muted/10">
+      <section id="services" className="py-12 sm:py-24 bg-muted/30 dark:bg-muted/10">
         <div className="max-w-7xl mx-auto px-4">
           <div className="text-center mb-8 sm:mb-16">
             <div className="inline-block mb-3 sm:mb-4 px-3 sm:px-4 py-1.5 sm:py-2 bg-primary/10 dark:bg-primary/20 rounded-full text-xs sm:text-sm font-semibold text-primary">
@@ -262,7 +262,7 @@ const Index = () => {
       </section>
 
       {/* FAQ Section */}
-      <section id="faq" className="py-12 sm:py-24 bg-gradient-to-b from-background to-muted/10 dark:from-background dark:to-muted/5">
+      <section id="faq" className="py-12 sm:py-24 bg-muted/30 dark:bg-muted/10">
         <div className="max-w-4xl mx-auto px-4">
           <div className="text-center mb-8 sm:mb-16">
             <div className="inline-block mb-3 sm:mb-4 px-3 sm:px-4 py-1.5 sm:py-2 bg-primary/10 dark:bg-primary/20 rounded-full text-xs sm:text-sm font-semibold text-primary">
