@@ -153,6 +153,8 @@ const Orders = () => {
         return "secondary";
       case "pending":
         return "outline";
+      case "partial":
+        return "secondary";
       case "cancelled":
       case "failed":
         return "destructive";
@@ -226,6 +228,7 @@ const Orders = () => {
                 <SelectItem value="pending">Pending</SelectItem>
                 <SelectItem value="processing">Processing</SelectItem>
                 <SelectItem value="completed">Completed</SelectItem>
+                <SelectItem value="partial">Partial</SelectItem>
                 <SelectItem value="cancelled">Cancelled</SelectItem>
                 <SelectItem value="failed">Failed</SelectItem>
               </SelectContent>
@@ -321,7 +324,8 @@ const Orders = () => {
                               </Badge>
                             </TableCell>
                             <TableCell className="whitespace-nowrap">
-                              {order.services?.provider === 'owlet' && (
+                              {order.services?.provider === 'owlet' && 
+                               (order.status === 'completed' || order.status === 'cancelled') && (
                                 <Button
                                   variant="outline"
                                   size="sm"

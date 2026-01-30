@@ -15,6 +15,9 @@ verify_jwt = true
 [functions.initialize-korapay]
 verify_jwt = true
 
+[functions.initialize-flutterwave]
+verify_jwt = true
+
 [functions.initiate-email-change]
 verify_jwt = true
 
@@ -40,6 +43,9 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.verify-korapay]
+verify_jwt = false
+
+[functions.verify-flutterwave]
 verify_jwt = false
 
 [auth]
