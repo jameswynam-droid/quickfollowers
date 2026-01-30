@@ -4,14 +4,13 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, CreditCard, Wallet, ArrowLeft, CheckCircle2 } from "lucide-react";
+import { Loader2, CreditCard, Wallet, ArrowLeft, CheckCircle2, Globe } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-type PaymentMethod = "korapay" | "paystack";
+type PaymentMethod = "korapay" | "paystack" | "flutterwave";
 
 interface PaymentMethodOption {
   id: PaymentMethod;
@@ -19,44 +18,69 @@ interface PaymentMethodOption {
   description: string;
   fee: string;
   feeCalculation: (amount: number) => number;
-  recommended?: boolean;
   icon: React.ReactNode;
 }
 
-const paymentMethods: PaymentMethodOption[] = [
+interface PaymentSection {
+  title: string;
+  subtitle: string;
+  methods: PaymentMethodOption[];
+}
+
+const paymentSections: PaymentSection[] = [
   {
-    id: "korapay",
-    name: "Kora Pay",
-    description: "Pay with card, bank transfer, or USSD",
-    fee: "No fees",
-    feeCalculation: () => 0,
-    recommended: true,
-    icon: <Wallet className="h-6 w-6" />,
+    title: "International Payments",
+    subtitle: "For Nigerians and International users",
+    methods: [
+      {
+        id: "flutterwave",
+        name: "Flutterwave",
+        description: "Pay with card, bank transfer, USSD, or mobile money",
+        fee: "No fees",
+        feeCalculation: () => 0,
+        icon: <Globe className="h-6 w-6" />,
+      },
+    ],
   },
   {
-    id: "paystack",
-    name: "Paystack",
-    description: "Pay with card or bank transfer",
-    fee: "1.5% + ₦100 (≤ ₦2,500 waived, capped ₦2,000)",
-    feeCalculation: (amount: number) => {
-      const percentageFee = amount * 0.015;
-      const fixedFee = amount <= 2500 ? 0 : 100;
-      const uncappedFee = percentageFee + fixedFee;
-      return Math.min(uncappedFee, 2000);
-    },
-    icon: <CreditCard className="h-6 w-6" />,
+    title: "Local Payments",
+    subtitle: "Nigeria only",
+    methods: [
+      {
+        id: "korapay",
+        name: "Kora Pay",
+        description: "Pay with card, bank transfer, or USSD",
+        fee: "No fees",
+        feeCalculation: () => 0,
+        icon: <Wallet className="h-6 w-6" />,
+      },
+      {
+        id: "paystack",
+        name: "Paystack",
+        description: "Pay with card or bank transfer",
+        fee: "1.5% + ₦100 (≤ ₦2,500 waived, capped ₦2,000)",
+        feeCalculation: (amount: number) => {
+          const percentageFee = amount * 0.015;
+          const fixedFee = amount <= 2500 ? 0 : 100;
+          const uncappedFee = percentageFee + fixedFee;
+          return Math.min(uncappedFee, 2000);
+        },
+        icon: <CreditCard className="h-6 w-6" />,
+      },
+    ],
   },
 ];
 
+// Flatten for easy lookup
+const allPaymentMethods = paymentSections.flatMap(s => s.methods);
+
 export default function AddFunds() {
   const [amount, setAmount] = useState("");
-  const [selectedMethod, setSelectedMethod] = useState<PaymentMethod>("korapay");
+  const [selectedMethod, setSelectedMethod] = useState<PaymentMethod>("flutterwave");
   const [loading, setLoading] = useState(false);
   const [checkingAuth, setCheckingAuth] = useState(true);
   const { toast } = useToast();
   const navigate = useNavigate();
-
-  // Theme is now handled globally by ThemeProvider with localStorage persistence
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -71,7 +95,7 @@ export default function AddFunds() {
   }, [navigate]);
 
   const amountNum = parseFloat(amount) || 0;
-  const selectedPaymentMethod = paymentMethods.find((m) => m.id === selectedMethod)!;
+  const selectedPaymentMethod = allPaymentMethods.find((m) => m.id === selectedMethod)!;
   const fee = selectedPaymentMethod.feeCalculation(amountNum);
   const total = amountNum + fee;
 
@@ -92,7 +116,19 @@ export default function AddFunds() {
     try {
       const redirect_url = window.location.origin;
       
-      if (selectedMethod === "korapay") {
+      if (selectedMethod === "flutterwave") {
+        const { data, error } = await supabase.functions.invoke("initialize-flutterwave", {
+          body: { amount: amountNum, redirect_url },
+        });
+
+        if (error) throw error;
+
+        if (data.payment_url) {
+          window.location.href = data.payment_url;
+        } else {
+          throw new Error("No payment URL received");
+        }
+      } else if (selectedMethod === "korapay") {
         const { data, error } = await supabase.functions.invoke("initialize-korapay", {
           body: { amount: amountNum, redirect_url },
         });
@@ -206,47 +242,54 @@ export default function AddFunds() {
                 <CardTitle className="text-lg">Payment Method</CardTitle>
                 <CardDescription>Select how you want to pay</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-3">
-                {paymentMethods.map((method) => (
-                  <div
-                    key={method.id}
-                    onClick={() => !loading && setSelectedMethod(method.id)}
-                    className={cn(
-                      "relative flex items-start gap-4 p-4 rounded-lg border-2 cursor-pointer transition-all",
-                      selectedMethod === method.id
-                        ? "border-primary bg-primary/5"
-                        : "border-border hover:border-primary/50",
-                      loading && "opacity-50 cursor-not-allowed"
-                    )}
-                  >
-                    <div
-                      className={cn(
-                        "flex items-center justify-center w-12 h-12 rounded-full",
-                        selectedMethod === method.id
-                          ? "bg-primary text-primary-foreground"
-                          : "bg-muted text-muted-foreground"
-                      )}
-                    >
-                      {method.icon}
+              <CardContent className="space-y-6">
+                {paymentSections.map((section) => (
+                  <div key={section.title} className="space-y-3">
+                    <div className="border-b pb-2">
+                      <h3 className="font-semibold text-foreground">{section.title}</h3>
+                      <p className="text-xs text-muted-foreground">{section.subtitle}</p>
                     </div>
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2">
-                        <span className="font-semibold text-foreground">{method.name}</span>
-                        {method.recommended && (
-                          <span className="text-xs font-medium text-green-500">• Best option</span>
-                        )}
-                      </div>
-                      <p className="text-sm text-muted-foreground mt-0.5">{method.description}</p>
-                      <p className={cn(
-                        "text-sm font-medium mt-1",
-                        method.feeCalculation(amountNum) === 0 ? "text-green-500" : "text-orange-500"
-                      )}>
-                        {method.fee}
-                      </p>
+                    <div className="space-y-3">
+                      {section.methods.map((method) => (
+                        <div
+                          key={method.id}
+                          onClick={() => !loading && setSelectedMethod(method.id)}
+                          className={cn(
+                            "relative flex items-start gap-4 p-4 rounded-lg border-2 cursor-pointer transition-all",
+                            selectedMethod === method.id
+                              ? "border-primary bg-primary/5"
+                              : "border-border hover:border-primary/50",
+                            loading && "opacity-50 cursor-not-allowed"
+                          )}
+                        >
+                          <div
+                            className={cn(
+                              "flex items-center justify-center w-12 h-12 rounded-full",
+                              selectedMethod === method.id
+                                ? "bg-primary text-primary-foreground"
+                                : "bg-muted text-muted-foreground"
+                            )}
+                          >
+                            {method.icon}
+                          </div>
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2">
+                              <span className="font-semibold text-foreground">{method.name}</span>
+                            </div>
+                            <p className="text-sm text-muted-foreground mt-0.5">{method.description}</p>
+                            <p className={cn(
+                              "text-sm font-medium mt-1",
+                              method.feeCalculation(amountNum) === 0 ? "text-green-600 dark:text-green-400" : "text-orange-600 dark:text-orange-400"
+                            )}>
+                              {method.fee}
+                            </p>
+                          </div>
+                          {selectedMethod === method.id && (
+                            <CheckCircle2 className="h-5 w-5 text-primary absolute top-4 right-4" />
+                          )}
+                        </div>
+                      ))}
                     </div>
-                    {selectedMethod === method.id && (
-                      <CheckCircle2 className="h-5 w-5 text-primary absolute top-4 right-4" />
-                    )}
                   </div>
                 ))}
               </CardContent>
@@ -265,7 +308,7 @@ export default function AddFunds() {
                       <span className="text-muted-foreground">Transaction fee:</span>
                       <span className={cn(
                         "font-medium",
-                        fee === 0 ? "text-green-500" : "text-orange-500"
+                        fee === 0 ? "text-green-600 dark:text-green-400" : "text-orange-600 dark:text-orange-400"
                       )}>
                         {fee === 0 ? "Free" : `₦${fee.toLocaleString(undefined, { minimumFractionDigits: 2 })}`}
                       </span>
