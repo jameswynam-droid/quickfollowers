@@ -1279,10 +1279,8 @@ Deno.serve(async (req) => {
 
       // Transform services with provider info
       const providerServicesData = services.map((service) => {
-        let rate = parseFloat(service.rate);
-        if (rate > 1000000) {
-          rate = rate / 100;
-        }
+        // Parse rate as-is from provider (rate is per 1000 units)
+        const rate = parseFloat(service.rate);
 
         // Use the exact description from the API (with brand replacement only)
         const providerDesc = normalizeProviderDescription(

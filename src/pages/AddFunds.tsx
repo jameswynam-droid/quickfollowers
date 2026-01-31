@@ -9,7 +9,9 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2, ArrowLeft, CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { FlutterwaveLogo, PaystackLogo, KorapayLogo } from "@/components/PaymentGatewayLogos";
+import flutterwaveLogo from "@/assets/flutterwave-logo.png";
+import korapayLogo from "@/assets/korapay-logo.png";
+import paystackLogo from "@/assets/paystack-logo.png";
 
 type PaymentMethod = "korapay" | "paystack" | "flutterwave";
 
@@ -39,7 +41,7 @@ const paymentSections: PaymentSection[] = [
         description: "Pay with card, bank transfer, USSD, or mobile money",
         fee: "No fees",
         feeCalculation: () => 0,
-        icon: <FlutterwaveLogo className="h-8 w-8" />,
+        icon: <img src={flutterwaveLogo} alt="Flutterwave" className="h-8 w-8 object-contain" />,
       },
     ],
   },
@@ -53,7 +55,7 @@ const paymentSections: PaymentSection[] = [
         description: "Pay with card, bank transfer, or USSD",
         fee: "No fees",
         feeCalculation: () => 0,
-        icon: <KorapayLogo className="h-8 w-8" />,
+        icon: <img src={korapayLogo} alt="Kora Pay" className="h-8 w-8 object-contain" />,
       },
       {
         id: "paystack",
@@ -66,7 +68,7 @@ const paymentSections: PaymentSection[] = [
           const uncappedFee = percentageFee + fixedFee;
           return Math.min(uncappedFee, 2000);
         },
-        icon: <PaystackLogo className="h-8 w-8" />,
+        icon: <img src={paystackLogo} alt="Paystack" className="h-8 w-8 object-contain" />,
       },
     ],
   },

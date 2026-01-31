@@ -274,7 +274,12 @@ const Services = () => {
       return;
     }
 
-    const totalCost = ((quantity / 1000) * selectedService.markedUpRate).toFixed(2);
+    // Calculate total cost based on pricing model
+    // Per-1 pricing when min=max=1, otherwise per-1K
+    const isPerOnePricing = selectedService.min_order === 1 && selectedService.max_order === 1;
+    const totalCost = isPerOnePricing
+      ? (quantity * selectedService.markedUpRate).toFixed(2)
+      : ((quantity / 1000) * selectedService.markedUpRate).toFixed(2);
 
     setPlacingOrder(true);
     toast.loading("Placing your order...", { id: "placing-order" });
@@ -446,9 +451,10 @@ const Services = () => {
                             </CardDescription>
                             <div className="flex items-center gap-2">
                               <span className="text-xs px-2 py-1 rounded-full bg-primary/10 text-primary font-medium">
-                                {service.min_order >= 1000 
-                                  ? `${formatPrice(service.markedUpRate)} per 1K`
-                                  : `${formatPrice(service.markedUpRate / 1000 * service.max_order)} for ${service.max_order}`
+                                {/* Per-1 pricing when min=max=1, otherwise per-1K */}
+                                {service.min_order === 1 && service.max_order === 1
+                                  ? formatPrice(service.markedUpRate)
+                                  : formatPrice(service.markedUpRate)
                                 }
                               </span>
                             </div>
@@ -575,19 +581,19 @@ const Services = () => {
             {orderQuantity && selectedService && (
               <div className="p-3 sm:p-4 bg-primary/10 border border-primary/20 rounded-lg space-y-2">
                 <div className="flex justify-between text-xs sm:text-sm">
-                  <span className="text-muted-foreground">
-                    {selectedService.min_order >= 1000 ? "Rate per 1000:" : "Rate:"}
-                  </span>
+                  <span className="text-muted-foreground">Rate:</span>
                   <span className="font-medium">
-                    {selectedService.min_order >= 1000 
-                      ? formatPrice(selectedService.markedUpRate)
-                      : `${formatPrice(selectedService.markedUpRate / 1000)} per unit`
-                    }
+                    {formatPrice(selectedService.markedUpRate)}
                   </span>
                 </div>
                 <div className="flex justify-between text-sm sm:text-lg font-bold">
                   <span>Total Cost:</span>
-                  <span className="text-primary">{formatPrice((parseInt(orderQuantity || "0") / 1000) * selectedService.markedUpRate)}</span>
+                  <span className="text-primary">
+                    {/* Per-1 pricing when min=max=1, otherwise per-1K */}
+                    {selectedService.min_order === 1 && selectedService.max_order === 1
+                      ? formatPrice(parseInt(orderQuantity || "0") * selectedService.markedUpRate)
+                      : formatPrice((parseInt(orderQuantity || "0") / 1000) * selectedService.markedUpRate)}
+                  </span>
                 </div>
               </div>
             )}
