@@ -188,6 +188,13 @@ const Header = ({ onAuthClick }: HeaderProps) => {
                 Tickets
               </Link>
               <Link
+                to="/add-funds"
+                className="block py-2 text-foreground/80 hover:text-primary font-medium text-primary"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                💰 Add Funds
+              </Link>
+              <Link
                 to="/account"
                 className="block py-2 text-foreground/80 hover:text-primary"
                 onClick={() => setMobileMenuOpen(false)}
