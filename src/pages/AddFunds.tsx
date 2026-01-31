@@ -41,7 +41,7 @@ const paymentSections: PaymentSection[] = [
         description: "Pay with card, bank transfer, USSD, or mobile money",
         fee: "No fees",
         feeCalculation: () => 0,
-        icon: <img src={flutterwaveLogo} alt="Flutterwave" className="h-8 w-8 object-contain" />,
+        icon: <img src={flutterwaveLogo} alt="Flutterwave" className="w-10 h-10 object-contain" width="40" height="40" loading="eager" decoding="async" />,
       },
     ],
   },
@@ -55,7 +55,7 @@ const paymentSections: PaymentSection[] = [
         description: "Pay with card, bank transfer, or USSD",
         fee: "No fees",
         feeCalculation: () => 0,
-        icon: <img src={korapayLogo} alt="Kora Pay" className="h-8 w-8 object-contain" />,
+        icon: <img src={korapayLogo} alt="Kora Pay" className="w-10 h-10 object-contain" width="40" height="40" loading="eager" decoding="async" />,
       },
       {
         id: "paystack",
@@ -68,7 +68,7 @@ const paymentSections: PaymentSection[] = [
           const uncappedFee = percentageFee + fixedFee;
           return Math.min(uncappedFee, 2000);
         },
-        icon: <img src={paystackLogo} alt="Paystack" className="h-8 w-8 object-contain" />,
+        icon: <img src={paystackLogo} alt="Paystack" className="w-10 h-10 object-contain" width="40" height="40" loading="eager" decoding="async" />,
       },
     ],
   },

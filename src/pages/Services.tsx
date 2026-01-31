@@ -255,7 +255,7 @@ const Services = () => {
     }
     
     // Generic fallback - don't expose technical details
-    return "Something went wrong while placing your order. Please try again.";
+    return "Something went wrong. Please try again.";
   };
 
   const handlePlaceOrder = async () => {
