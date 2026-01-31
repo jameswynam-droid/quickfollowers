@@ -7,8 +7,9 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, CreditCard, Wallet, ArrowLeft, CheckCircle2, Globe } from "lucide-react";
+import { Loader2, ArrowLeft, CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { FlutterwaveLogo, PaystackLogo, KorapayLogo } from "@/components/PaymentGatewayLogos";
 
 type PaymentMethod = "korapay" | "paystack" | "flutterwave";
 
@@ -30,7 +31,7 @@ interface PaymentSection {
 const paymentSections: PaymentSection[] = [
   {
     title: "International Payments",
-    subtitle: "For Nigerians and International users",
+    subtitle: "For Nigerians and international users",
     methods: [
       {
         id: "flutterwave",
@@ -38,13 +39,13 @@ const paymentSections: PaymentSection[] = [
         description: "Pay with card, bank transfer, USSD, or mobile money",
         fee: "No fees",
         feeCalculation: () => 0,
-        icon: <Globe className="h-6 w-6" />,
+        icon: <FlutterwaveLogo className="h-8 w-8" />,
       },
     ],
   },
   {
     title: "Local Payments",
-    subtitle: "Nigeria only",
+    subtitle: "More payment options",
     methods: [
       {
         id: "korapay",
@@ -52,7 +53,7 @@ const paymentSections: PaymentSection[] = [
         description: "Pay with card, bank transfer, or USSD",
         fee: "No fees",
         feeCalculation: () => 0,
-        icon: <Wallet className="h-6 w-6" />,
+        icon: <KorapayLogo className="h-8 w-8" />,
       },
       {
         id: "paystack",
@@ -65,7 +66,7 @@ const paymentSections: PaymentSection[] = [
           const uncappedFee = percentageFee + fixedFee;
           return Math.min(uncappedFee, 2000);
         },
-        icon: <CreditCard className="h-6 w-6" />,
+        icon: <PaystackLogo className="h-8 w-8" />,
       },
     ],
   },
@@ -262,14 +263,7 @@ export default function AddFunds() {
                             loading && "opacity-50 cursor-not-allowed"
                           )}
                         >
-                          <div
-                            className={cn(
-                              "flex items-center justify-center w-12 h-12 rounded-full",
-                              selectedMethod === method.id
-                                ? "bg-primary text-primary-foreground"
-                                : "bg-muted text-muted-foreground"
-                            )}
-                          >
+                          <div className="flex items-center justify-center w-12 h-12 rounded-lg overflow-hidden">
                             {method.icon}
                           </div>
                           <div className="flex-1">

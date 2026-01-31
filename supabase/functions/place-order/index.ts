@@ -116,7 +116,7 @@ Deno.serve(async (req) => {
     }
 
     if (profile.balance < charge) {
-      throw new Error(`Insufficient balance. Required: ₦${charge.toFixed(2)}, Available: ₦${parseFloat(profile.balance).toFixed(2)}`);
+      throw new Error('Insufficient balance. Please add funds.');
     }
 
     // Determine API endpoint and key based on provider

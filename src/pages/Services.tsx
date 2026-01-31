@@ -194,12 +194,16 @@ const Services = () => {
     }
 
     if (searchQuery) {
+      const searchTerms = searchQuery.toLowerCase().trim().split(/\s+/);
       filtered = filtered.map(category => ({
         ...category,
-        services: category.services.filter(service =>
-          service.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          category.category.toLowerCase().includes(searchQuery.toLowerCase())
-        )
+        services: category.services.filter(service => {
+          const serviceName = service.name.toLowerCase();
+          const categoryName = category.category.toLowerCase();
+          const combinedText = `${serviceName} ${categoryName}`;
+          // Match if ALL search terms are found in either service name or category
+          return searchTerms.every(term => combinedText.includes(term));
+        })
       })).filter(cat => cat.services.length > 0);
     }
 
@@ -219,7 +223,7 @@ const Services = () => {
     const lowerError = error.toLowerCase();
     
     if (lowerError.includes('insufficient balance')) {
-      return "Insufficient funds. Please add funds to your account.";
+      return "Insufficient balance. Please add funds.";
     }
     
     if (lowerError.includes('not authenticated') || lowerError.includes('session')) {
@@ -442,7 +446,10 @@ const Services = () => {
                             </CardDescription>
                             <div className="flex items-center gap-2">
                               <span className="text-xs px-2 py-1 rounded-full bg-primary/10 text-primary font-medium">
-                                {formatPrice(service.markedUpRate)} per 1K
+                                {service.min_order >= 1000 
+                                  ? `${formatPrice(service.markedUpRate)} per 1K`
+                                  : `${formatPrice(service.markedUpRate / 1000 * service.max_order)} for ${service.max_order}`
+                                }
                               </span>
                             </div>
                           </CardHeader>
@@ -568,8 +575,15 @@ const Services = () => {
             {orderQuantity && selectedService && (
               <div className="p-3 sm:p-4 bg-primary/10 border border-primary/20 rounded-lg space-y-2">
                 <div className="flex justify-between text-xs sm:text-sm">
-                  <span className="text-muted-foreground">Rate per 1000:</span>
-                  <span className="font-medium">{formatPrice(selectedService.markedUpRate)}</span>
+                  <span className="text-muted-foreground">
+                    {selectedService.min_order >= 1000 ? "Rate per 1000:" : "Rate:"}
+                  </span>
+                  <span className="font-medium">
+                    {selectedService.min_order >= 1000 
+                      ? formatPrice(selectedService.markedUpRate)
+                      : `${formatPrice(selectedService.markedUpRate / 1000)} per unit`
+                    }
+                  </span>
                 </div>
                 <div className="flex justify-between text-sm sm:text-lg font-bold">
                   <span>Total Cost:</span>
