@@ -18,6 +18,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { FloatingNotificationBell } from "@/components/FloatingNotificationBell";
 import { Textarea } from "@/components/ui/textarea";
 import { useCurrency } from "@/hooks/useCurrency";
+import { ServiceNotifications } from "@/components/ServiceNotifications";
 
 const Services = () => {
   useNoIndex(); // Prevent search engine indexing
@@ -315,14 +316,16 @@ const Services = () => {
 
       toast.dismiss("placing-order");
 
-      if (error) {
-        const rawMessage = error.message || (error as any).error || "";
-        toast.error(getFriendlyErrorMessage(rawMessage));
+      // Check for error in data response first (edge function returns { error: "message" })
+      if (data?.error) {
+        toast.error(getFriendlyErrorMessage(data.error));
         return;
       }
 
-      if (data?.error) {
-        toast.error(getFriendlyErrorMessage(data.error));
+      if (error) {
+        // Extract error message from various possible formats
+        const rawMessage = error.message || (error as any).error || (error as any).details || "";
+        toast.error(getFriendlyErrorMessage(rawMessage));
         return;
       }
 
@@ -385,6 +388,9 @@ const Services = () => {
             )}
           </div>
         </div>
+
+        {/* Service Notifications */}
+        <ServiceNotifications />
 
         <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mb-6 sm:mb-8">
           <Input

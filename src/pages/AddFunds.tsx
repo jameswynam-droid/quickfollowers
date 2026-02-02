@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
@@ -9,6 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2, ArrowLeft, CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import Paystack from "@paystack/inline-js";
 import flutterwaveLogo from "@/assets/flutterwave-logo.png";
 import korapayLogo from "@/assets/korapay-logo.png";
 import paystackLogo from "@/assets/paystack-logo.png";
@@ -144,17 +145,45 @@ export default function AddFunds() {
           throw new Error("No checkout URL received");
         }
       } else {
+        // Paystack with pre-checkout modal (supports Apple Pay on iOS/Safari)
         const { data, error } = await supabase.functions.invoke("initialize-payment", {
           body: { amount: amountNum, redirect_url },
         });
 
         if (error) throw error;
 
-        if (data.authorization_url) {
-          window.location.href = data.authorization_url;
-        } else {
-          throw new Error("No authorization URL received");
+        if (!data.access_code) {
+          throw new Error("No access code received");
         }
+
+        // Use Paystack InlineJS checkout method with pre-checkout modal
+        // This automatically shows Apple Pay option on iOS devices and Safari
+        const popup = new Paystack();
+        await popup.checkout({
+          accessCode: data.access_code,
+          onSuccess: (transaction: any) => {
+            console.log("Payment successful:", transaction);
+            // Redirect to dashboard after successful payment
+            navigate("/dashboard");
+          },
+          onCancel: () => {
+            console.log("Payment cancelled");
+            setLoading(false);
+            toast({
+              title: "Payment Cancelled",
+              description: "You cancelled the payment process.",
+            });
+          },
+          onError: (error: any) => {
+            console.error("Payment error:", error);
+            setLoading(false);
+            toast({
+              title: "Payment Error",
+              description: "An error occurred during payment. Please try again.",
+              variant: "destructive",
+            });
+          },
+        });
       }
     } catch (error: any) {
       console.error("Error initializing payment:", error);

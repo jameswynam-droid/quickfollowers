@@ -423,9 +423,54 @@ const Account = () => {
               <Globe className="h-5 w-5" />
               <h2 className="font-semibold">Timezone</h2>
             </div>
-            <div className="bg-muted p-3 rounded-lg">
-              <p className="text-sm">{timezone}</p>
-            </div>
+            <select
+              value={timezone}
+              onChange={(e) => setTimezone(e.target.value)}
+              className="w-full p-3 rounded-lg bg-muted border border-input text-sm"
+            >
+              <optgroup label="Africa">
+                <option value="Africa/Lagos">Africa/Lagos (WAT)</option>
+                <option value="Africa/Cairo">Africa/Cairo (EET)</option>
+                <option value="Africa/Johannesburg">Africa/Johannesburg (SAST)</option>
+                <option value="Africa/Nairobi">Africa/Nairobi (EAT)</option>
+                <option value="Africa/Accra">Africa/Accra (GMT)</option>
+                <option value="Africa/Casablanca">Africa/Casablanca (WET)</option>
+              </optgroup>
+              <optgroup label="Europe">
+                <option value="Europe/London">Europe/London (GMT/BST)</option>
+                <option value="Europe/Paris">Europe/Paris (CET)</option>
+                <option value="Europe/Berlin">Europe/Berlin (CET)</option>
+                <option value="Europe/Moscow">Europe/Moscow (MSK)</option>
+                <option value="Europe/Istanbul">Europe/Istanbul (TRT)</option>
+              </optgroup>
+              <optgroup label="Americas">
+                <option value="America/New_York">America/New_York (EST/EDT)</option>
+                <option value="America/Chicago">America/Chicago (CST/CDT)</option>
+                <option value="America/Denver">America/Denver (MST/MDT)</option>
+                <option value="America/Los_Angeles">America/Los_Angeles (PST/PDT)</option>
+                <option value="America/Toronto">America/Toronto (EST/EDT)</option>
+                <option value="America/Sao_Paulo">America/Sao_Paulo (BRT)</option>
+                <option value="America/Mexico_City">America/Mexico_City (CST)</option>
+              </optgroup>
+              <optgroup label="Asia">
+                <option value="Asia/Dubai">Asia/Dubai (GST)</option>
+                <option value="Asia/Kolkata">Asia/Kolkata (IST)</option>
+                <option value="Asia/Singapore">Asia/Singapore (SGT)</option>
+                <option value="Asia/Tokyo">Asia/Tokyo (JST)</option>
+                <option value="Asia/Shanghai">Asia/Shanghai (CST)</option>
+                <option value="Asia/Hong_Kong">Asia/Hong_Kong (HKT)</option>
+                <option value="Asia/Seoul">Asia/Seoul (KST)</option>
+                <option value="Asia/Jakarta">Asia/Jakarta (WIB)</option>
+              </optgroup>
+              <optgroup label="Pacific">
+                <option value="Pacific/Auckland">Pacific/Auckland (NZST)</option>
+                <option value="Pacific/Sydney">Australia/Sydney (AEST)</option>
+                <option value="Pacific/Honolulu">Pacific/Honolulu (HST)</option>
+              </optgroup>
+            </select>
+            <p className="text-xs text-muted-foreground mt-2">
+              Your detected timezone is shown by default.
+            </p>
           </CardContent>
         </Card>
 
