@@ -19,6 +19,7 @@ import { FloatingNotificationBell } from "@/components/FloatingNotificationBell"
 import { Textarea } from "@/components/ui/textarea";
 import { useCurrency } from "@/hooks/useCurrency";
 import { ServiceNotifications } from "@/components/ServiceNotifications";
+import { FunctionsHttpError } from "@supabase/supabase-js";
 
 const Services = () => {
   useNoIndex(); // Prevent search engine indexing
@@ -264,6 +265,29 @@ const Services = () => {
     return "Something went wrong. Please try again.";
   };
 
+  // supabase.functions.invoke() returns `data=null` on non-2xx, and the actual JSON body
+  // is accessible via FunctionsHttpError.context
+  const extractFunctionErrorCode = async (err: unknown): Promise<string> => {
+    if (!err) return "";
+
+    try {
+      if (err instanceof FunctionsHttpError) {
+        const body: any = await err.context.json().catch(() => null);
+        if (body?.error && typeof body.error === "string") return body.error;
+      }
+    } catch {
+      // ignore parse errors
+    }
+
+    const anyErr = err as any;
+    return (
+      anyErr?.error ||
+      anyErr?.details ||
+      anyErr?.message ||
+      ""
+    );
+  };
+
   const handlePlaceOrder = async () => {
     if (!selectedService || !orderLink || !orderQuantity) {
       toast.error("Please fill all fields");
@@ -328,9 +352,8 @@ const Services = () => {
       }
 
       if (error) {
-        // Extract error message from various possible formats
-        const rawMessage = error.message || (error as any).error || (error as any).details || "";
-        toast.error(getFriendlyErrorMessage(rawMessage));
+        const errorCode = await extractFunctionErrorCode(error);
+        toast.error(getFriendlyErrorMessage(errorCode));
         return;
       }
 
