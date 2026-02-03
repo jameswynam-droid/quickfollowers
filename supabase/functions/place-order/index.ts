@@ -120,7 +120,13 @@ Deno.serve(async (req) => {
     }
 
     if (profile.balance < charge) {
-      throw new Error('Insufficient balance. Please add funds.');
+      return new Response(
+        JSON.stringify({ error: 'USER_INSUFFICIENT_BALANCE' }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 400,
+        },
+      );
     }
 
     // Determine API endpoint and key based on provider
@@ -168,6 +174,18 @@ Deno.serve(async (req) => {
     const apiResult = await apiResponse.json();
     
     if (!apiResponse.ok || !apiResult.order) {
+      // Check for provider-side insufficient funds errors
+      const apiError = (apiResult.error || '').toLowerCase();
+      if (apiError.includes('insufficient') || apiError.includes('balance') || apiError.includes('funds')) {
+        console.error('Provider API balance error:', apiResult.error);
+        return new Response(
+          JSON.stringify({ error: 'PROVIDER_ERROR' }),
+          { 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            status: 400,
+          },
+        );
+      }
       throw new Error(apiResult.error || 'Failed to place order with API');
     }
 

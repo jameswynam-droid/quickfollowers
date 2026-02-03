@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import { supabase } from "@/integrations/supabase/client";
 
 interface Notification {
   id: string;
@@ -15,14 +16,13 @@ interface NotificationContextType {
   hasUnread: boolean;
   markAsRead: (id: string) => void;
   markAllAsRead: () => void;
-  addNotification: (notification: Omit<Notification, "id" | "createdAt" | "read">) => void;
   hasEverOpened: boolean;
   setHasEverOpened: (value: boolean) => void;
 }
 
 const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
 
-// Default notifications for new users - Only Welcome and 24/7 Support
+// Default notifications for new users
 const DEFAULT_NOTIFICATIONS: Omit<Notification, "id" | "createdAt" | "read">[] = [
   {
     title: "Welcome to QuickFollowers! 🎉",
@@ -36,117 +36,111 @@ const DEFAULT_NOTIFICATIONS: Omit<Notification, "id" | "createdAt" | "read">[] =
   },
 ];
 
-// The global (top) notification bell should ONLY ever show these.
-const ALLOWED_NOTIFICATION_TITLES = new Set<string>([
-  "Welcome to QuickFollowers! 🎉",
-  "24/7 Customer Support 💬",
-]);
-
 export const NotificationProvider = ({ children }: { children: ReactNode }) => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [hasEverOpened, setHasEverOpenedState] = useState(false);
+  const [readIds, setReadIds] = useState<Set<string>>(new Set());
 
-  const sanitizeAndMergeDefaults = (raw: Notification[]) => {
-    // 1) Strip anything not allowed (e.g. legacy "New Services Available").
-    const filtered = raw.filter((n) => ALLOWED_NOTIFICATION_TITLES.has(n.title));
-
-    // 2) Ensure the two defaults exist (for users with partial/empty localStorage).
-    const byTitle = new Map(filtered.map((n) => [n.title, n] as const));
-    const merged: Notification[] = DEFAULT_NOTIFICATIONS.map((n, i) => {
-      const existing = byTitle.get(n.title);
-      return (
-        existing ?? {
-          ...n,
-          id: `default-${i}`,
-          createdAt: new Date(Date.now() - i * 3600000),
-          read: false,
-        }
-      );
-    });
-
-    // Sort newest first.
-    return merged.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
-  };
-
+  // Load read state and check if opened
   useEffect(() => {
-    // Load from localStorage
-    const saved = localStorage.getItem("notifications");
     const hasOpened = localStorage.getItem("notifications_opened") === "true";
-    
     setHasEverOpenedState(hasOpened);
-    
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        const mapped: Notification[] = parsed.map((n: any) => ({
-          ...n,
-          createdAt: new Date(n.createdAt),
-        }));
 
-        const sanitized = sanitizeAndMergeDefaults(mapped);
-        setNotifications(sanitized);
-        saveToStorage(sanitized);
+    const savedReadIds = localStorage.getItem("notifications_read");
+    if (savedReadIds) {
+      try {
+        setReadIds(new Set(JSON.parse(savedReadIds)));
       } catch {
-        initializeDefaults();
+        // Ignore parse errors
       }
-    } else {
-      initializeDefaults();
     }
   }, []);
 
-  const initializeDefaults = () => {
-    const defaultNotifs: Notification[] = DEFAULT_NOTIFICATIONS.map((n, i) => ({
-      ...n,
-      id: `default-${i}`,
-      createdAt: new Date(Date.now() - i * 3600000), // Stagger by 1 hour
-      read: false,
-    }));
-    setNotifications(defaultNotifs);
-    saveToStorage(defaultNotifs);
-  };
+  // Fetch bell notifications from database and merge with defaults
+  useEffect(() => {
+    const fetchBellNotifications = async () => {
+      const { data: dbNotifications } = await supabase
+        .from("bell_notifications")
+        .select("id, title, message, type, created_at")
+        .eq("is_active", true)
+        .order("created_at", { ascending: false });
 
-  const saveToStorage = (notifs: Notification[]) => {
-    localStorage.setItem("notifications", JSON.stringify(notifs));
-  };
+      // Convert DB notifications to our format
+      const dbNotifs: Notification[] = (dbNotifications || []).map((n) => ({
+        id: n.id,
+        title: n.title,
+        message: n.message,
+        type: n.type as "info" | "success" | "warning",
+        createdAt: new Date(n.created_at),
+        read: readIds.has(n.id),
+      }));
+
+      // Create default notifications
+      const defaultNotifs: Notification[] = DEFAULT_NOTIFICATIONS.map((n, i) => ({
+        ...n,
+        id: `default-${i}`,
+        createdAt: new Date(Date.now() - (i + 100) * 3600000), // Older than DB notifs
+        read: readIds.has(`default-${i}`),
+      }));
+
+      // Merge: DB notifications first, then defaults
+      const merged = [...dbNotifs, ...defaultNotifs];
+      merged.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+
+      setNotifications(merged);
+    };
+
+    fetchBellNotifications();
+
+    // Subscribe to realtime updates
+    const channel = supabase
+      .channel("bell-notifications-changes")
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "bell_notifications",
+        },
+        () => {
+          fetchBellNotifications();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [readIds]);
 
   const setHasEverOpened = (value: boolean) => {
     setHasEverOpenedState(value);
     localStorage.setItem("notifications_opened", value.toString());
   };
 
+  const saveReadIds = (ids: Set<string>) => {
+    localStorage.setItem("notifications_read", JSON.stringify([...ids]));
+  };
+
   const markAsRead = (id: string) => {
-    setNotifications((prev) => {
-      const updated = prev.map((n) =>
-        n.id === id ? { ...n, read: true } : n
-      );
-      saveToStorage(updated);
+    setReadIds((prev) => {
+      const updated = new Set(prev).add(id);
+      saveReadIds(updated);
       return updated;
     });
+    setNotifications((prev) =>
+      prev.map((n) => (n.id === id ? { ...n, read: true } : n))
+    );
   };
 
   const markAllAsRead = () => {
-    setNotifications((prev) => {
-      const updated = prev.map((n) => ({ ...n, read: true }));
-      saveToStorage(updated);
+    setReadIds((prev) => {
+      const updated = new Set(prev);
+      notifications.forEach((n) => updated.add(n.id));
+      saveReadIds(updated);
       return updated;
     });
-  };
-
-  const addNotification = (notification: Omit<Notification, "id" | "createdAt" | "read">) => {
-    // Global bell is intentionally limited to the two default notifications.
-    if (!ALLOWED_NOTIFICATION_TITLES.has(notification.title)) return;
-
-    const newNotif: Notification = {
-      ...notification,
-      id: `notif-${Date.now()}`,
-      createdAt: new Date(),
-      read: false,
-    };
-    setNotifications((prev) => {
-      const updated = sanitizeAndMergeDefaults([newNotif, ...prev]);
-      saveToStorage(updated);
-      return updated;
-    });
+    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
   };
 
   const unreadCount = notifications.filter((n) => !n.read).length;
@@ -160,7 +154,6 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
         hasUnread,
         markAsRead,
         markAllAsRead,
-        addNotification,
         hasEverOpened,
         setHasEverOpened,
       }}
