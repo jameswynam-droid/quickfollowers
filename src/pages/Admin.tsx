@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { useNoIndex } from "@/hooks/useNoIndex";
 import { AdminNotifications } from "@/components/AdminNotifications";
+import { AdminBellNotifications } from "@/components/AdminBellNotifications";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const Admin = () => {
@@ -144,9 +145,10 @@ const Admin = () => {
         </div>
 
         <Tabs defaultValue="payments" className="space-y-4">
-          <TabsList className="grid w-full grid-cols-2 max-w-md">
+          <TabsList className="grid w-full grid-cols-3 max-w-lg">
             <TabsTrigger value="payments">Payments</TabsTrigger>
-            <TabsTrigger value="notifications">Notifications</TabsTrigger>
+            <TabsTrigger value="notifications">Service Alerts</TabsTrigger>
+            <TabsTrigger value="bell">Bell Notifs</TabsTrigger>
           </TabsList>
 
           <TabsContent value="payments">
@@ -219,6 +221,10 @@ const Admin = () => {
 
           <TabsContent value="notifications">
             <AdminNotifications userId={user?.id} />
+          </TabsContent>
+
+          <TabsContent value="bell">
+            <AdminBellNotifications />
           </TabsContent>
         </Tabs>
       </main>

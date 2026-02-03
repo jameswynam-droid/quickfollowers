@@ -221,11 +221,16 @@ const Services = () => {
 
   // Parse backend errors into user-friendly messages
   const getFriendlyErrorMessage = (error: string): string => {
-    const lowerError = error.toLowerCase();
-    
-    if (lowerError.includes('insufficient balance')) {
+    // Check for specific error codes first
+    if (error === 'USER_INSUFFICIENT_BALANCE') {
       return "Insufficient balance. Please add funds.";
     }
+    
+    if (error === 'PROVIDER_ERROR') {
+      return "Something went wrong. Please try again.";
+    }
+    
+    const lowerError = error.toLowerCase();
     
     if (lowerError.includes('not authenticated') || lowerError.includes('session')) {
       return "Your session has expired. Please sign in again.";
