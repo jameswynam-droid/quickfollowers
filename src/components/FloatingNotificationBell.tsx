@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ArrowLeft, Bell } from "lucide-react";
 import {
   Dialog,
@@ -8,51 +8,78 @@ import {
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
+import ReactMarkdown from "react-markdown";
 
-// Important info notifications for Services page
-const IMPORTANT_INFO = [
+// Default static info items
+const DEFAULT_INFO = [
   {
-    id: "info-1",
+    id: "default-drops",
     title: "⚠️ Instagram & TikTok Drops",
     summary: "Learn about platform drops and how to grow safely",
-    content: `About Drops on Instagram and TikTok
+    content: `## About Drops on Instagram and TikTok
 
 **What you may notice**
+
 You may see followers, likes, or views reduce after a purchase. Instagram and TikTok use strong detection systems. They monitor how fast an account grows. If an account stays stable for a long time then gets a sharp increase, the system flags it as paid activity. The platform removes part of the growth. This action comes from the platform, not from us.
 
 **Why it happens**
-Sharp spikes are the most common trigger. The platform compares past activity with new activity. When the change is too fast, the system reacts. There are other factors that cause drops. Platform updates, new detection rules, user activity levels, and changes in the algorithm can also lead to removals. These factors change often, but spike detection is the most consistent pattern we have seen.
+
+Sharp spikes are the most common trigger. The platform compares past activity with new activity. When the change is too fast, the system reacts. There are other factors that cause drops. Platform updates, new detection rules, user activity levels, and changes in the algorithm can also lead to removals.
 
 **How you can grow safely**
-Buy in smaller steps. Keep your growth steady. Slow and consistent growth reduces the risk of removal. Large instant boosts increase the risk. If you need a large boost for a project, be ready for the chance of drops.
+
+Buy in smaller steps. Keep your growth steady. Slow and consistent growth reduces the risk of removal. Large instant boosts increase the risk.
 
 **What we invest**
+
 We also spend to fund every promotion you receive. When the platform removes results, the funds used for that promotion are lost. We carry that cost with you. We do not remove your results.
 
 **What we ask from you**
+
 Give us patience. Understand that these drops come from the platform system, not from us. We stay committed to supporting you, fixing what we can, and helping you grow in a safer way.
 
 Thank you for trusting us.`,
   },
   {
-    id: "info-2", 
+    id: "default-links",
     title: "📱 Link Format Requirements",
     summary: "Make sure your profile/post is PUBLIC before ordering",
-    content: `Make sure your profile/post is PUBLIC before ordering. For Instagram, use full URLs (https://instagram.com/username). For TikTok, use the full video URL. Private accounts cannot receive any services.`,
+    content: `Make sure your profile/post is **PUBLIC** before ordering.
+
+- **Instagram**: Use full URLs (https://instagram.com/username)
+- **TikTok**: Use the full video URL
+
+Private accounts cannot receive any services.`,
   },
   {
-    id: "info-3",
+    id: "default-processing",
     title: "⏱️ Processing Times",
     summary: "Learn about order processing and delivery times",
-    content: `Most orders start within 0-12 hours. During high demand periods, orders may take up to 24-72 hours to complete. Speed varies by service type - instant services start immediately, while gradual/drip-feed services are spread over time for natural growth.`,
+    content: `Most orders start within **0-12 hours**. During high demand periods, orders may take up to 24-72 hours to complete.
+
+Speed varies by service type:
+- **Instant services**: Start immediately
+- **Gradual/drip-feed services**: Spread over time for natural growth`,
   },
   {
-    id: "info-4",
+    id: "default-refund",
     title: "💰 Refund Policy",
     summary: "Understand our refund and cancellation policy",
-    content: `Refunds are only available for orders that cannot be completed due to technical issues on our end. Once an order starts processing, it cannot be cancelled. Please double-check your link and quantity before placing an order.`,
+    content: `Refunds are only available for orders that cannot be completed due to technical issues on our end.
+
+**Once an order starts processing, it cannot be cancelled.**
+
+Please double-check your link and quantity before placing an order.`,
   },
 ];
+
+interface InfoItem {
+  id: string;
+  title: string;
+  summary: string;
+  content: string;
+}
 
 export const FloatingNotificationBell = () => {
   const [open, setOpen] = useState(false);
@@ -60,6 +87,43 @@ export const FloatingNotificationBell = () => {
   const [hasOpened, setHasOpened] = useState(() => {
     return localStorage.getItem("important_info_opened") === "true";
   });
+  const [dbItems, setDbItems] = useState<InfoItem[]>([]);
+
+  // Fetch from database
+  useEffect(() => {
+    const fetchItems = async () => {
+      const { data } = await supabase
+        .from("floating_bell_notifications")
+        .select("id, title, summary, content")
+        .eq("is_active", true)
+        .order("created_at", { ascending: false });
+
+      if (data) {
+        setDbItems(data);
+      }
+    };
+
+    fetchItems();
+
+    // Subscribe to realtime updates
+    const channel = supabase
+      .channel("floating-bell-changes")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "floating_bell_notifications" },
+        () => fetchItems()
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
+  // Merge db items first, then defaults
+  const allInfoItems = useMemo(() => {
+    return [...dbItems, ...DEFAULT_INFO];
+  }, [dbItems]);
 
   const handleOpen = (isOpen: boolean) => {
     setOpen(isOpen);
@@ -74,41 +138,8 @@ export const FloatingNotificationBell = () => {
 
   const activeInfo = useMemo(() => {
     if (!activeInfoId) return null;
-    return IMPORTANT_INFO.find((i) => i.id === activeInfoId) ?? null;
-  }, [activeInfoId]);
-
-  const formatContent = (content: string) => {
-    const blocks = content.split("\n\n");
-    return blocks.map((block, index) => {
-      // Section headers in **bold** form
-      if (block.startsWith("**") && block.includes("**")) {
-        const match = block.match(/\*\*(.+?)\*\*([\s\S]*)/);
-        if (match) {
-          return (
-            <section key={index} className="mb-4">
-              <h3 className="font-semibold text-foreground mb-2">{match[1]}</h3>
-              <p className="text-sm leading-relaxed text-muted-foreground">{match[2].trim()}</p>
-            </section>
-          );
-        }
-      }
-
-      // First line title (e.g. "About Drops...")
-      if (index === 0) {
-        return (
-          <h2 key={index} className="text-base font-semibold text-foreground">
-            {block.trim()}
-          </h2>
-        );
-      }
-
-      return (
-        <p key={index} className="text-sm leading-relaxed text-muted-foreground">
-          {block}
-        </p>
-      );
-    });
-  };
+    return allInfoItems.find((i) => i.id === activeInfoId) ?? null;
+  }, [activeInfoId, allInfoItems]);
 
   return (
     <>
@@ -137,7 +168,7 @@ export const FloatingNotificationBell = () => {
               </DialogHeader>
               <ScrollArea className="h-[65vh] pr-4">
                 <div className="space-y-3">
-                  {IMPORTANT_INFO.map((info) => (
+                  {allInfoItems.map((info) => (
                     <button
                       key={info.id}
                       onClick={() => setActiveInfoId(info.id)}
@@ -172,7 +203,9 @@ export const FloatingNotificationBell = () => {
                 <DialogTitle>{activeInfo.title}</DialogTitle>
               </DialogHeader>
               <ScrollArea className="h-[65vh] pr-4">
-                <div className="space-y-4 pb-2">{formatContent(activeInfo.content)}</div>
+                <div className="prose prose-sm dark:prose-invert max-w-none">
+                  <ReactMarkdown>{activeInfo.content}</ReactMarkdown>
+                </div>
               </ScrollArea>
             </>
           )}

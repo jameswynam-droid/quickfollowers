@@ -12,8 +12,8 @@ import { toast } from "sonner";
 import { useNoIndex } from "@/hooks/useNoIndex";
 import { AdminNotifications } from "@/components/AdminNotifications";
 import { AdminBellNotifications } from "@/components/AdminBellNotifications";
+import { AdminFloatingBellNotifications } from "@/components/AdminFloatingBellNotifications";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-
 const Admin = () => {
   useNoIndex(); // Prevent search engine indexing
   const [user, setUser] = useState<any>(null);
@@ -145,10 +145,11 @@ const Admin = () => {
         </div>
 
         <Tabs defaultValue="payments" className="space-y-4">
-          <TabsList className="grid w-full grid-cols-3 max-w-lg">
+          <TabsList className="grid w-full grid-cols-4 max-w-xl">
             <TabsTrigger value="payments">Payments</TabsTrigger>
             <TabsTrigger value="notifications">Service Alerts</TabsTrigger>
-            <TabsTrigger value="bell">Bell Notifs</TabsTrigger>
+            <TabsTrigger value="bell">Header Bell</TabsTrigger>
+            <TabsTrigger value="floating">Info Bell</TabsTrigger>
           </TabsList>
 
           <TabsContent value="payments">
@@ -225,6 +226,10 @@ const Admin = () => {
 
           <TabsContent value="bell">
             <AdminBellNotifications />
+          </TabsContent>
+
+          <TabsContent value="floating">
+            <AdminFloatingBellNotifications />
           </TabsContent>
         </Tabs>
       </main>
