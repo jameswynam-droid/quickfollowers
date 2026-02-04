@@ -1,4 +1,4 @@
-import { useCurrency, CURRENCIES, CurrencyCode } from "@/hooks/useCurrency";
+import { useCurrency, CURRENCIES, CurrencyCode, HAMBURGER_CURRENCIES } from "@/hooks/useCurrency";
 import {
   Select,
   SelectContent,
@@ -8,7 +8,7 @@ import {
 } from "@/components/ui/select";
 
 interface CurrencySelectorProps {
-  variant?: "default" | "compact";
+  variant?: "default" | "compact" | "full";
   className?: string;
 }
 
@@ -18,7 +18,11 @@ export const CurrencySelector = ({
 }: CurrencySelectorProps) => {
   const { currency, setCurrency } = useCurrency();
 
-  const currencies = Object.entries(CURRENCIES) as [CurrencyCode, typeof CURRENCIES.NGN][];
+  // For compact/default (hamburger menu): use limited set
+  // For full (Account page): use all currencies
+  const currencyList = variant === "full" 
+    ? (Object.keys(CURRENCIES) as CurrencyCode[])
+    : HAMBURGER_CURRENCIES;
 
   if (variant === "compact") {
     return (
@@ -29,9 +33,9 @@ export const CurrencySelector = ({
           </SelectValue>
         </SelectTrigger>
         <SelectContent>
-          {currencies.map(([code, { symbol, name }]) => (
+          {currencyList.map((code) => (
             <SelectItem key={code} value={code}>
-              {symbol} {code}
+              {CURRENCIES[code].symbol} {code}
             </SelectItem>
           ))}
         </SelectContent>
@@ -47,12 +51,12 @@ export const CurrencySelector = ({
         </SelectValue>
       </SelectTrigger>
       <SelectContent>
-        {currencies.map(([code, { symbol, name }]) => (
+        {currencyList.map((code) => (
           <SelectItem key={code} value={code}>
             <span className="flex items-center gap-2">
-              <span className="font-mono w-6">{symbol}</span>
+              <span className="font-mono w-6">{CURRENCIES[code].symbol}</span>
               <span>{code}</span>
-              <span className="text-muted-foreground">- {name}</span>
+              <span className="text-muted-foreground">- {CURRENCIES[code].name}</span>
             </span>
           </SelectItem>
         ))}

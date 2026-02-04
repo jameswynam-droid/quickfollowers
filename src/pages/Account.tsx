@@ -481,7 +481,7 @@ const Account = () => {
               <span className="text-xl">💱</span>
               <h2 className="font-semibold">Currency Preference</h2>
             </div>
-            <CurrencySelector />
+            <CurrencySelector variant="full" />
             <p className="text-xs text-muted-foreground mt-2">
               Prices will be displayed in your selected currency.
             </p>
