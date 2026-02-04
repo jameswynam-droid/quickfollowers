@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 
-// Supported currencies with exchange rates to NGN (base currency)
+// All supported currencies with exchange rates to NGN (base currency)
 export const CURRENCIES = {
   NGN: { symbol: "₦", name: "Nigerian Naira", rate: 1 },
   USD: { symbol: "$", name: "US Dollar", rate: 0.00063 },
@@ -10,7 +10,13 @@ export const CURRENCIES = {
   KES: { symbol: "KSh", name: "Kenyan Shilling", rate: 0.081 },
   ZAR: { symbol: "R", name: "South African Rand", rate: 0.011 },
   INR: { symbol: "₹", name: "Indian Rupee", rate: 0.053 },
+  TZS: { symbol: "TSh", name: "Tanzanian Shilling", rate: 1.52 },
+  ZMW: { symbol: "ZK", name: "Zambian Kwacha", rate: 0.017 },
+  XOF: { symbol: "CFA", name: "West African CFA Franc", rate: 0.38 },
 } as const;
+
+// Currencies shown in hamburger menu (limited set)
+export const HAMBURGER_CURRENCIES: CurrencyCode[] = ["NGN", "USD", "GHS", "KES", "ZAR", "TZS", "ZMW", "XOF"];
 
 export type CurrencyCode = keyof typeof CURRENCIES;
 
@@ -43,6 +49,9 @@ const COUNTRY_CURRENCY_MAP: Record<string, CurrencyCode> = {
   KE: "KES",
   ZA: "ZAR",
   IN: "INR",
+  TZ: "TZS",
+  ZM: "ZMW",
+  CI: "XOF",
 };
 
 export const CurrencyProvider = ({ children }: { children: ReactNode }) => {
