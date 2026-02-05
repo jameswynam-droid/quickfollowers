@@ -1,5 +1,5 @@
  import { useState, useEffect, useCallback } from "react";
- import { CurrencyCode, CURRENCIES } from "./useCurrency";
+ import { CurrencyCode, CURRENCIES } from "./currencyData";
  
  const CACHE_KEY = "exchange_rates_cache";
  const CACHE_EXPIRY_KEY = "exchange_rates_expiry";
