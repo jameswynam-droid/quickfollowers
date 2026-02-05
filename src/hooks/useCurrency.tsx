@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
+ import { useExchangeRates } from "./useExchangeRates";
 
 // All supported currencies with exchange rates to NGN (base currency)
 export const CURRENCIES = {
@@ -88,6 +89,10 @@ interface CurrencyContextType {
   convertFromNGN: (ngnAmount: number) => number;
   currencySymbol: string;
   userLocation: string | null;
+ ratesLoading: boolean;
+ lastUpdated: Date | null;
+ isUsingFallback: boolean;
+ refreshRates: () => Promise<void>;
 }
 
 const CurrencyContext = createContext<CurrencyContextType | undefined>(undefined);
@@ -177,6 +182,9 @@ const COUNTRY_CURRENCY_MAP: Record<string, CurrencyCode> = {
 export const CurrencyProvider = ({ children }: { children: ReactNode }) => {
   const [currency, setCurrencyState] = useState<CurrencyCode>("NGN");
   const [userLocation, setUserLocation] = useState<string | null>(null);
+ 
+   // Use live exchange rates
+   const { getRate, isLoading: ratesLoading, lastUpdated, isUsingFallback, refreshRates } = useExchangeRates();
 
   useEffect(() => {
     // Check localStorage first
@@ -216,7 +224,7 @@ export const CurrencyProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const convertFromNGN = (ngnAmount: number): number => {
-    const rate = CURRENCIES[currency].rate;
+     const rate = getRate(currency);
     return ngnAmount * rate;
   };
 
@@ -239,6 +247,10 @@ export const CurrencyProvider = ({ children }: { children: ReactNode }) => {
         convertFromNGN,
         currencySymbol: CURRENCIES[currency].symbol,
         userLocation,
+         ratesLoading,
+         lastUpdated,
+         isUsingFallback,
+         refreshRates,
       }}
     >
       {children}
