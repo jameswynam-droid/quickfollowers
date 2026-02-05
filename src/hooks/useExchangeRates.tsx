@@ -5,8 +5,19 @@
  const CACHE_EXPIRY_KEY = "exchange_rates_expiry";
  const CACHE_DURATION_MS = 24 * 60 * 60 * 1000; // 24 hours
  
- // API base URL (fawazahmed0/exchange-api - free, no rate limits, 200+ currencies)
- const API_BASE_URL = "https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies";
+// API URLs (fawazahmed0/exchange-api - free, no rate limits, 200+ currencies)
+const API_LATEST_URL = "https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies";
+
+// Helper to get previous day's date in YYYY-MM-DD format
+const getPreviousDayDate = (): string => {
+  const date = new Date();
+  date.setDate(date.getDate() - 1);
+  return date.toISOString().split('T')[0];
+};
+
+// Historical API URL format
+const getHistoricalUrl = (date: string) => 
+  `https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@${date}/v1/currencies`;
  
  // Fallback rates (NGN as base currency, rate = how much of target currency per 1 NGN)
  const FALLBACK_RATES: Record<string, number> = Object.fromEntries(
@@ -58,11 +69,18 @@
      setIsLoading(true);
      
      try {
-       // Fetch NGN rates (our base currency)
-       const response = await fetch(`${API_BASE_URL}/ngn.json`);
+      // Try fetching latest rates first
+      let response = await fetch(`${API_LATEST_URL}/ngn.json`);
        
        if (!response.ok) {
-         throw new Error(`API responded with status: ${response.status}`);
+        // Fallback to previous day's rates
+        console.log("Latest rates fetch failed, trying previous day...");
+        const previousDate = getPreviousDayDate();
+        response = await fetch(`${getHistoricalUrl(previousDate)}/ngn.json`);
+        
+        if (!response.ok) {
+          throw new Error(`Both latest and historical API requests failed`);
+        }
        }
        
        const data = await response.json();
