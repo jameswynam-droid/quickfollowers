@@ -1304,58 +1304,9 @@ Deno.serve(async (req) => {
       allServicesData = allServicesData.concat(providerServicesData);
     }
 
-    // Filter out services where the name doesn't match the category
-    // This fixes issues where the source API has miscategorized services
-    // e.g., "TikTok Followers" under "TikTok Comments | Verified Profiles"
-    const filteredServicesData = allServicesData.filter(service => {
-      const nameLower = service.name.toLowerCase();
-      const categoryLower = service.category.toLowerCase();
-      
-      // Check for common mismatches
-      const categoryIndicators = {
-        'comment': ['comment'],
-        'follower': ['follower'],
-        'like': ['like'],
-        'view': ['view'],
-        'share': ['share'],
-        'subscriber': ['subscriber'],
-        'member': ['member'],
-      };
-      
-      // Count how many service types the category mentions
-      const categoryTypeCount = Object.values(categoryIndicators)
-        .filter(keywords => keywords.some(k => categoryLower.includes(k)))
-        .length;
-      
-      // If category mentions multiple types (e.g. "{ Likes, Followers, Comments }"),
-      // it's a multi-type category — don't filter based on type mismatch
-      if (categoryTypeCount >= 2) {
-        return true;
-      }
-      
-      // For single-type categories, check if name matches that type
-      for (const [type, keywords] of Object.entries(categoryIndicators)) {
-        const categoryHasType = keywords.some(k => categoryLower.includes(k));
-        const nameHasType = keywords.some(k => nameLower.includes(k));
-        
-        if (categoryHasType) {
-          for (const [otherType, otherKeywords] of Object.entries(categoryIndicators)) {
-            if (otherType !== type) {
-              const nameHasOtherType = otherKeywords.some(k => nameLower.includes(k));
-              if (nameHasOtherType && !nameHasType) {
-                console.log(`Filtering out miscategorized service: "${service.name}" in category "${service.category}"`);
-                return false;
-              }
-            }
-          }
-        }
-      }
-      
-      return true;
-    });
-    
-    console.log(`Filtered ${allServicesData.length - filteredServicesData.length} miscategorized services`);
-    allServicesData = filteredServicesData;
+    // No filtering — sync ALL services exactly as the API providers return them
+    // Categories and service names are kept as-is from the provider (with only brand name replacement)
+    console.log(`Total services to sync (no filtering): ${allServicesData.length}`);
 
     // Don't proceed with deletion if we got significantly fewer services than expected
     if (allServicesData.length === 0) {
