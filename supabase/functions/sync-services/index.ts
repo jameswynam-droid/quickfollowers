@@ -1322,19 +1322,26 @@ Deno.serve(async (req) => {
         'member': ['member'],
       };
       
-      // If category contains a specific service type, name should match
+      // Count how many service types the category mentions
+      const categoryTypeCount = Object.values(categoryIndicators)
+        .filter(keywords => keywords.some(k => categoryLower.includes(k)))
+        .length;
+      
+      // If category mentions multiple types (e.g. "{ Likes, Followers, Comments }"),
+      // it's a multi-type category — don't filter based on type mismatch
+      if (categoryTypeCount >= 2) {
+        return true;
+      }
+      
+      // For single-type categories, check if name matches that type
       for (const [type, keywords] of Object.entries(categoryIndicators)) {
         const categoryHasType = keywords.some(k => categoryLower.includes(k));
         const nameHasType = keywords.some(k => nameLower.includes(k));
         
-        // If category is specifically about comments, followers, etc.
-        // but name is about a different type, filter it out
         if (categoryHasType) {
-          // Check if name has a DIFFERENT primary type
           for (const [otherType, otherKeywords] of Object.entries(categoryIndicators)) {
             if (otherType !== type) {
               const nameHasOtherType = otherKeywords.some(k => nameLower.includes(k));
-              // If category says "comments" but name says "followers", filter out
               if (nameHasOtherType && !nameHasType) {
                 console.log(`Filtering out miscategorized service: "${service.name}" in category "${service.category}"`);
                 return false;
