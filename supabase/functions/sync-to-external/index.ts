@@ -14,13 +14,19 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const externalUrl = Deno.env.get('EXTERNAL_SUPABASE_URL')?.trim();
-    const externalKey = Deno.env.get('EXTERNAL_SUPABASE_SERVICE_ROLE_KEY')?.trim();
-    const internalUrl = Deno.env.get('SUPABASE_URL')?.trim();
-    const internalKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')?.trim();
+    // Aggressively sanitize env vars - remove all non-printable chars, quotes, whitespace
+    const sanitize = (val: string | undefined) => val?.replace(/[^\x20-\x7E]/g, '').trim();
+    
+    const externalUrl = sanitize(Deno.env.get('EXTERNAL_SUPABASE_URL'));
+    const externalKey = sanitize(Deno.env.get('EXTERNAL_SUPABASE_SERVICE_ROLE_KEY'));
+    const internalUrl = sanitize(Deno.env.get('SUPABASE_URL'));
+    const internalKey = sanitize(Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'));
+
+    console.log('External URL starts with:', externalUrl?.substring(0, 30));
+    console.log('External key length:', externalKey?.length);
 
     if (!externalUrl || !externalKey || !internalUrl || !internalKey) {
-      throw new Error('Missing required environment variables');
+      throw new Error(`Missing env vars. ExtURL: ${!!externalUrl}, ExtKey: ${!!externalKey}, IntURL: ${!!internalUrl}, IntKey: ${!!internalKey}`);
     }
 
     const internal = createClient(internalUrl, internalKey);
