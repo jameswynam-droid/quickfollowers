@@ -84,7 +84,7 @@ Deno.serve(async (req) => {
 
         console.log(`  Fetched ${allRecords.length} records from ${table}`);
 
-        // Upsert in batches
+        // Upsert in batches - with per-record fallback on failure
         for (let i = 0; i < allRecords.length; i += BATCH_SIZE) {
           const batch = allRecords.slice(i, i + BATCH_SIZE);
           const { error: upsertError } = await external
@@ -92,8 +92,26 @@ Deno.serve(async (req) => {
             .upsert(batch, { onConflict: 'id' });
 
           if (upsertError) {
-            console.error(`  Batch error for ${table}:`, upsertError.message);
-            results[table].errors.push(upsertError.message);
+            console.error(`  Batch error for ${table} (batch ${i}-${i+batch.length}):`, upsertError.message);
+            // Fallback: try inserting records one by one to identify failures
+            let batchSuccess = 0;
+            const failedIds: string[] = [];
+            for (const record of batch) {
+              const { error: singleError } = await external
+                .from(table)
+                .upsert(record, { onConflict: 'id' });
+              if (singleError) {
+                failedIds.push(record.id);
+              } else {
+                batchSuccess++;
+              }
+            }
+            results[table].synced += batchSuccess;
+            if (failedIds.length > 0) {
+              const msg = `${failedIds.length} records failed: ${failedIds.slice(0, 5).join(', ')}${failedIds.length > 5 ? '...' : ''}`;
+              console.error(`  ${msg}`);
+              results[table].errors.push(msg);
+            }
           } else {
             results[table].synced += batch.length;
           }

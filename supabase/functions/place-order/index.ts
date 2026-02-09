@@ -174,10 +174,24 @@ Deno.serve(async (req) => {
     const apiResult = await apiResponse.json();
     
     if (!apiResponse.ok || !apiResult.order) {
-      // Check for provider-side insufficient funds errors
       const apiError = (apiResult.error || '').toLowerCase();
+      const failureReason = apiResult.error || 'Unknown API error';
+      
+      // Check for provider-side insufficient funds errors
       if (apiError.includes('insufficient') || apiError.includes('balance') || apiError.includes('funds')) {
         console.error('Provider API balance error:', apiResult.error);
+        
+        // Store the failed order with reason
+        await supabaseClient.from('orders').insert({
+          user_id: profile.id,
+          service_id: service_id,
+          link: link,
+          quantity: quantity,
+          charge: 0,
+          status: 'failed',
+          failure_reason: failureReason,
+        });
+        
         return new Response(
           JSON.stringify({ error: 'PROVIDER_ERROR' }),
           { 
@@ -186,7 +200,19 @@ Deno.serve(async (req) => {
           },
         );
       }
-      throw new Error(apiResult.error || 'Failed to place order with API');
+      
+      // Store any other failed order with reason
+      await supabaseClient.from('orders').insert({
+        user_id: profile.id,
+        service_id: service_id,
+        link: link,
+        quantity: quantity,
+        charge: 0,
+        status: 'failed',
+        failure_reason: failureReason,
+      });
+      
+      throw new Error(failureReason);
     }
 
     console.log(`Order placed successfully with ${provider} API:`, apiResult.order);
