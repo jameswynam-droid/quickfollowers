@@ -36,6 +36,9 @@ verify_jwt = false
 [functions.sync-services]
 verify_jwt = false
 
+[functions.sync-to-external]
+verify_jwt = false
+
 [functions.verify-otp]
 verify_jwt = false
 
