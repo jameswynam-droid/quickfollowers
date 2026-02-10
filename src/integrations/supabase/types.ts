@@ -121,7 +121,6 @@ export type Database = {
           api_order_id: string | null
           charge: number
           created_at: string
-          failure_reason: string | null
           id: string
           link: string
           quantity: number
@@ -136,7 +135,6 @@ export type Database = {
           api_order_id?: string | null
           charge: number
           created_at?: string
-          failure_reason?: string | null
           id?: string
           link: string
           quantity: number
@@ -151,7 +149,6 @@ export type Database = {
           api_order_id?: string | null
           charge?: number
           created_at?: string
-          failure_reason?: string | null
           id?: string
           link?: string
           quantity?: number
