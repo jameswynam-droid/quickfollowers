@@ -171,6 +171,18 @@ Deno.serve(async (req) => {
   }
 });
 
+// Sanitize failure_reason: hide provider-related errors from external
+function sanitizeOrderRecord(record: any): any {
+  if (!record || record.failure_reason == null) return record;
+  const reason = (record.failure_reason || '').toLowerCase();
+  const providerKeywords = ['insufficient', 'balance', 'funds', 'api', 'provider'];
+  if (providerKeywords.some(kw => reason.includes(kw) && !reason.includes('insufficient balance'))) {
+    return { ...record, failure_reason: null };
+  }
+  // Keep user-facing reasons like "Insufficient balance"
+  return record;
+}
+
 async function handleWebhookSync(
   external: any,
   payload: { event: string; table: string; record: any; old_record?: any }
@@ -188,9 +200,13 @@ async function handleWebhookSync(
 
   try {
     if (event === 'INSERT' || event === 'UPDATE') {
+      let syncRecord = record;
+      if (table === 'orders') {
+        syncRecord = sanitizeOrderRecord(record);
+      }
       const { error } = await external
         .from(table)
-        .upsert(record, { onConflict: 'id' });
+        .upsert(syncRecord, { onConflict: 'id' });
       if (error) throw error;
     } else if (event === 'DELETE' && old_record) {
       const { error } = await external

@@ -103,7 +103,24 @@ Deno.serve(async (req) => {
     const charge = parseFloat(((markedUpRate * originalOrder.quantity) / 1000).toFixed(2));
 
     if (profile.balance < charge) {
-      throw new Error(`Insufficient balance. Required: ₦${charge.toFixed(2)}, Available: ₦${parseFloat(profile.balance).toFixed(2)}`);
+      // Create a failed order record so the bot can see the reason
+      await supabaseClient.from('orders').insert({
+        user_id: profile.id,
+        service_id: service.id,
+        link: originalOrder.link,
+        quantity: originalOrder.quantity,
+        charge: 0,
+        status: 'failed',
+        failure_reason: 'Insufficient balance',
+      });
+
+      return new Response(
+        JSON.stringify({ error: 'Insufficient balance. Please add funds.' }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 400,
+        },
+      );
     }
 
     // Place the order with Owlet API
