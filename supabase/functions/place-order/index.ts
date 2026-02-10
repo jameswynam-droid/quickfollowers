@@ -120,6 +120,17 @@ Deno.serve(async (req) => {
     }
 
     if (profile.balance < charge) {
+      // Create a failed order record so the bot can see the reason
+      await supabaseClient.from('orders').insert({
+        user_id: profile.id,
+        service_id: service_id,
+        link: link,
+        quantity: quantity,
+        charge: 0,
+        status: 'failed',
+        failure_reason: 'Insufficient balance',
+      });
+
       return new Response(
         JSON.stringify({ error: 'USER_INSUFFICIENT_BALANCE' }),
         { 
