@@ -5,8 +5,16 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const TABLES_TO_SYNC = ['profiles', 'services', 'orders', 'transactions', 'payments', 'tickets'] as const;
+const TABLES_TO_SYNC = ['profiles', 'services', 'orders', 'transactions'] as const;
 const BATCH_SIZE = 500;
+
+// Define which columns to sync per table (must match external DB schema)
+const TABLE_COLUMNS: Record<string, string> = {
+  profiles: 'id, full_name, email, balance, created_at, updated_at',
+  services: 'id, name, category, type, rate, min_order, max_order, description, provider, created_at, updated_at',
+  orders: 'id, user_id, service_id, link, quantity, charge, status, api_order_id, start_count, remains, created_at, updated_at',
+  transactions: 'id, user_id, type, amount, balance_after, description, reference_id, created_at',
+};
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -14,16 +22,12 @@ Deno.serve(async (req) => {
   }
 
   try {
-    // Aggressively sanitize env vars - remove all non-printable chars, quotes, whitespace
     const sanitize = (val: string | undefined) => val?.replace(/[^\x20-\x7E]/g, '').trim();
     
     const externalUrl = sanitize(Deno.env.get('EXTERNAL_SUPABASE_URL'));
     const externalKey = sanitize(Deno.env.get('EXTERNAL_SUPABASE_SERVICE_ROLE_KEY'));
     const internalUrl = sanitize(Deno.env.get('SUPABASE_URL'));
     const internalKey = sanitize(Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'));
-
-    console.log('External URL starts with:', externalUrl?.substring(0, 30));
-    console.log('External key length:', externalKey?.length);
 
     if (!externalUrl || !externalKey || !internalUrl || !internalKey) {
       throw new Error(`Missing env vars. ExtURL: ${!!externalUrl}, ExtKey: ${!!externalKey}, IntURL: ${!!internalUrl}, IntKey: ${!!internalKey}`);
@@ -32,7 +36,6 @@ Deno.serve(async (req) => {
     const internal = createClient(internalUrl, internalKey);
     const external = createClient(externalUrl, externalKey);
 
-    // Parse request body for selective sync
     let body: { tables?: string[]; event?: string; table?: string; record?: any; old_record?: any } = {};
     try {
       body = await req.json();
@@ -40,19 +43,17 @@ Deno.serve(async (req) => {
       // No body = full sync
     }
 
-    // If this is a webhook call (real-time single record sync)
+    // Webhook call (real-time single record sync)
     if (body.event && body.table && body.record) {
       return await handleWebhookSync(external, body);
     }
 
-    // Otherwise, do a full sync
+    // Full sync
     const tablesToSync = body.tables?.length 
       ? TABLES_TO_SYNC.filter(t => body.tables!.includes(t))
       : [...TABLES_TO_SYNC];
 
     const results: Record<string, { synced: number; errors: string[] }> = {};
-
-    // Sync services first (orders depends on it), then profiles (orders/transactions depend on it)
     const orderedTables = reorderTables(tablesToSync);
 
     for (const table of orderedTables) {
@@ -60,7 +61,7 @@ Deno.serve(async (req) => {
       results[table] = { synced: 0, errors: [] };
 
       try {
-        // Fetch all records from internal DB (handle pagination)
+        const columns = TABLE_COLUMNS[table] || '*';
         let allRecords: any[] = [];
         let offset = 0;
         let hasMore = true;
@@ -68,7 +69,7 @@ Deno.serve(async (req) => {
         while (hasMore) {
           const { data, error } = await internal
             .from(table)
-            .select('*')
+            .select(columns)
             .range(offset, offset + 999)
             .order('created_at', { ascending: true });
 
@@ -84,7 +85,6 @@ Deno.serve(async (req) => {
 
         console.log(`  Fetched ${allRecords.length} records from ${table}`);
 
-        // Upsert in batches - with per-record fallback on failure
         for (let i = 0; i < allRecords.length; i += BATCH_SIZE) {
           const batch = allRecords.slice(i, i + BATCH_SIZE);
           const { error: upsertError } = await external
@@ -92,8 +92,7 @@ Deno.serve(async (req) => {
             .upsert(batch, { onConflict: 'id' });
 
           if (upsertError) {
-            console.error(`  Batch error for ${table} (batch ${i}-${i+batch.length}):`, upsertError.message);
-            // Fallback: try inserting records one by one to identify failures
+            console.error(`  Batch error for ${table}:`, upsertError.message);
             let batchSuccess = 0;
             const failedIds: string[] = [];
             for (const record of batch) {
@@ -109,7 +108,6 @@ Deno.serve(async (req) => {
             results[table].synced += batchSuccess;
             if (failedIds.length > 0) {
               const msg = `${failedIds.length} records failed: ${failedIds.slice(0, 5).join(', ')}${failedIds.length > 5 ? '...' : ''}`;
-              console.error(`  ${msg}`);
               results[table].errors.push(msg);
             }
           } else {
@@ -117,11 +115,9 @@ Deno.serve(async (req) => {
           }
         }
 
-        // Delete records from external that no longer exist in internal
+        // Delete orphaned records from external
         if (allRecords.length > 0) {
           const internalIds = allRecords.map(r => r.id);
-          
-          // Fetch external IDs
           let externalIds: string[] = [];
           let extOffset = 0;
           let extHasMore = true;
@@ -171,16 +167,18 @@ Deno.serve(async (req) => {
   }
 });
 
-// Sanitize failure_reason: hide provider-related errors from external
-function sanitizeOrderRecord(record: any): any {
-  if (!record || record.failure_reason == null) return record;
-  const reason = (record.failure_reason || '').toLowerCase();
-  const providerKeywords = ['insufficient', 'balance', 'funds', 'api', 'provider'];
-  if (providerKeywords.some(kw => reason.includes(kw) && !reason.includes('insufficient balance'))) {
-    return { ...record, failure_reason: null };
+// Pick only the columns that exist in the external DB for a given table
+function pickColumns(table: string, record: any): any {
+  const colStr = TABLE_COLUMNS[table];
+  if (!colStr) return record;
+  const cols = colStr.split(',').map(c => c.trim());
+  const filtered: any = {};
+  for (const col of cols) {
+    if (col in record) {
+      filtered[col] = record[col];
+    }
   }
-  // Keep user-facing reasons like "Insufficient balance"
-  return record;
+  return filtered;
 }
 
 async function handleWebhookSync(
@@ -189,7 +187,6 @@ async function handleWebhookSync(
 ) {
   const { event, table, record, old_record } = payload;
 
-  // Only sync tables we care about
   if (!TABLES_TO_SYNC.includes(table as any)) {
     return new Response(JSON.stringify({ skipped: true, reason: `Table ${table} not in sync list` }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -200,10 +197,7 @@ async function handleWebhookSync(
 
   try {
     if (event === 'INSERT' || event === 'UPDATE') {
-      let syncRecord = record;
-      if (table === 'orders') {
-        syncRecord = sanitizeOrderRecord(record);
-      }
+      const syncRecord = pickColumns(table, record);
       const { error } = await external
         .from(table)
         .upsert(syncRecord, { onConflict: 'id' });
@@ -229,7 +223,6 @@ async function handleWebhookSync(
 }
 
 function reorderTables(tables: string[]): string[] {
-  // Services and profiles must be synced before orders/transactions/payments
   const priority = ['services', 'profiles'];
   const ordered = priority.filter(t => tables.includes(t));
   const rest = tables.filter(t => !priority.includes(t));
