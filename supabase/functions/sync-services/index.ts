@@ -1069,8 +1069,10 @@ function cleanServiceName(name: string): string {
   return decoded
     .replace(/\bOwlet\b/gi, 'QuickFollowers')
     .replace(/\bFollowspanel\b/gi, 'QuickFollowers')
+    .replace(/\bSmmfollows\b/gi, 'QuickFollowers')
     .replace(/\bOwlet's\b/gi, "QuickFollowers'")
-    .replace(/\bFollowspanel's\b/gi, "QuickFollowers'");
+    .replace(/\bFollowspanel's\b/gi, "QuickFollowers'")
+    .replace(/\bSmmfollows's\b/gi, "QuickFollowers'");
 }
 
 // Decode common HTML entities to their actual characters
@@ -1168,9 +1170,9 @@ Deno.serve(async (req) => {
         apiKey: Deno.env.get('OWLET_API_KEY') || '',
       },
       {
-        name: 'followspanel',
-        url: 'https://followspanel.com/api/v2',
-        apiKey: Deno.env.get('FOLLOWSPANEL_API_KEY') || '',
+        name: 'smmfollows',
+        url: 'https://smmfollows.io/api/v2',
+        apiKey: Deno.env.get('SMMFOLLOWS_API_KEY') || '',
       },
     ];
 
@@ -1558,7 +1560,7 @@ Deno.serve(async (req) => {
         changes.push(`<strong>Service Count Change:</strong> ${netChange > 0 ? '+' : ''}${netChange} (${existingServiceIds.length} → ${allServicesData.length})`);
       }
       
-      changes.push(`<br><strong>Summary:</strong><br>• Upserted: ${successCount}<br>• Deleted: ${deletedCount}<br>• Owlet: ${providerResults['owlet'] || 0}<br>• FollowsPanel: ${providerResults['followspanel'] || 0}`);
+      changes.push(`<br><strong>Summary:</strong><br>• Upserted: ${successCount}<br>• Deleted: ${deletedCount}<br>• Owlet: ${providerResults['owlet'] || 0}<br>• SmmFollows: ${providerResults['smmfollows'] || 0}`);
       
       await sendSyncNotification(
         'Significant Sync Changes Detected',

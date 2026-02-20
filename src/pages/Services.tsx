@@ -201,10 +201,8 @@ const Services = () => {
         ...category,
         services: category.services.filter(service => {
           const serviceName = service.name.toLowerCase();
-          const categoryName = category.category.toLowerCase();
-          const combinedText = `${serviceName} ${categoryName}`;
-          // Match if ALL search terms are found in either service name or category
-          return searchTerms.every(term => combinedText.includes(term));
+          // All search terms must appear in the service NAME only
+          return searchTerms.every(term => serviceName.includes(term));
         })
       })).filter(cat => cat.services.length > 0);
     }

@@ -11,10 +11,9 @@ import { Loader2, ArrowLeft, CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Paystack from "@paystack/inline-js";
 import flutterwaveLogo from "@/assets/flutterwave-logo.png";
-import korapayLogo from "@/assets/korapay-logo.png";
 import paystackLogo from "@/assets/paystack-logo.png";
 
-type PaymentMethod = "korapay" | "paystack" | "flutterwave";
+type PaymentMethod = "paystack" | "flutterwave";
 
 interface PaymentMethodOption {
   id: PaymentMethod;
@@ -50,14 +49,6 @@ const paymentSections: PaymentSection[] = [
     title: "Local Payments",
     subtitle: "More payment options",
     methods: [
-      {
-        id: "korapay",
-        name: "Kora Pay",
-        description: "Pay with card, bank transfer, or USSD",
-        fee: "No fees",
-        feeCalculation: () => 0,
-        icon: <img src={korapayLogo} alt="Kora Pay" className="w-10 h-10 object-contain" width="40" height="40" loading="eager" decoding="async" />,
-      },
       {
         id: "paystack",
         name: "Paystack",
@@ -132,18 +123,6 @@ export default function AddFunds() {
         } else {
           throw new Error("No payment URL received");
         }
-      } else if (selectedMethod === "korapay") {
-        const { data, error } = await supabase.functions.invoke("initialize-korapay", {
-          body: { amount: amountNum, redirect_url },
-        });
-
-        if (error) throw error;
-
-        if (data.checkout_url) {
-          window.location.href = data.checkout_url;
-        } else {
-          throw new Error("No checkout URL received");
-        }
       } else {
         // Paystack with pre-checkout modal (supports Apple Pay on iOS/Safari)
         const { data, error } = await supabase.functions.invoke("initialize-payment", {
@@ -156,14 +135,11 @@ export default function AddFunds() {
           throw new Error("No access code received");
         }
 
-        // Use Paystack InlineJS checkout method with pre-checkout modal
-        // This automatically shows Apple Pay option on iOS devices and Safari
         const popup = new Paystack();
         await popup.checkout({
           accessCode: data.access_code,
           onSuccess: (transaction: any) => {
             console.log("Payment successful:", transaction);
-            // Redirect to dashboard after successful payment
             navigate("/dashboard");
           },
           onCancel: () => {

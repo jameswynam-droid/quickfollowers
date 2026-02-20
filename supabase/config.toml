@@ -12,8 +12,6 @@ verify_jwt = false
 [functions.initialize-payment]
 verify_jwt = true
 
-[functions.initialize-korapay]
-verify_jwt = true
 
 [functions.initialize-flutterwave]
 verify_jwt = true
@@ -45,8 +43,6 @@ verify_jwt = false
 [functions.verify-payment]
 verify_jwt = false
 
-[functions.verify-korapay]
-verify_jwt = false
 
 [functions.verify-flutterwave]
 verify_jwt = false

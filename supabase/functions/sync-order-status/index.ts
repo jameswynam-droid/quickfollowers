@@ -45,7 +45,7 @@ Deno.serve(async (req) => {
     console.log(`Found ${pendingOrders.length} pending orders to sync`);
 
     const owletApiKey = Deno.env.get('OWLET_API_KEY');
-    const followspanelApiKey = Deno.env.get('FOLLOWSPANEL_API_KEY');
+    const smmfollowsApiKey = Deno.env.get('SMMFOLLOWS_API_KEY');
 
     let updatedCount = 0;
     let refundedCount = 0;
@@ -57,7 +57,7 @@ Deno.serve(async (req) => {
       }
 
       // Determine provider from service_id
-      const provider = order.service_id.startsWith('followspanel-') ? 'followspanel' : 'owlet';
+      const provider = order.service_id.startsWith('smmfollows-') ? 'smmfollows' : 'owlet';
       
       let apiUrl: string;
       let apiKey: string | undefined;
@@ -66,8 +66,8 @@ Deno.serve(async (req) => {
         apiUrl = 'https://therealowlet.com/api/v2';
         apiKey = owletApiKey;
       } else {
-        apiUrl = 'https://followspanel.com/api/v2';
-        apiKey = followspanelApiKey;
+        apiUrl = 'https://smmfollows.io/api/v2';
+        apiKey = smmfollowsApiKey;
       }
 
       if (!apiKey) {

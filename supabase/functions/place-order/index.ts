@@ -147,9 +147,9 @@ Deno.serve(async (req) => {
     if (provider === 'owlet') {
       apiUrl = 'https://therealowlet.com/api/v2';
       apiKey = Deno.env.get('OWLET_API_KEY');
-    } else if (provider === 'followspanel') {
-      apiUrl = 'https://followspanel.com/api/v2';
-      apiKey = Deno.env.get('FOLLOWSPANEL_API_KEY');
+    } else if (provider === 'smmfollows') {
+      apiUrl = 'https://smmfollows.io/api/v2';
+      apiKey = Deno.env.get('SMMFOLLOWS_API_KEY');
     } else {
       throw new Error(`Unknown provider: ${provider}`);
     }
