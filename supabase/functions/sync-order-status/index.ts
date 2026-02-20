@@ -123,21 +123,30 @@ Deno.serve(async (req) => {
           continue;
         }
 
-        // Update order if status changed
+        // Build update data - always update start_count/remains when available
+        const updateData: any = {
+          updated_at: new Date().toISOString(),
+        };
+
+        let hasChanges = false;
+
+        // Update status if changed
         if (newStatus !== order.status) {
-          const updateData: any = {
-            status: newStatus,
-            updated_at: new Date().toISOString(),
-          };
+          updateData.status = newStatus;
+          hasChanges = true;
+        }
 
-          // Add start_count and remains if available
-          if (result.start_count) {
-            updateData.start_count = parseInt(result.start_count);
-          }
-          if (result.remains) {
-            updateData.remains = parseInt(result.remains);
-          }
+        // Always update start_count and remains if available from API
+        if (result.start_count !== undefined && result.start_count !== null) {
+          updateData.start_count = parseInt(result.start_count);
+          hasChanges = true;
+        }
+        if (result.remains !== undefined && result.remains !== null) {
+          updateData.remains = parseInt(result.remains);
+          hasChanges = true;
+        }
 
+        if (hasChanges) {
           const { error: updateError } = await supabaseClient
             .from('orders')
             .update(updateData)
@@ -146,11 +155,11 @@ Deno.serve(async (req) => {
           if (updateError) {
             console.error(`Error updating order ${order.id}:`, updateError);
           } else {
-            console.log(`Order ${order.id} status updated: ${order.status} -> ${newStatus}`);
+            console.log(`Order ${order.id} updated: status=${newStatus}, remains=${result.remains}, start_count=${result.start_count}`);
             updatedCount++;
 
             // Process refund for cancelled or failed orders
-            if (newStatus === 'cancelled' || newStatus === 'failed') {
+            if (newStatus !== order.status && (newStatus === 'cancelled' || newStatus === 'failed')) {
               await processRefund(supabaseClient, order);
               refundedCount++;
             }

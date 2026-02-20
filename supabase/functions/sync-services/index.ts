@@ -1072,7 +1072,9 @@ function cleanServiceName(name: string): string {
     .replace(/\bSmmfollows\b/gi, 'QuickFollowers')
     .replace(/\bOwlet's\b/gi, "QuickFollowers'")
     .replace(/\bFollowspanel's\b/gi, "QuickFollowers'")
-    .replace(/\bSmmfollows's\b/gi, "QuickFollowers'");
+    .replace(/\bSmmfollows's\b/gi, "QuickFollowers'")
+    .replace(/\bcostume\s+comment/gi, 'Custom Comment')
+    .replace(/\bcostume\b/gi, 'Custom');
 }
 
 // Decode common HTML entities to their actual characters
@@ -1386,50 +1388,54 @@ Deno.serve(async (req) => {
     const servicesToDelete = existingServiceIds.filter(id => !currentServiceIds.has(id));
     console.log(`Services to potentially delete: ${servicesToDelete.length}`);
 
-    // Safety check: Don't delete more than 20% of existing services in one sync
+    // Separate deletions into two buckets:
+    // 1. Services from removed/replaced providers (allow full deletion)
+    // 2. Services from active providers (apply 20% safety limit)
+    const activeProviderPrefixes = providers.map(p => `${p.name}-`);
+    const removedProviderDeletions = servicesToDelete.filter(
+      id => !activeProviderPrefixes.some(prefix => id.startsWith(prefix))
+    );
+    const activeProviderDeletions = servicesToDelete.filter(
+      id => activeProviderPrefixes.some(prefix => id.startsWith(prefix))
+    );
+
+    console.log(`Deletions from removed providers: ${removedProviderDeletions.length}`);
+    console.log(`Deletions from active providers: ${activeProviderDeletions.length}`);
+
+    // Safety check only for active provider deletions
     const maxDeletePercentage = 0.2;
-    const maxDeletions = Math.floor(existingServiceIds.length * maxDeletePercentage);
+    const maxActiveDeletions = Math.floor(existingServiceIds.length * maxDeletePercentage);
     
     let deletedCount = 0;
     const skippedDeletions: string[] = [];
 
-    if (servicesToDelete.length > maxDeletions && existingServiceIds.length > 100) {
-      console.warn(`WARNING: Attempting to delete ${servicesToDelete.length} services (>${maxDeletePercentage * 100}% of ${existingServiceIds.length}). Limiting to ${maxDeletions} deletions for safety.`);
+    // Always allow deletion of removed provider services
+    const toDelete = [
+      ...removedProviderDeletions,
+      ...(activeProviderDeletions.length > maxActiveDeletions && existingServiceIds.length > 100
+        ? activeProviderDeletions.slice(0, maxActiveDeletions)
+        : activeProviderDeletions)
+    ];
+
+    if (activeProviderDeletions.length > maxActiveDeletions && existingServiceIds.length > 100) {
+      console.warn(`WARNING: Active provider deletions (${activeProviderDeletions.length}) exceed safety limit (${maxActiveDeletions}). Limiting active provider deletions.`);
+    }
+
+    for (const serviceId of toDelete) {
+      const { error: delError } = await supabaseClient
+        .from('services')
+        .delete()
+        .eq('id', serviceId);
       
-      for (const serviceId of servicesToDelete.slice(0, maxDeletions)) {
-        const { error: delError } = await supabaseClient
-          .from('services')
-          .delete()
-          .eq('id', serviceId);
-        
-        if (delError) {
-          if (delError.code === '23503') {
-            console.log(`Skipping delete for ${serviceId} - referenced by orders`);
-            skippedDeletions.push(serviceId);
-          } else {
-            console.error(`Error deleting service ${serviceId}:`, delError);
-          }
+      if (delError) {
+        if (delError.code === '23503') {
+          console.log(`Skipping delete for ${serviceId} - referenced by orders`);
+          skippedDeletions.push(serviceId);
         } else {
-          deletedCount++;
+          console.error(`Error deleting service ${serviceId}:`, delError);
         }
-      }
-    } else {
-      for (const serviceId of servicesToDelete) {
-        const { error: delError } = await supabaseClient
-          .from('services')
-          .delete()
-          .eq('id', serviceId);
-        
-        if (delError) {
-          if (delError.code === '23503') {
-            console.log(`Skipping delete for ${serviceId} - referenced by orders`);
-            skippedDeletions.push(serviceId);
-          } else {
-            console.error(`Error deleting service ${serviceId}:`, delError);
-          }
-        } else {
-          deletedCount++;
-        }
+      } else {
+        deletedCount++;
       }
     }
     
