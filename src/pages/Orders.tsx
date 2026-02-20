@@ -230,7 +230,6 @@ const Orders = () => {
                 <SelectItem value="completed">Completed</SelectItem>
                 <SelectItem value="partial">Partial</SelectItem>
                 <SelectItem value="cancelled">Cancelled</SelectItem>
-                <SelectItem value="failed">Failed</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -324,7 +323,7 @@ const Orders = () => {
                               </Badge>
                             </TableCell>
                             <TableCell className="whitespace-nowrap">
-                              {order.services?.provider === 'owlet' && 
+                              {(order.services?.provider === 'owlet' || order.services?.provider === 'smmfollows') && 
                                (order.status === 'completed' || order.status === 'cancelled') && (
                                 <Button
                                   variant="outline"
