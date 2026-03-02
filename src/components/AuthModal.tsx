@@ -3,7 +3,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { PasswordInput } from "@/components/PasswordInput";
-import { Check, X } from "lucide-react";
+import { Check, X, Loader2 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -13,15 +14,19 @@ interface AuthModalProps {
   onSubmit: (data: any) => void;
 }
 
+const RESERVED_USERNAMES = ['admin', 'root', 'support', 'moderator', 'api', 'system', 'official', 'help'];
+
 const AuthModal = ({ isOpen, type, onClose, onSwitch, onSubmit }: AuthModalProps) => {
   const [formData, setFormData] = useState({
     fullName: "",
+    username: "",
     email: "",
     password: "",
     confirmPassword: "",
   });
 
   const [showPasswordRequirements, setShowPasswordRequirements] = useState(false);
+  const [usernameStatus, setUsernameStatus] = useState<'idle' | 'checking' | 'available' | 'taken' | 'invalid' | 'reserved'>('idle');
 
   // Password validation checks
   const hasMinLength = formData.password.length >= 8;
@@ -42,21 +47,65 @@ const AuthModal = ({ isOpen, type, onClose, onSwitch, onSubmit }: AuthModalProps
     };
   }, [isOpen]);
 
+  // Real-time username validation
+  useEffect(() => {
+    const username = formData.username;
+    if (!username || username.length < 4) {
+      setUsernameStatus(username.length > 0 ? 'invalid' : 'idle');
+      return;
+    }
+    if (!/^[a-z0-9_]+$/i.test(username) || username.length > 20) {
+      setUsernameStatus('invalid');
+      return;
+    }
+    if (RESERVED_USERNAMES.includes(username.toLowerCase())) {
+      setUsernameStatus('reserved');
+      return;
+    }
+
+    setUsernameStatus('checking');
+    const timer = setTimeout(async () => {
+      try {
+        const { data } = await supabase.rpc('check_username_available', {
+          requested_username: username
+        });
+        setUsernameStatus(data ? 'available' : 'taken');
+      } catch {
+        setUsernameStatus('idle');
+      }
+    }, 400);
+
+    return () => clearTimeout(timer);
+  }, [formData.username]);
+
   if (!isOpen) return null;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
     if (type === "signup") {
-      if (!isPasswordValid) {
-        return;
-      }
-      if (formData.password !== formData.confirmPassword) {
-        return;
-      }
+      if (!isPasswordValid) return;
+      if (formData.password !== formData.confirmPassword) return;
+      if (usernameStatus !== 'available') return;
     }
     
     onSubmit(formData);
+  };
+
+  const getUsernameStatusUI = () => {
+    if (usernameStatus === 'idle' || !formData.username) return null;
+    switch (usernameStatus) {
+      case 'checking':
+        return <div className="flex items-center gap-2 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" /><span>Checking...</span></div>;
+      case 'available':
+        return <div className="flex items-center gap-2 text-sm text-green-500"><Check className="h-4 w-4" /><span>Available</span></div>;
+      case 'taken':
+        return <div className="flex items-center gap-2 text-sm text-destructive"><X className="h-4 w-4" /><span>Username already exists</span></div>;
+      case 'reserved':
+        return <div className="flex items-center gap-2 text-sm text-destructive"><X className="h-4 w-4" /><span>This username is reserved</span></div>;
+      case 'invalid':
+        return <div className="flex items-center gap-2 text-sm text-destructive"><X className="h-4 w-4" /><span>4-20 chars, letters, numbers & _ only</span></div>;
+    }
   };
 
   const RequirementItem = ({ met, text }: { met: boolean; text: string }) => (
@@ -72,14 +121,12 @@ const AuthModal = ({ isOpen, type, onClose, onSwitch, onSubmit }: AuthModalProps
 
   return (
     <>
-      {/* Backdrop */}
       <div
         className="fixed inset-0 bg-black/60 z-50 animate-in fade-in duration-300"
         onClick={onClose}
       />
 
-      {/* Modal */}
-      <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[90%] max-w-md bg-card rounded-2xl p-7 z-50 shadow-2xl animate-in zoom-in-95 duration-300">
+      <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[90%] max-w-md bg-card rounded-2xl p-7 z-50 shadow-2xl animate-in zoom-in-95 duration-300 max-h-[90vh] overflow-y-auto">
         <button
           onClick={onClose}
           className="absolute top-3 right-3 text-muted-foreground hover:text-foreground transition"
@@ -105,6 +152,25 @@ const AuthModal = ({ isOpen, type, onClose, onSwitch, onSubmit }: AuthModalProps
                 onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
                 className="mt-1"
               />
+            </div>
+          )}
+
+          {type === "signup" && (
+            <div>
+              <Label htmlFor="username" className="text-sm font-medium mb-1">
+                Username
+              </Label>
+              <Input
+                id="username"
+                type="text"
+                required
+                maxLength={20}
+                value={formData.username}
+                onChange={(e) => setFormData({ ...formData, username: e.target.value.replace(/[^a-zA-Z0-9_]/g, '') })}
+                placeholder="your_username"
+                className="mt-1"
+              />
+              <div className="mt-1">{getUsernameStatusUI()}</div>
             </div>
           )}
 
@@ -178,7 +244,7 @@ const AuthModal = ({ isOpen, type, onClose, onSwitch, onSubmit }: AuthModalProps
           <Button 
             type="submit" 
             className="w-full"
-            disabled={type === "signup" && (!isPasswordValid || !passwordsMatch)}
+            disabled={type === "signup" && (!isPasswordValid || !passwordsMatch || usernameStatus !== 'available')}
           >
             {type === "login" ? "Login" : "Create Account"}
           </Button>

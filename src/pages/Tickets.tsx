@@ -219,8 +219,7 @@ const Tickets = () => {
       setNewMessage("");
       setAttachment(null);
       await fetchMessages(selectedTicket.id);
-      
-      // Refresh tickets to update timestamp
+      await markTicketAsRead(selectedTicket.id);
       await fetchTickets(user.id);
     } catch (error: any) {
       console.error("Error sending message:", error);
@@ -230,9 +229,24 @@ const Tickets = () => {
     }
   };
 
+  const markTicketAsRead = async (ticketId: string) => {
+    if (!user) return;
+    try {
+      await supabase
+        .from("ticket_reads")
+        .upsert(
+          { user_id: user.id, ticket_id: ticketId, last_read_at: new Date().toISOString() },
+          { onConflict: "user_id,ticket_id" }
+        );
+    } catch (error) {
+      console.error("Error marking ticket as read:", error);
+    }
+  };
+
   const openTicket = async (ticket: Ticket) => {
     setSelectedTicket(ticket);
     await fetchMessages(ticket.id);
+    await markTicketAsRead(ticket.id);
   };
 
   const getStatusColor = (status: string) => {

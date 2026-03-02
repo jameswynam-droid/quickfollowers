@@ -10,7 +10,7 @@ const BATCH_SIZE = 500;
 
 // Define which columns to sync per table (must match external DB schema)
 const TABLE_COLUMNS: Record<string, string> = {
-  profiles: 'id, full_name, email, balance, created_at, updated_at',
+  profiles: 'id, full_name, email, balance, username, created_at, updated_at',
   services: 'id, name, category, type, rate, min_order, max_order, description, provider, created_at, updated_at',
   orders: 'id, user_id, service_id, link, quantity, charge, status, api_order_id, start_count, remains, created_at, updated_at',
   transactions: 'id, user_id, type, amount, balance_after, description, reference_id, created_at',

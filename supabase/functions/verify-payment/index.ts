@@ -47,9 +47,7 @@ serve(async (req) => {
 
     const transaction = paystackData.data;
     
-    // Get redirect URL from metadata or use production domain
     const redirectUrl = transaction.metadata?.redirect_url || 'https://quickfollowers.online';
-    console.log('Using redirect URL:', redirectUrl);
 
     if (transaction.status !== 'success') {
       console.log('Payment not successful:', transaction.status);
@@ -61,19 +59,35 @@ serve(async (req) => {
       });
     }
 
-    // Use service role key to update database
     const supabaseAdmin = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
     const userId = transaction.metadata.user_id;
-    const baseAmount = transaction.metadata.base_amount || (transaction.amount / 100); // Use base amount from metadata
-    const totalPaid = transaction.amount / 100; // Convert from kobo to naira
+    const baseAmount = transaction.metadata.base_amount || (transaction.amount / 100);
+    const totalPaid = transaction.amount / 100;
+
+    // DUPLICATE PREVENTION: Check if this reference was already processed
+    const { data: existingTx } = await supabaseAdmin
+      .from('transactions')
+      .select('id')
+      .eq('reference_id', reference)
+      .eq('type', 'deposit')
+      .maybeSingle();
+
+    if (existingTx) {
+      console.log('Payment already processed for reference:', reference);
+      return new Response(null, {
+        status: 302,
+        headers: {
+          'Location': `${redirectUrl}/payment/success?reference=${encodeURIComponent(reference)}`,
+        },
+      });
+    }
 
     console.log('Processing payment for user:', userId, 'Amount:', baseAmount);
 
-    // Get current balance
     const { data: profile, error: profileError } = await supabaseAdmin
       .from('profiles')
       .select('balance')
@@ -90,14 +104,8 @@ serve(async (req) => {
       });
     }
 
-    console.log('Current balance:', profile.balance);
-
-    // Credit the base amount to user (not including fees)
     const newBalance = Number(profile.balance) + Number(baseAmount);
 
-    console.log('New balance will be:', newBalance);
-
-    // Update user balance
     const { error: updateError } = await supabaseAdmin
       .from('profiles')
       .update({ balance: newBalance })
@@ -113,9 +121,7 @@ serve(async (req) => {
       });
     }
 
-    console.log('Balance updated successfully');
-
-    // Create transaction record
+    // Create transaction record with payment method and reference
     const { error: transactionError } = await supabaseAdmin
       .from('transactions')
       .insert({
@@ -123,8 +129,9 @@ serve(async (req) => {
         type: 'deposit',
         amount: baseAmount,
         balance_after: newBalance,
-        description: `Paystack deposit - ${reference} (Paid: ₦${totalPaid.toFixed(2)})`,
-        reference_id: null,
+        description: `Paystack deposit (Paid: ₦${totalPaid.toFixed(2)})`,
+        reference_id: reference,
+        payment_method: 'paystack',
       });
 
     if (transactionError) {
@@ -132,16 +139,9 @@ serve(async (req) => {
     }
 
     console.log('Payment verified and balance updated:', {
-      userId,
-      baseAmount,
-      totalPaid,
-      newBalance,
-      reference,
+      userId, baseAmount, totalPaid, newBalance, reference,
     });
 
-    console.log('Redirecting to:', `${redirectUrl}/payment/success`);
-
-    // Redirect to a success confirmation page (then auto-redirects to dashboard)
     return new Response(null, {
       status: 302,
       headers: {

@@ -19,9 +19,7 @@ Deno.serve(async (req: Request) => {
 
     console.log("Flutterwave callback:", { txRef, transactionId, status });
 
-    // Handle cancelled/failed payments before API verification
     if (status === "cancelled") {
-      console.log("Payment cancelled by user");
       return new Response(null, {
         status: 302,
         headers: {
@@ -31,7 +29,6 @@ Deno.serve(async (req: Request) => {
     }
 
     if (!transactionId) {
-      console.log("No transaction ID - payment may have failed");
       return new Response(null, {
         status: 302,
         headers: {
@@ -40,11 +37,8 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    // Verify transaction with Flutterwave API
     const flutterwaveSecretKey = Deno.env.get("FLUTTERWAVE_SECRET_KEY");
-    if (!flutterwaveSecretKey) {
-      throw new Error("Flutterwave secret key not configured");
-    }
+    if (!flutterwaveSecretKey) throw new Error("Flutterwave secret key not configured");
 
     const verifyResponse = await fetch(
       `https://api.flutterwave.com/v3/transactions/${transactionId}/verify`,
@@ -58,10 +52,8 @@ Deno.serve(async (req: Request) => {
     );
 
     const verifyData = await verifyResponse.json();
-    console.log("Flutterwave verification response:", verifyData);
 
     if (!verifyResponse.ok || verifyData.status !== "success") {
-      console.error("Flutterwave verification error:", verifyData);
       return new Response(null, {
         status: 302,
         headers: {
@@ -72,9 +64,7 @@ Deno.serve(async (req: Request) => {
 
     const transaction = verifyData.data;
 
-    // Check if transaction was successful
     if (transaction.status !== "successful") {
-      console.log("Payment not successful:", transaction.status);
       return new Response(null, {
         status: 302,
         headers: {
@@ -83,9 +73,7 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    // Verify tx_ref matches
     if (transaction.tx_ref !== txRef) {
-      console.error("Transaction reference mismatch:", { expected: txRef, got: transaction.tx_ref });
       return new Response(null, {
         status: 302,
         headers: {
@@ -94,7 +82,6 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    // Use service role key to update database
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
@@ -103,7 +90,6 @@ Deno.serve(async (req: Request) => {
     const baseAmount = transaction.meta?.base_amount || transaction.amount;
 
     if (!userId) {
-      console.error("No user_id in transaction metadata");
       return new Response(null, {
         status: 302,
         headers: {
@@ -112,9 +98,24 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    console.log("Processing payment for user:", userId, "Amount:", baseAmount);
+    // DUPLICATE PREVENTION: Check if this tx_ref was already processed
+    const { data: existingTx } = await supabaseAdmin
+      .from("transactions")
+      .select("id")
+      .eq("reference_id", txRef)
+      .eq("type", "deposit")
+      .maybeSingle();
 
-    // Get current balance
+    if (existingTx) {
+      console.log("Payment already processed for tx_ref:", txRef);
+      return new Response(null, {
+        status: 302,
+        headers: {
+          "Location": `${origin}/payment/success?reference=${encodeURIComponent(txRef || "")}`,
+        },
+      });
+    }
+
     const { data: profile, error: profileError } = await supabaseAdmin
       .from("profiles")
       .select("balance")
@@ -122,7 +123,6 @@ Deno.serve(async (req: Request) => {
       .single();
 
     if (profileError || !profile) {
-      console.error("Profile fetch error:", profileError);
       return new Response(null, {
         status: 302,
         headers: {
@@ -131,21 +131,14 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    console.log("Current balance:", profile.balance);
-
-    // Credit the base amount to user
     const newBalance = Number(profile.balance) + Number(baseAmount);
 
-    console.log("New balance will be:", newBalance);
-
-    // Update user balance
     const { error: updateError } = await supabaseAdmin
       .from("profiles")
       .update({ balance: newBalance })
       .eq("id", userId);
 
     if (updateError) {
-      console.error("Balance update error:", updateError);
       return new Response(null, {
         status: 302,
         headers: {
@@ -154,9 +147,7 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    console.log("Balance updated successfully");
-
-    // Create transaction record
+    // Create transaction record with payment method and reference
     const { error: transactionError } = await supabaseAdmin
       .from("transactions")
       .insert({
@@ -164,23 +155,15 @@ Deno.serve(async (req: Request) => {
         type: "deposit",
         amount: baseAmount,
         balance_after: newBalance,
-        description: `Flutterwave deposit - ${txRef}`,
-        reference_id: null,
+        description: `Flutterwave deposit`,
+        reference_id: txRef,
+        payment_method: "flutterwave",
       });
 
     if (transactionError) {
       console.error("Transaction record error:", transactionError);
     }
 
-    console.log("Payment verified and balance updated:", {
-      userId,
-      baseAmount,
-      newBalance,
-      txRef,
-      transactionId,
-    });
-
-    // Redirect to success page
     return new Response(null, {
       status: 302,
       headers: {

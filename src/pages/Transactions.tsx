@@ -13,7 +13,7 @@ import { format } from "date-fns";
 import { useNoIndex } from "@/hooks/useNoIndex";
 
 const Transactions = () => {
-  useNoIndex(); // Prevent search engine indexing
+  useNoIndex();
   const [user, setUser] = useState<any>(null);
   const [transactions, setTransactions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -74,6 +74,24 @@ const Transactions = () => {
     return `+₦${parseFloat(String(amount)).toFixed(2)}`;
   };
 
+  const getPaymentMethodLabel = (tx: any) => {
+    if (tx.type === 'refund') return null;
+    const method = tx.payment_method;
+    if (method === 'paystack') return <Badge variant="outline" className="text-[10px] px-1.5">Paystack</Badge>;
+    if (method === 'flutterwave') return <Badge variant="outline" className="text-[10px] px-1.5">Flutterwave</Badge>;
+    return <Badge variant="outline" className="text-[10px] px-1.5">N/A</Badge>;
+  };
+
+  const getTransactionId = (tx: any) => {
+    if (tx.type === 'deposit') {
+      return tx.short_id ? `#${tx.short_id}` : '—';
+    }
+    if (tx.type === 'refund') {
+      return tx.reference_id ? `#${tx.reference_id}` : '—';
+    }
+    return '—';
+  };
+
   if (loading) {
     return <FullPageLoader message="Loading transactions..." />;
   }
@@ -108,7 +126,8 @@ const Transactions = () => {
                   <TableHeader>
                     <TableRow>
                       <TableHead className="text-xs sm:text-sm">Type</TableHead>
-                      <TableHead className="text-xs sm:text-sm hidden sm:table-cell">Description</TableHead>
+                      <TableHead className="text-xs sm:text-sm">ID</TableHead>
+                      <TableHead className="text-xs sm:text-sm hidden sm:table-cell">Method</TableHead>
                       <TableHead className="text-xs sm:text-sm">Amount</TableHead>
                       <TableHead className="text-xs sm:text-sm hidden md:table-cell">Balance</TableHead>
                       <TableHead className="text-xs sm:text-sm">Date</TableHead>
@@ -123,8 +142,11 @@ const Transactions = () => {
                             {getTypeBadge(tx.type)}
                           </div>
                         </TableCell>
-                        <TableCell className="text-xs sm:text-sm max-w-[200px] truncate hidden sm:table-cell">
-                          {tx.description}
+                        <TableCell className="text-xs sm:text-sm font-mono">
+                          {getTransactionId(tx)}
+                        </TableCell>
+                        <TableCell className="hidden sm:table-cell">
+                          {getPaymentMethodLabel(tx)}
                         </TableCell>
                         <TableCell className="text-green-500 text-xs sm:text-sm font-medium whitespace-nowrap">
                           {formatAmount(tx.amount)}
