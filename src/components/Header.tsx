@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { NotificationBell } from "@/components/NotificationBell";
 import { CurrencySelector } from "@/components/CurrencySelector";
+import { useUnreadTickets } from "@/hooks/useUnreadTickets";
 import logoImg from "@/assets/logo.png";
 
 interface HeaderProps {
@@ -15,17 +16,19 @@ interface HeaderProps {
 const Header = ({ onAuthClick }: HeaderProps) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [userId, setUserId] = useState<string | null>(null);
   const navigate = useNavigate();
+  const { unreadCount } = useUnreadTickets(userId);
 
   useEffect(() => {
-    // Check current auth state
     supabase.auth.getSession().then(({ data: { session } }) => {
       setIsAuthenticated(!!session);
+      setUserId(session?.user?.id || null);
     });
 
-    // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_, session) => {
       setIsAuthenticated(!!session);
+      setUserId(session?.user?.id || null);
     });
 
     return () => subscription.unsubscribe();
@@ -35,12 +38,28 @@ const Header = ({ onAuthClick }: HeaderProps) => {
     try {
       await supabase.auth.signOut();
       setIsAuthenticated(false);
+      setUserId(null);
       toast.success("Logged out successfully");
       navigate("/");
     } catch (error) {
       toast.error("Failed to log out");
     }
   };
+
+  const TicketLink = ({ className, onClick, children }: { className?: string; onClick?: () => void; children?: React.ReactNode }) => (
+    <Link
+      to="/tickets"
+      className={className}
+      onClick={onClick}
+    >
+      {children || "Tickets"}
+      {unreadCount > 0 && (
+        <span className="ml-1.5 inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 text-[11px] font-bold rounded-full bg-yellow-500 text-yellow-950">
+          {unreadCount}
+        </span>
+      )}
+    </Link>
+  );
 
   return (
     <header className="sticky top-0 z-50 glass-effect shadow-lg border-b">
@@ -74,9 +93,7 @@ const Header = ({ onAuthClick }: HeaderProps) => {
               <Link to="/orders" className="text-foreground/80 hover:text-primary transition">
                 Orders
               </Link>
-              <Link to="/tickets" className="text-foreground/80 hover:text-primary transition">
-                Tickets
-              </Link>
+              <TicketLink className="text-foreground/80 hover:text-primary transition inline-flex items-center" />
               <a
                 href="https://wa.me/+2348071365600?text=Hello%20QuickFollowers"
                 target="_blank"
@@ -180,13 +197,10 @@ const Header = ({ onAuthClick }: HeaderProps) => {
               >
                 Transactions
               </Link>
-              <Link
-                to="/tickets"
-                className="block py-2 text-foreground/80 hover:text-primary"
+              <TicketLink
+                className="block py-2 text-foreground/80 hover:text-primary inline-flex items-center"
                 onClick={() => setMobileMenuOpen(false)}
-              >
-                Tickets
-              </Link>
+              />
               <Link
                 to="/add-funds"
                 className="block py-2 text-foreground/80 hover:text-primary font-medium text-primary"

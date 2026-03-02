@@ -337,6 +337,7 @@ export type Database = {
           full_name: string | null
           id: string
           updated_at: string
+          username: string | null
         }
         Insert: {
           balance?: number
@@ -345,6 +346,7 @@ export type Database = {
           full_name?: string | null
           id: string
           updated_at?: string
+          username?: string | null
         }
         Update: {
           balance?: number
@@ -353,6 +355,7 @@ export type Database = {
           full_name?: string | null
           id?: string
           updated_at?: string
+          username?: string | null
         }
         Relationships: []
       }
@@ -446,6 +449,35 @@ export type Database = {
           },
         ]
       }
+      ticket_reads: {
+        Row: {
+          id: string
+          last_read_at: string
+          ticket_id: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          last_read_at?: string
+          ticket_id: string
+          user_id: string
+        }
+        Update: {
+          id?: string
+          last_read_at?: string
+          ticket_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ticket_reads_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: false
+            referencedRelation: "tickets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tickets: {
         Row: {
           created_at: string
@@ -491,7 +523,9 @@ export type Database = {
           created_at: string
           description: string
           id: string
+          payment_method: string | null
           reference_id: string | null
+          short_id: string | null
           type: string
           user_id: string
         }
@@ -501,7 +535,9 @@ export type Database = {
           created_at?: string
           description: string
           id?: string
+          payment_method?: string | null
           reference_id?: string | null
+          short_id?: string | null
           type: string
           user_id: string
         }
@@ -511,7 +547,9 @@ export type Database = {
           created_at?: string
           description?: string
           id?: string
+          payment_method?: string | null
           reference_id?: string | null
+          short_id?: string | null
           type?: string
           user_id?: string
         }
@@ -559,6 +597,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      check_username_available: {
+        Args: { requested_username: string }
+        Returns: boolean
+      }
       cleanup_expired_otps: { Args: never; Returns: undefined }
       has_role: {
         Args: {

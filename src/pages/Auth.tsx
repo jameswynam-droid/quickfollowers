@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,13 +8,15 @@ import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp
 import { PasswordInput } from "@/components/PasswordInput";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Check, X } from "lucide-react";
+import { Check, X, Loader2 } from "lucide-react";
 import { useNoIndex } from "@/hooks/useNoIndex";
 
 type AuthMode = 'login' | 'signup' | 'forgot-password' | 'verify-otp' | 'new-password' | 'signup-verify-otp';
 
+const RESERVED_USERNAMES = ['admin', 'root', 'support', 'moderator', 'api', 'system', 'official', 'help'];
+
 const Auth = () => {
-  useNoIndex(); // Prevent search engine indexing
+  useNoIndex();
   const urlParams = new URLSearchParams(window.location.search);
   const mode = urlParams.get('mode');
   const [authMode, setAuthMode] = useState<AuthMode>(mode === 'signup' ? 'signup' : 'login');
@@ -22,6 +24,8 @@ const Auth = () => {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [fullName, setFullName] = useState("");
+  const [username, setUsername] = useState("");
+  const [usernameStatus, setUsernameStatus] = useState<'idle' | 'checking' | 'available' | 'taken' | 'invalid' | 'reserved'>('idle');
   const [otp, setOtp] = useState("");
   const [loading, setLoading] = useState(false);
   const [resendCooldown, setResendCooldown] = useState(0);
@@ -35,6 +39,10 @@ const Auth = () => {
   const hasNumber = /[0-9]/.test(password);
   const passwordsMatch = password === confirmPassword && confirmPassword.length > 0;
   const isPasswordValid = hasMinLength && hasUppercase && hasLowercase && hasNumber;
+
+  // Username validation
+  const isUsernameFormatValid = /^[a-z0-9_]{4,20}$/i.test(username);
+  const isUsernameReserved = RESERVED_USERNAMES.includes(username.toLowerCase());
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -59,6 +67,44 @@ const Auth = () => {
       return () => clearTimeout(timer);
     }
   }, [resendCooldown]);
+
+  // Real-time username validation with debounce
+  useEffect(() => {
+    if (!username || username.length < 4) {
+      setUsernameStatus(username.length > 0 ? 'invalid' : 'idle');
+      return;
+    }
+    
+    if (!/^[a-z0-9_]+$/i.test(username)) {
+      setUsernameStatus('invalid');
+      return;
+    }
+
+    if (username.length > 20) {
+      setUsernameStatus('invalid');
+      return;
+    }
+
+    if (RESERVED_USERNAMES.includes(username.toLowerCase())) {
+      setUsernameStatus('reserved');
+      return;
+    }
+
+    setUsernameStatus('checking');
+    const timer = setTimeout(async () => {
+      try {
+        const { data, error } = await supabase.rpc('check_username_available', {
+          requested_username: username
+        });
+        if (error) throw error;
+        setUsernameStatus(data ? 'available' : 'taken');
+      } catch {
+        setUsernameStatus('idle');
+      }
+    }, 400);
+
+    return () => clearTimeout(timer);
+  }, [username]);
 
   const [rateLimitMessage, setRateLimitMessage] = useState("");
 
@@ -147,7 +193,17 @@ const Auth = () => {
 
     try {
       if (authMode === 'signup') {
-        // Validate password BEFORE sending OTP
+        // Validate username
+        if (!username || !isUsernameFormatValid) {
+          throw new Error("Username must be 4-20 characters, using only letters, numbers, and underscores");
+        }
+        if (isUsernameReserved) {
+          throw new Error("This username is reserved. Please choose another.");
+        }
+        if (usernameStatus === 'taken') {
+          throw new Error("Username already exists. Please use another username.");
+        }
+
         if (!isPasswordValid) {
           throw new Error("Password must be at least 8 characters with uppercase, lowercase, and a number");
         }
@@ -156,7 +212,7 @@ const Auth = () => {
           throw new Error("Passwords do not match");
         }
         
-        // First check if email already exists
+        // Check if email already exists
         const { data: existingUsers } = await supabase
           .from('profiles')
           .select('email')
@@ -166,8 +222,16 @@ const Auth = () => {
         if (existingUsers) {
           throw new Error("An account with this email already exists. Please sign in instead.");
         }
+
+        // Double-check username availability
+        const { data: usernameAvailable } = await supabase.rpc('check_username_available', {
+          requested_username: username
+        });
+        if (!usernameAvailable) {
+          throw new Error("Username already exists. Please use another username.");
+        }
         
-        // Send OTP for email verification before creating account
+        // Send OTP for email verification
         await sendOTP(email, 'email_verification');
         toast.success("Verification code sent to your email!");
         setAuthMode('signup-verify-otp');
@@ -179,13 +243,13 @@ const Auth = () => {
         
         await verifyOTP(email, otp, 'email_verification');
         
-        // Now create the account after email verification
         const { data, error } = await supabase.auth.signUp({
           email,
           password,
           options: {
             data: {
               full_name: fullName,
+              username: username,
               email_verified: true,
             },
           },
@@ -287,6 +351,8 @@ const Auth = () => {
     setOtp("");
     setPassword("");
     setConfirmPassword("");
+    setUsername("");
+    setUsernameStatus('idle');
     setResendCooldown(0);
     setRateLimitMessage("");
     setShowPasswordRequirements(false);
@@ -306,12 +372,54 @@ const Auth = () => {
   const isSubmitDisabled = () => {
     if (loading) return true;
     if (authMode === 'signup') {
-      return !isPasswordValid || !passwordsMatch;
+      return !isPasswordValid || !passwordsMatch || usernameStatus !== 'available';
     }
     if (authMode === 'new-password') {
       return !isPasswordValid || !passwordsMatch;
     }
     return false;
+  };
+
+  const getUsernameStatusUI = () => {
+    if (usernameStatus === 'idle' || !username) return null;
+    
+    switch (usernameStatus) {
+      case 'checking':
+        return (
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            <span>Checking availability...</span>
+          </div>
+        );
+      case 'available':
+        return (
+          <div className="flex items-center gap-2 text-sm text-green-500">
+            <Check className="h-4 w-4" />
+            <span>Available</span>
+          </div>
+        );
+      case 'taken':
+        return (
+          <div className="flex items-center gap-2 text-sm text-destructive">
+            <X className="h-4 w-4" />
+            <span>Username already exists, please use another username</span>
+          </div>
+        );
+      case 'reserved':
+        return (
+          <div className="flex items-center gap-2 text-sm text-destructive">
+            <X className="h-4 w-4" />
+            <span>This username is reserved</span>
+          </div>
+        );
+      case 'invalid':
+        return (
+          <div className="flex items-center gap-2 text-sm text-destructive">
+            <X className="h-4 w-4" />
+            <span>4-20 characters, letters, numbers & underscore only</span>
+          </div>
+        );
+    }
   };
 
   return (
@@ -349,6 +457,25 @@ const Auth = () => {
                   placeholder="John Doe"
                   required
                 />
+              </div>
+            )}
+
+            {/* Username - only for signup */}
+            {authMode === 'signup' && (
+              <div className="space-y-2">
+                <Label htmlFor="username">Username</Label>
+                <Input
+                  id="username"
+                  type="text"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value.replace(/[^a-zA-Z0-9_]/g, ''))}
+                  placeholder="your_username"
+                  maxLength={20}
+                  required
+                />
+                <div className="mt-1">
+                  {getUsernameStatusUI()}
+                </div>
               </div>
             )}
 
