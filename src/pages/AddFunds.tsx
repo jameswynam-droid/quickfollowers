@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
@@ -9,7 +9,6 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2, ArrowLeft, CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import Paystack from "@paystack/inline-js";
 import flutterwaveLogo from "@/assets/flutterwave-logo.png";
 import paystackLogo from "@/assets/paystack-logo.png";
 
@@ -124,49 +123,19 @@ export default function AddFunds() {
           throw new Error("No payment URL received");
         }
       } else {
-        // Paystack with pre-checkout modal (supports Apple Pay on iOS/Safari)
+        // Paystack hosted checkout (full redirect to paystack.com)
         const { data, error } = await supabase.functions.invoke("initialize-payment", {
           body: { amount: amountNum, redirect_url },
         });
 
         if (error) throw error;
 
-        if (!data.access_code) {
-          throw new Error("No access code received");
+        if (!data.authorization_url) {
+          throw new Error("No checkout URL received");
         }
 
-        const popup = new Paystack();
-        await popup.checkout({
-          accessCode: data.access_code,
-          onSuccess: async (transaction: any) => {
-            console.log("Payment successful:", transaction);
-            try {
-              // Verify payment and credit balance via edge function
-              const verifyUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/verify-payment?reference=${encodeURIComponent(data.reference)}`;
-              await fetch(verifyUrl, { redirect: 'manual' });
-            } catch (e) {
-              console.log("Verify call sent:", e);
-            }
-            navigate("/dashboard");
-          },
-          onCancel: () => {
-            console.log("Payment cancelled");
-            setLoading(false);
-            toast({
-              title: "Payment Cancelled",
-              description: "You cancelled the payment process.",
-            });
-          },
-          onError: (error: any) => {
-            console.error("Payment error:", error);
-            setLoading(false);
-            toast({
-              title: "Payment Error",
-              description: "An error occurred during payment. Please try again.",
-              variant: "destructive",
-            });
-          },
-        });
+        window.location.href = data.authorization_url;
+        return;
       }
     } catch (error: any) {
       console.error("Error initializing payment:", error);
