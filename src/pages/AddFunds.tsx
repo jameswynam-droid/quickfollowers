@@ -138,8 +138,15 @@ export default function AddFunds() {
         const popup = new Paystack();
         await popup.checkout({
           accessCode: data.access_code,
-          onSuccess: (transaction: any) => {
+          onSuccess: async (transaction: any) => {
             console.log("Payment successful:", transaction);
+            try {
+              // Verify payment and credit balance via edge function
+              const verifyUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/verify-payment?reference=${encodeURIComponent(data.reference)}`;
+              await fetch(verifyUrl, { redirect: 'manual' });
+            } catch (e) {
+              console.log("Verify call sent:", e);
+            }
             navigate("/dashboard");
           },
           onCancel: () => {
