@@ -115,6 +115,8 @@ const Dashboard = () => {
     }
   };
 
+  const displayName = profile?.username || profile?.full_name || user?.email?.split('@')[0] || user?.email;
+
   if (isLoading) {
     return (
       <div className="min-h-screen flex flex-col">
@@ -142,7 +144,7 @@ const Dashboard = () => {
             )}
           </div>
           <p className="mt-3 sm:mt-4 text-lg sm:text-xl">
-            {getGreeting()}, <span className="font-semibold text-primary">{profile?.full_name || user?.email}</span>
+            {getGreeting()}, <span className="font-semibold text-primary">{displayName}</span>
           </p>
         </div>
 

@@ -233,7 +233,7 @@ const Account = () => {
             </div>
             <div className="flex-1 min-w-0">
               <h1 className="text-xl font-bold truncate">
-                @{profile?.full_name || user?.email?.split('@')[0]}
+                @{profile?.username || profile?.full_name || user?.email?.split('@')[0]}
               </h1>
               <p className="text-white/80 text-sm mt-1">
                 Manage your account, security, and preferences
