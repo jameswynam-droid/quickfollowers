@@ -1173,7 +1173,7 @@ Deno.serve(async (req) => {
       },
       {
         name: 'smmfollows',
-        url: 'https://smmfollows.io/api/v2',
+        url: 'https://smmfollows.com/api/v2',
         apiKey: Deno.env.get('SMMFOLLOWS_API_KEY') || '',
       },
     ];

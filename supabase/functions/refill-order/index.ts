@@ -65,7 +65,7 @@ Deno.serve(async (req) => {
       apiUrl = 'https://therealowlet.com/api/v2';
       apiKey = Deno.env.get('OWLET_API_KEY');
     } else if (provider === 'smmfollows') {
-      apiUrl = 'https://smmfollows.io/api/v2';
+      apiUrl = 'https://smmfollows.com/api/v2';
       apiKey = Deno.env.get('SMMFOLLOWS_API_KEY');
     } else {
       throw new Error(`Unknown provider: ${provider}`);
