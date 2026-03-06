@@ -45,7 +45,12 @@ Deno.serve(async (req) => {
 
     // Webhook call (real-time single record sync)
     if (body.event && body.table && body.record) {
-      return await handleWebhookSync(external, body);
+      return await handleWebhookSync(external, {
+        event: body.event,
+        table: body.table,
+        record: body.record,
+        old_record: body.old_record,
+      });
     }
 
     // Full sync
