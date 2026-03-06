@@ -50,7 +50,7 @@ Deno.serve(async (req) => {
         apiUrl = 'https://therealowlet.com/api/v2';
         apiKey = owletApiKey;
       } else {
-        apiUrl = 'https://smmfollows.io/api/v2';
+        apiUrl = 'https://smmfollows.com/api/v2';
         apiKey = smmfollowsApiKey;
       }
 
