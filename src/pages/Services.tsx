@@ -513,6 +513,12 @@ const Services = () => {
                                 <span className="text-muted-foreground">Max:</span>
                                 <span className="font-medium">{service.max_order.toLocaleString()}</span>
                               </div>
+                              {service.average_time && (
+                                <div className="flex justify-between items-center p-1.5 sm:p-2 rounded-md bg-muted/50">
+                                  <span className="text-muted-foreground">Avg. Time:</span>
+                                  <span className="font-medium">{service.average_time}</span>
+                                </div>
+                              )}
                             </div>
                             <Button
                               onClick={() => handleOrderClick(service)}
