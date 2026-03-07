@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { ChevronDown, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
@@ -38,6 +39,9 @@ const Services = () => {
   const [orderLink, setOrderLink] = useState("");
   const [orderQuantity, setOrderQuantity] = useState("");
   const [customComments, setCustomComments] = useState("");
+  const [dripFeedEnabled, setDripFeedEnabled] = useState(false);
+  const [dripFeedRuns, setDripFeedRuns] = useState("");
+  const [dripFeedInterval, setDripFeedInterval] = useState("");
   const [openCategories, setOpenCategories] = useState<Set<string>>(new Set());
 
   // Check if service requires custom comments
@@ -216,6 +220,9 @@ const Services = () => {
     setOrderLink("");
     setOrderQuantity("");
     setCustomComments("");
+    setDripFeedEnabled(false);
+    setDripFeedRuns("");
+    setDripFeedInterval("");
   };
 
   // Parse backend errors into user-friendly messages
