@@ -10,6 +10,8 @@ export interface OrganizedService {
   type: string;
   description?: string;
   provider: string;
+  dripfeed?: boolean;
+  average_time?: string;
 }
 
 export interface ServiceCategory {
@@ -195,6 +197,8 @@ export const organizeServices = (rawServices: any[]): ServiceCategory[] => {
       type: service.type,
       description: service.description,
       provider: service.provider || 'owlet',
+      dripfeed: service.dripfeed || false,
+      average_time: service.average_time || null,
     };
   });
 

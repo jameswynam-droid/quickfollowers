@@ -361,9 +361,11 @@ export type Database = {
       }
       services: {
         Row: {
+          average_time: string | null
           category: string
           created_at: string
           description: string | null
+          dripfeed: boolean | null
           id: string
           max_order: number
           min_order: number
@@ -374,9 +376,11 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          average_time?: string | null
           category: string
           created_at?: string
           description?: string | null
+          dripfeed?: boolean | null
           id: string
           max_order: number
           min_order: number
@@ -387,9 +391,11 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          average_time?: string | null
           category?: string
           created_at?: string
           description?: string | null
+          dripfeed?: boolean | null
           id?: string
           max_order?: number
           min_order?: number

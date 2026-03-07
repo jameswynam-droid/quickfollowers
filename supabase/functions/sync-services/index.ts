@@ -21,6 +21,25 @@ interface SMMService {
   dripfeed?: boolean;
   refill?: boolean;
   cancel?: boolean;
+  average_time?: string;
+}
+
+// Fetch USD to NGN exchange rate for converting SmmFollows prices
+async function getUsdToNgnRate(): Promise<number> {
+  const FALLBACK_RATE = 1600; // Fallback if API fails
+  try {
+    const response = await fetch('https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/usd.json');
+    if (!response.ok) throw new Error('Exchange rate API failed');
+    const data = await response.json();
+    if (data?.usd?.ngn) {
+      console.log(`USD to NGN rate: ${data.usd.ngn}`);
+      return data.usd.ngn;
+    }
+    throw new Error('NGN rate not found in response');
+  } catch (error) {
+    console.warn('Failed to fetch USD/NGN rate, using fallback:', FALLBACK_RATE, error);
+    return FALLBACK_RATE;
+  }
 }
 
 interface Provider {
@@ -1188,6 +1207,10 @@ Deno.serve(async (req) => {
     let allServicesData: any[] = [];
     const providerResults: { [key: string]: number } = {};
 
+    // Fetch USD→NGN rate for SmmFollows price conversion
+    const usdToNgn = await getUsdToNgnRate();
+    console.log(`Using USD→NGN rate: ${usdToNgn}`);
+
     // Fetch services from each provider with retries and delays to avoid rate limiting
     for (const provider of providers) {
       if (!provider.apiKey) {
@@ -1283,8 +1306,13 @@ Deno.serve(async (req) => {
 
       // Transform services with provider info
       const providerServicesData = services.map((service) => {
-        // Parse rate as-is from provider (rate is per 1000 units)
-        const rate = parseFloat(service.rate);
+        // Parse rate from provider
+        let rate = parseFloat(service.rate);
+        
+        // SmmFollows returns prices in USD - convert to NGN
+        if (provider.name === 'smmfollows') {
+          rate = parseFloat((rate * usdToNgn).toFixed(4));
+        }
 
         // Use the exact description from the API (with brand replacement only)
         const providerDesc = normalizeProviderDescription(
@@ -1299,9 +1327,10 @@ Deno.serve(async (req) => {
           rate: rate,
           min_order: parseInt(service.min),
           max_order: parseInt(service.max),
-          // Use only the API description (with brand replacement), no generated fallbacks
           description: providerDesc,
           provider: provider.name,
+          dripfeed: !!(service.dripfeed),
+          average_time: (service as any).average_time || (service as any).averagetime || null,
         };
       });
 
@@ -1521,10 +1550,18 @@ Deno.serve(async (req) => {
       }
     }
 
+    // Log a sample to verify dripfeed mapping
+    const dripfeedCount = allServicesData.filter(s => s.dripfeed === true).length;
+    console.log(`Services with dripfeed enabled: ${dripfeedCount} out of ${allServicesData.length}`);
+    if (allServicesData.length > 0) {
+      const sample = allServicesData.find(s => s.dripfeed === true) || allServicesData[0];
+      console.log(`Sample service dripfeed value: ${JSON.stringify({ id: sample.id, dripfeed: sample.dripfeed, average_time: sample.average_time })}`);
+    }
+
     // Upsert all current services
     const batchSize = 100;
     let successCount = 0;
-    
+
     for (let i = 0; i < allServicesData.length; i += batchSize) {
       const batch = allServicesData.slice(i, i + batchSize);
       const { error } = await supabaseClient

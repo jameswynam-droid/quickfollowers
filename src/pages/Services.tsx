@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { ChevronDown, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
@@ -38,6 +39,9 @@ const Services = () => {
   const [orderLink, setOrderLink] = useState("");
   const [orderQuantity, setOrderQuantity] = useState("");
   const [customComments, setCustomComments] = useState("");
+  const [dripFeedEnabled, setDripFeedEnabled] = useState(false);
+  const [dripFeedRuns, setDripFeedRuns] = useState("");
+  const [dripFeedInterval, setDripFeedInterval] = useState("");
   const [openCategories, setOpenCategories] = useState<Set<string>>(new Set());
 
   // Check if service requires custom comments
@@ -216,6 +220,9 @@ const Services = () => {
     setOrderLink("");
     setOrderQuantity("");
     setCustomComments("");
+    setDripFeedEnabled(false);
+    setDripFeedRuns("");
+    setDripFeedInterval("");
   };
 
   // Parse backend errors into user-friendly messages
@@ -338,6 +345,8 @@ const Services = () => {
           link: orderLink,
           quantity,
           comments: customComments || undefined,
+          runs: dripFeedEnabled ? parseInt(dripFeedRuns) || undefined : undefined,
+          interval: dripFeedEnabled ? parseInt(dripFeedInterval) || undefined : undefined,
         },
       });
 
@@ -366,6 +375,9 @@ const Services = () => {
       setOrderLink("");
       setOrderQuantity("");
       setCustomComments("");
+      setDripFeedEnabled(false);
+      setDripFeedRuns("");
+      setDripFeedInterval("");
       navigate("/dashboard");
     } catch (error: any) {
       toast.dismiss("placing-order");
@@ -501,6 +513,12 @@ const Services = () => {
                                 <span className="text-muted-foreground">Max:</span>
                                 <span className="font-medium">{service.max_order.toLocaleString()}</span>
                               </div>
+                              {service.average_time && (
+                                <div className="flex justify-between items-center p-1.5 sm:p-2 rounded-md bg-muted/50">
+                                  <span className="text-muted-foreground">Avg. Time:</span>
+                                  <span className="font-medium">{service.average_time}</span>
+                                </div>
+                              )}
                             </div>
                             <Button
                               onClick={() => handleOrderClick(service)}
@@ -608,6 +626,59 @@ const Services = () => {
                   readOnly
                   className="text-sm bg-muted"
                 />
+              </div>
+            )}
+            {/* Drip-feed option */}
+            {selectedService?.dripfeed && (
+              <div className="space-y-3 p-3 border border-border rounded-lg">
+                <div className="flex items-center gap-2">
+                  <Checkbox
+                    id="dripfeed"
+                    checked={dripFeedEnabled}
+                    onCheckedChange={(checked) => setDripFeedEnabled(checked === true)}
+                  />
+                  <Label htmlFor="dripfeed" className="text-sm cursor-pointer">Drip-feed</Label>
+                </div>
+                {dripFeedEnabled && (
+                  <div className="space-y-3">
+                    <div>
+                      <Label htmlFor="runs" className="text-sm">Runs</Label>
+                      <Input
+                        id="runs"
+                        type="number"
+                        value={dripFeedRuns}
+                        onChange={(e) => setDripFeedRuns(e.target.value)}
+                        placeholder="Number of runs"
+                        min={1}
+                        className="text-sm"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="interval" className="text-sm">Interval (minutes)</Label>
+                      <Input
+                        id="interval"
+                        type="number"
+                        value={dripFeedInterval}
+                        onChange={(e) => setDripFeedInterval(e.target.value)}
+                        placeholder="Minutes between runs"
+                        min={1}
+                        className="text-sm"
+                      />
+                    </div>
+                    {dripFeedRuns && orderQuantity && (
+                      <div className="text-xs text-muted-foreground">
+                        Total quantity: <span className="font-semibold">{(parseInt(orderQuantity || "0") * parseInt(dripFeedRuns || "0")).toLocaleString()}</span>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+            {/* Average time display */}
+            {selectedService?.average_time && (
+              <div className="flex justify-between items-center p-3 bg-muted/50 border border-border rounded-lg text-sm">
+                <span className="text-muted-foreground">Average time</span>
+                <span className="font-medium">{selectedService.average_time}</span>
               </div>
             )}
             {orderQuantity && selectedService && (
