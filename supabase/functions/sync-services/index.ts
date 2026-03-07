@@ -1554,10 +1554,18 @@ Deno.serve(async (req) => {
       }
     }
 
+    // Log a sample to verify dripfeed mapping
+    const dripfeedCount = allServicesData.filter(s => s.dripfeed === true).length;
+    console.log(`Services with dripfeed enabled: ${dripfeedCount} out of ${allServicesData.length}`);
+    if (allServicesData.length > 0) {
+      const sample = allServicesData.find(s => s.dripfeed === true) || allServicesData[0];
+      console.log(`Sample service dripfeed value: ${JSON.stringify({ id: sample.id, dripfeed: sample.dripfeed, average_time: sample.average_time })}`);
+    }
+
     // Upsert all current services
     const batchSize = 100;
     let successCount = 0;
-    
+
     for (let i = 0; i < allServicesData.length; i += batchSize) {
       const batch = allServicesData.slice(i, i + batchSize);
       const { error } = await supabaseClient
