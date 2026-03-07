@@ -10,6 +10,8 @@ interface OrderRequest {
   link: string;
   quantity: number;
   comments?: string;
+  runs?: number;
+  interval?: number;
 }
 
 // Markup calculation - must match frontend serviceOrganizer.ts
@@ -71,7 +73,7 @@ Deno.serve(async (req) => {
 
     console.log('Authenticated user:', user.id);
 
-    const { service_id, link, quantity, comments }: OrderRequest = await req.json();
+    const { service_id, link, quantity, comments, runs, interval }: OrderRequest = await req.json();
 
     // Validate input
     if (!service_id || !link || !quantity) {
@@ -172,6 +174,12 @@ Deno.serve(async (req) => {
     // Add comments for custom comment services
     if (comments) {
       orderPayload.comments = comments;
+    }
+
+    // Add drip-feed parameters if provided
+    if (runs && interval) {
+      orderPayload.runs = runs;
+      orderPayload.interval = interval;
     }
 
     const apiResponse = await fetch(apiUrl, {
