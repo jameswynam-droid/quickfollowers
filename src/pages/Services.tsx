@@ -628,6 +628,59 @@ const Services = () => {
                 />
               </div>
             )}
+            {/* Drip-feed option */}
+            {selectedService?.dripfeed && (
+              <div className="space-y-3 p-3 border border-border rounded-lg">
+                <div className="flex items-center gap-2">
+                  <Checkbox
+                    id="dripfeed"
+                    checked={dripFeedEnabled}
+                    onCheckedChange={(checked) => setDripFeedEnabled(checked === true)}
+                  />
+                  <Label htmlFor="dripfeed" className="text-sm cursor-pointer">Drip-feed</Label>
+                </div>
+                {dripFeedEnabled && (
+                  <div className="space-y-3">
+                    <div>
+                      <Label htmlFor="runs" className="text-sm">Runs</Label>
+                      <Input
+                        id="runs"
+                        type="number"
+                        value={dripFeedRuns}
+                        onChange={(e) => setDripFeedRuns(e.target.value)}
+                        placeholder="Number of runs"
+                        min={1}
+                        className="text-sm"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="interval" className="text-sm">Interval (minutes)</Label>
+                      <Input
+                        id="interval"
+                        type="number"
+                        value={dripFeedInterval}
+                        onChange={(e) => setDripFeedInterval(e.target.value)}
+                        placeholder="Minutes between runs"
+                        min={1}
+                        className="text-sm"
+                      />
+                    </div>
+                    {dripFeedRuns && orderQuantity && (
+                      <div className="text-xs text-muted-foreground">
+                        Total quantity: <span className="font-semibold">{(parseInt(orderQuantity || "0") * parseInt(dripFeedRuns || "0")).toLocaleString()}</span>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+            {/* Average time display */}
+            {selectedService?.average_time && (
+              <div className="flex justify-between items-center p-3 bg-muted/50 border border-border rounded-lg text-sm">
+                <span className="text-muted-foreground">Average time</span>
+                <span className="font-medium">{selectedService.average_time}</span>
+              </div>
+            )}
             {orderQuantity && selectedService && (
               <div className="p-3 sm:p-4 bg-primary/10 border border-primary/20 rounded-lg space-y-2">
                 <div className="flex justify-between text-xs sm:text-sm">
