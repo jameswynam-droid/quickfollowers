@@ -1333,8 +1333,8 @@ Deno.serve(async (req) => {
           max_order: parseInt(service.max),
           description: providerDesc,
           provider: provider.name,
-          dripfeed: service.dripfeed === true,
-          average_time: service.average_time || null,
+          dripfeed: !!(service.dripfeed),
+          average_time: (service as any).average_time || (service as any).averagetime || null,
         };
       });
 
