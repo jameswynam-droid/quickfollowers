@@ -1285,10 +1285,6 @@ Deno.serve(async (req) => {
           }
           
           services = responseData as SMMService[];
-          // Log first service to see available fields
-          if (services.length > 0) {
-            console.log(`Sample service from ${provider.name}:`, JSON.stringify(services[0]));
-          }
           console.log(`Successfully fetched ${services.length} services from ${provider.name}`);
           break;
         } catch (error) {
