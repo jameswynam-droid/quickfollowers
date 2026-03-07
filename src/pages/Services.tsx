@@ -345,6 +345,8 @@ const Services = () => {
           link: orderLink,
           quantity,
           comments: customComments || undefined,
+          runs: dripFeedEnabled ? parseInt(dripFeedRuns) || undefined : undefined,
+          interval: dripFeedEnabled ? parseInt(dripFeedInterval) || undefined : undefined,
         },
       });
 
@@ -373,6 +375,9 @@ const Services = () => {
       setOrderLink("");
       setOrderQuantity("");
       setCustomComments("");
+      setDripFeedEnabled(false);
+      setDripFeedRuns("");
+      setDripFeedInterval("");
       navigate("/dashboard");
     } catch (error: any) {
       toast.dismiss("placing-order");
