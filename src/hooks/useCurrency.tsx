@@ -95,6 +95,7 @@ export const CurrencyProvider = ({ children }: { children: ReactNode }) => {
         setCurrency,
         formatPrice,
         convertFromNGN,
+        convertToNGN,
         currencySymbol: CURRENCIES[currency].symbol,
         userLocation,
          ratesLoading,
