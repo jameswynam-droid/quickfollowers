@@ -57,7 +57,7 @@ const Header = ({ onAuthClick }: HeaderProps) => {
       setIsAuthenticated(false);
       setUserId(null);
       toast.success("Logged out successfully");
-      window.location.replace("/auth?mode=login");
+      window.location.replace("/");
     }
   };
 
