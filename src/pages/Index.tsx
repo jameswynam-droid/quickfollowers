@@ -6,15 +6,6 @@ import Footer from "@/components/Footer";
 import ServiceCard from "@/components/ServiceCard";
 import { Button } from "@/components/ui/button";
 
-interface Service {
-  id: string;
-  name: string;
-  category: string;
-  rate: number;
-  min_order: number;
-  max_order: number;
-  description: string | null;
-}
 
 const Index = () => {
   const navigate = useNavigate();
