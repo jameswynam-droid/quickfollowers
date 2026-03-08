@@ -1,15 +1,15 @@
 import { useState, useEffect, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import { PasswordInput } from "@/components/PasswordInput";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Check, X, Loader2 } from "lucide-react";
+import { Check, X, Loader2, ArrowLeft, Shield, Zap, Users } from "lucide-react";
 import { useNoIndex } from "@/hooks/useNoIndex";
+import logoImg from "@/assets/logo.png";
 
 type AuthMode = 'login' | 'signup' | 'forgot-password' | 'verify-otp' | 'new-password' | 'signup-verify-otp';
 
@@ -32,7 +32,6 @@ const Auth = () => {
   const [showPasswordRequirements, setShowPasswordRequirements] = useState(false);
   const navigate = useNavigate();
 
-  // Password validation checks
   const hasMinLength = password.length >= 8;
   const hasUppercase = /[A-Z]/.test(password);
   const hasLowercase = /[a-z]/.test(password);
@@ -40,27 +39,19 @@ const Auth = () => {
   const passwordsMatch = password === confirmPassword && confirmPassword.length > 0;
   const isPasswordValid = hasMinLength && hasUppercase && hasLowercase && hasNumber;
 
-  // Username validation
   const isUsernameFormatValid = /^[a-z0-9_]{4,20}$/i.test(username);
   const isUsernameReserved = RESERVED_USERNAMES.includes(username.toLowerCase());
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) {
-        navigate("/dashboard");
-      }
+      if (session) navigate("/dashboard");
     });
-
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (session) {
-        navigate("/dashboard");
-      }
+      if (session) navigate("/dashboard");
     });
-
     return () => subscription.unsubscribe();
   }, [navigate]);
 
-  // Resend cooldown timer
   useEffect(() => {
     if (resendCooldown > 0) {
       const timer = setTimeout(() => setResendCooldown(resendCooldown - 1), 1000);
@@ -68,109 +59,68 @@ const Auth = () => {
     }
   }, [resendCooldown]);
 
-  // Real-time username validation with debounce
   useEffect(() => {
     if (!username || username.length < 4) {
       setUsernameStatus(username.length > 0 ? 'invalid' : 'idle');
       return;
     }
-    
-    if (!/^[a-z0-9_]+$/i.test(username)) {
+    if (!/^[a-z0-9_]+$/i.test(username) || username.length > 20) {
       setUsernameStatus('invalid');
       return;
     }
-
-    if (username.length > 20) {
-      setUsernameStatus('invalid');
-      return;
-    }
-
     if (RESERVED_USERNAMES.includes(username.toLowerCase())) {
       setUsernameStatus('reserved');
       return;
     }
-
     setUsernameStatus('checking');
     const timer = setTimeout(async () => {
       try {
-        const { data, error } = await supabase.rpc('check_username_available', {
-          requested_username: username
-        });
+        const { data, error } = await supabase.rpc('check_username_available', { requested_username: username });
         if (error) throw error;
         setUsernameStatus(data ? 'available' : 'taken');
       } catch {
         setUsernameStatus('idle');
       }
     }, 400);
-
     return () => clearTimeout(timer);
   }, [username]);
 
   const [rateLimitMessage, setRateLimitMessage] = useState("");
 
   const sendOTP = async (emailAddress: string, type: string = 'password_reset') => {
-    const response = await supabase.functions.invoke('send-otp', {
-      body: { email: emailAddress, type }
-    });
-
-    if (response.error) {
-      throw new Error(response.error.message || "Failed to send OTP");
-    }
-
+    const response = await supabase.functions.invoke('send-otp', { body: { email: emailAddress, type } });
+    if (response.error) throw new Error(response.error.message || "Failed to send OTP");
     if (response.data?.rateLimited) {
       setRateLimitMessage("You've reached your OTP verification limit for today. Please try again tomorrow.");
       throw new Error("Rate limit exceeded");
     }
-
-    if (response.data?.error) {
-      throw new Error(response.data.error);
-    }
-
+    if (response.data?.error) throw new Error(response.data.error);
     return response.data;
   };
 
   const verifyOTP = async (emailAddress: string, code: string, type: string = 'password_reset') => {
-    const response = await supabase.functions.invoke('verify-otp', {
-      body: { email: emailAddress, code, type }
-    });
-
+    const response = await supabase.functions.invoke('verify-otp', { body: { email: emailAddress, code, type } });
     if (response.error) {
       const errorBody = response.error.message;
-      if (errorBody?.includes("Invalid or expired OTP")) {
-        throw new Error("Invalid or expired verification code. Please try again.");
-      }
+      if (errorBody?.includes("Invalid or expired OTP")) throw new Error("Invalid or expired verification code. Please try again.");
       throw new Error("Failed to verify code. Please try again.");
     }
-
     if (response.data?.error) {
-      if (response.data.error.includes("Invalid or expired")) {
-        throw new Error("Invalid or expired verification code. Please try again.");
-      }
+      if (response.data.error.includes("Invalid or expired")) throw new Error("Invalid or expired verification code. Please try again.");
       throw new Error(response.data.error);
     }
-
     return response.data;
   };
 
   const resetPassword = async (emailAddress: string, newPassword: string) => {
-    const response = await supabase.functions.invoke('reset-password', {
-      body: { email: emailAddress, newPassword }
-    });
-
-    if (response.error) {
-      throw new Error(response.error.message || "Failed to reset password");
-    }
-
-    if (response.data?.error) {
-      throw new Error(response.data.error);
-    }
-
+    const response = await supabase.functions.invoke('reset-password', { body: { email: emailAddress, newPassword } });
+    if (response.error) throw new Error(response.error.message || "Failed to reset password");
+    if (response.data?.error) throw new Error(response.data.error);
     return response.data;
   };
 
   const handleResendOTP = async () => {
     if (resendCooldown > 0) return;
-    
     setLoading(true);
     setRateLimitMessage("");
     try {
@@ -179,9 +129,7 @@ const Auth = () => {
       toast.success("New OTP code sent to your email!");
       setResendCooldown(60);
     } catch (error: any) {
-      if (error.message !== "Rate limit exceeded") {
-        toast.error(error.message || "Failed to resend OTP");
-      }
+      if (error.message !== "Rate limit exceeded") toast.error(error.message || "Failed to resend OTP");
     } finally {
       setLoading(false);
     }
@@ -190,77 +138,30 @@ const Auth = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-
     try {
       if (authMode === 'signup') {
-        // Validate username
-        if (!username || !isUsernameFormatValid) {
-          throw new Error("Username must be 4-20 characters, using only letters, numbers, and underscores");
-        }
-        if (isUsernameReserved) {
-          throw new Error("This username is reserved. Please choose another.");
-        }
-        if (usernameStatus === 'taken') {
-          throw new Error("Username already exists. Please use another username.");
-        }
-
-        if (!isPasswordValid) {
-          throw new Error("Password must be at least 8 characters with uppercase, lowercase, and a number");
-        }
-        
-        if (password !== confirmPassword) {
-          throw new Error("Passwords do not match");
-        }
-        
-        // Check if email already exists
-        const { data: existingUsers } = await supabase
-          .from('profiles')
-          .select('email')
-          .eq('email', email.toLowerCase())
-          .single();
-        
-        if (existingUsers) {
-          throw new Error("An account with this email already exists. Please sign in instead.");
-        }
-
-        // Double-check username availability
-        const { data: usernameAvailable } = await supabase.rpc('check_username_available', {
-          requested_username: username
-        });
-        if (!usernameAvailable) {
-          throw new Error("Username already exists. Please use another username.");
-        }
-        
-        // Send OTP for email verification
+        if (!username || !isUsernameFormatValid) throw new Error("Username must be 4-20 characters, using only letters, numbers, and underscores");
+        if (isUsernameReserved) throw new Error("This username is reserved. Please choose another.");
+        if (usernameStatus === 'taken') throw new Error("Username already exists. Please use another username.");
+        if (!isPasswordValid) throw new Error("Password must be at least 8 characters with uppercase, lowercase, and a number");
+        if (password !== confirmPassword) throw new Error("Passwords do not match");
+        const { data: existingUsers } = await supabase.from('profiles').select('email').eq('email', email.toLowerCase()).single();
+        if (existingUsers) throw new Error("An account with this email already exists. Please sign in instead.");
+        const { data: usernameAvailable } = await supabase.rpc('check_username_available', { requested_username: username });
+        if (!usernameAvailable) throw new Error("Username already exists. Please use another username.");
         await sendOTP(email, 'email_verification');
         toast.success("Verification code sent to your email!");
         setAuthMode('signup-verify-otp');
         setResendCooldown(60);
       } else if (authMode === 'signup-verify-otp') {
-        if (otp.length !== 6) {
-          throw new Error("Please enter a valid 6-digit OTP code");
-        }
-        
+        if (otp.length !== 6) throw new Error("Please enter a valid 6-digit OTP code");
         await verifyOTP(email, otp, 'email_verification');
-        
         const { data, error } = await supabase.auth.signUp({
-          email,
-          password,
-          options: {
-            data: {
-              full_name: fullName,
-              username: username,
-              email_verified: true,
-            },
-          },
+          email, password,
+          options: { data: { full_name: fullName, username, email_verified: true } },
         });
-
         if (error) throw error;
-        
-        if (data.user && data.user.identities && data.user.identities.length === 0) {
-          throw new Error("An account with this email already exists. Please sign in instead.");
-        }
-        
+        if (data.user && data.user.identities && data.user.identities.length === 0) throw new Error("An account with this email already exists. Please sign in instead.");
         toast.success("Account created successfully! Welcome to QuickFollowers!");
       } else if (authMode === 'forgot-password') {
         await sendOTP(email);
@@ -268,45 +169,27 @@ const Auth = () => {
         setAuthMode('verify-otp');
         setResendCooldown(60);
       } else if (authMode === 'verify-otp') {
-        if (otp.length !== 6) {
-          throw new Error("Please enter a valid 6-digit OTP code");
-        }
-        
+        if (otp.length !== 6) throw new Error("Please enter a valid 6-digit OTP code");
         await verifyOTP(email, otp, 'password_reset');
         toast.success("OTP verified! Set your new password.");
         setAuthMode('new-password');
         setPassword("");
         setConfirmPassword("");
       } else if (authMode === 'new-password') {
-        if (!isPasswordValid) {
-          throw new Error("Password must be at least 8 characters with uppercase, lowercase, and a number");
-        }
-        
-        if (password !== confirmPassword) {
-          throw new Error("Passwords do not match");
-        }
-
+        if (!isPasswordValid) throw new Error("Password must be at least 8 characters with uppercase, lowercase, and a number");
+        if (password !== confirmPassword) throw new Error("Passwords do not match");
         await resetPassword(email, password);
         toast.success("Password updated successfully! Please sign in.");
-        
         setAuthMode('login');
-        setPassword("");
-        setConfirmPassword("");
-        setOtp("");
+        setPassword(""); setConfirmPassword(""); setOtp("");
       } else if (authMode === 'login') {
-        const { error } = await supabase.auth.signInWithPassword({
-          email,
-          password,
-        });
-
+        const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
         toast.success("Welcome back!");
       }
     } catch (error: any) {
       console.error("Auth error:", error);
-      if (error.message !== "Rate limit exceeded") {
-        toast.error(error.message || "Authentication failed");
-      }
+      if (error.message !== "Rate limit exceeded") toast.error(error.message || "Authentication failed");
     } finally {
       setLoading(false);
     }
@@ -329,7 +212,7 @@ const Auth = () => {
       case 'verify-otp': return `Enter the 6-digit code sent to ${email}`;
       case 'signup-verify-otp': return `Enter the 6-digit code sent to ${email}`;
       case 'new-password': return "Create a new password for your account";
-      case 'signup': return "Sign up to start boosting your social media";
+      case 'signup': return "Join thousands growing their social media";
       default: return "Sign in to manage your orders";
     }
   };
@@ -348,264 +231,184 @@ const Auth = () => {
 
   const handleBackToLogin = () => {
     setAuthMode('login');
-    setOtp("");
-    setPassword("");
-    setConfirmPassword("");
-    setUsername("");
-    setUsernameStatus('idle');
-    setResendCooldown(0);
-    setRateLimitMessage("");
+    setOtp(""); setPassword(""); setConfirmPassword(""); setUsername("");
+    setUsernameStatus('idle'); setResendCooldown(0); setRateLimitMessage("");
     setShowPasswordRequirements(false);
   };
 
   const RequirementItem = ({ met, text }: { met: boolean; text: string }) => (
     <div className="flex items-center gap-2 text-sm">
-      {met ? (
-        <Check className="h-4 w-4 text-green-500" />
-      ) : (
-        <X className="h-4 w-4 text-muted-foreground" />
-      )}
+      {met ? <Check className="h-4 w-4 text-green-500" /> : <X className="h-4 w-4 text-muted-foreground" />}
       <span className={met ? "text-green-500" : "text-muted-foreground"}>{text}</span>
     </div>
   );
 
   const isSubmitDisabled = () => {
     if (loading) return true;
-    if (authMode === 'signup') {
-      return !isPasswordValid || !passwordsMatch || usernameStatus !== 'available';
-    }
-    if (authMode === 'new-password') {
-      return !isPasswordValid || !passwordsMatch;
-    }
+    if (authMode === 'signup') return !isPasswordValid || !passwordsMatch || usernameStatus !== 'available';
+    if (authMode === 'new-password') return !isPasswordValid || !passwordsMatch;
     return false;
   };
 
   const getUsernameStatusUI = () => {
     if (usernameStatus === 'idle' || !username) return null;
-    
     switch (usernameStatus) {
-      case 'checking':
-        return (
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Loader2 className="h-4 w-4 animate-spin" />
-            <span>Checking availability...</span>
-          </div>
-        );
-      case 'available':
-        return (
-          <div className="flex items-center gap-2 text-sm text-green-500">
-            <Check className="h-4 w-4" />
-            <span>Available</span>
-          </div>
-        );
-      case 'taken':
-        return (
-          <div className="flex items-center gap-2 text-sm text-destructive">
-            <X className="h-4 w-4" />
-            <span>Username already exists, please use another username</span>
-          </div>
-        );
-      case 'reserved':
-        return (
-          <div className="flex items-center gap-2 text-sm text-destructive">
-            <X className="h-4 w-4" />
-            <span>This username is reserved</span>
-          </div>
-        );
-      case 'invalid':
-        return (
-          <div className="flex items-center gap-2 text-sm text-destructive">
-            <X className="h-4 w-4" />
-            <span>4-20 characters, letters, numbers & underscore only</span>
-          </div>
-        );
+      case 'checking': return <div className="flex items-center gap-2 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" /><span>Checking availability...</span></div>;
+      case 'available': return <div className="flex items-center gap-2 text-sm text-green-500"><Check className="h-4 w-4" /><span>Available</span></div>;
+      case 'taken': return <div className="flex items-center gap-2 text-sm text-destructive"><X className="h-4 w-4" /><span>Username already exists</span></div>;
+      case 'reserved': return <div className="flex items-center gap-2 text-sm text-destructive"><X className="h-4 w-4" /><span>This username is reserved</span></div>;
+      case 'invalid': return <div className="flex items-center gap-2 text-sm text-destructive"><X className="h-4 w-4" /><span>4-20 characters, letters, numbers & underscore only</span></div>;
     }
   };
 
+  const features = [
+    { icon: Zap, title: "Instant Delivery", desc: "Orders start processing within minutes" },
+    { icon: Shield, title: "Secure Payments", desc: "256-bit encryption on all transactions" },
+    { icon: Users, title: "Real Engagement", desc: "High-quality followers & interactions" },
+  ];
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/10 via-background to-secondary/10 p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl font-bold text-center">
-            {rateLimitMessage ? "Limit Reached" : getTitle()}
-          </CardTitle>
-          <CardDescription className="text-center">
-            {rateLimitMessage ? "" : getDescription()}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
+    <div className="min-h-screen flex flex-col lg:flex-row">
+      {/* Left panel - Branding */}
+      <div className="hidden lg:flex lg:w-[45%] gradient-primary relative overflow-hidden flex-col justify-between p-10 text-primary-foreground">
+        <div className="absolute inset-0 opacity-10">
+          <div className="absolute top-20 -left-10 w-72 h-72 rounded-full bg-white/20 blur-3xl" />
+          <div className="absolute bottom-20 right-10 w-96 h-96 rounded-full bg-white/10 blur-3xl" />
+        </div>
+        
+        <div className="relative z-10">
+          <Link to="/" className="flex items-center gap-3 group">
+            <div className="w-10 h-10 rounded-xl overflow-hidden shadow-lg">
+              <img src={logoImg} alt="QuickFollowers" className="w-full h-full object-cover" width="40" height="40" />
+            </div>
+            <span className="text-2xl font-black">QuickFollowers</span>
+          </Link>
+        </div>
+
+        <div className="relative z-10 space-y-8">
+          <div>
+            <h2 className="text-3xl xl:text-4xl font-bold leading-tight">
+              Grow your social media<br />presence effortlessly
+            </h2>
+            <p className="mt-4 text-primary-foreground/80 text-lg max-w-md">
+              Trusted by thousands of creators and businesses to boost their online reach.
+            </p>
+          </div>
+
+          <div className="space-y-5">
+            {features.map((f, i) => (
+              <div key={i} className="flex items-start gap-4">
+                <div className="w-10 h-10 rounded-lg bg-white/15 flex items-center justify-center flex-shrink-0">
+                  <f.icon className="w-5 h-5" />
+                </div>
+                <div>
+                  <p className="font-semibold">{f.title}</p>
+                  <p className="text-sm text-primary-foreground/70">{f.desc}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <p className="relative z-10 text-sm text-primary-foreground/50">
+          © {new Date().getFullYear()} QuickFollowers. All rights reserved.
+        </p>
+      </div>
+
+      {/* Right panel - Form */}
+      <div className="flex-1 flex items-center justify-center p-4 sm:p-8 bg-background">
+        <div className="w-full max-w-[420px] space-y-6">
+          {/* Mobile logo */}
+          <div className="lg:hidden flex justify-center mb-4">
+            <Link to="/" className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl overflow-hidden shadow-lg">
+                <img src={logoImg} alt="QuickFollowers" className="w-full h-full object-cover" width="36" height="36" />
+              </div>
+              <span className="text-xl font-black bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">QuickFollowers</span>
+            </Link>
+          </div>
+
+          {/* Back button for sub-flows */}
+          {(authMode !== 'login' && authMode !== 'signup') && (
+            <button onClick={handleBackToLogin} className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition">
+              <ArrowLeft className="w-4 h-4" /> Back to sign in
+            </button>
+          )}
+
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-bold text-foreground">
+              {rateLimitMessage ? "Limit Reached" : getTitle()}
+            </h1>
+            <p className="mt-2 text-muted-foreground">
+              {rateLimitMessage ? "" : getDescription()}
+            </p>
+          </div>
+
           {rateLimitMessage ? (
             <div className="space-y-4">
               <div className="p-4 bg-destructive/10 border border-destructive/20 rounded-lg">
                 <p className="text-destructive text-center">{rateLimitMessage}</p>
               </div>
-              <Button variant="outline" className="w-full" onClick={handleBackToLogin}>
-                Back to Sign In
-              </Button>
+              <Button variant="outline" className="w-full" onClick={handleBackToLogin}>Back to Sign In</Button>
             </div>
           ) : (
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {/* Full Name - only for signup */}
-            {authMode === 'signup' && (
-              <div className="space-y-2">
-                <Label htmlFor="fullName">Full Name</Label>
-                <Input
-                  id="fullName"
-                  type="text"
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                  placeholder="John Doe"
-                  required
-                />
-              </div>
-            )}
-
-            {/* Username - only for signup */}
-            {authMode === 'signup' && (
-              <div className="space-y-2">
-                <Label htmlFor="username">Username</Label>
-                <Input
-                  id="username"
-                  type="text"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value.replace(/[^a-zA-Z0-9_]/g, ''))}
-                  placeholder="your_username"
-                  maxLength={20}
-                  required
-                />
-                <div className="mt-1">
-                  {getUsernameStatusUI()}
+            <form onSubmit={handleSubmit} className="space-y-4">
+              {authMode === 'signup' && (
+                <div className="space-y-2">
+                  <Label htmlFor="fullName">Full Name</Label>
+                  <Input id="fullName" type="text" value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="John Doe" required />
                 </div>
-              </div>
-            )}
+              )}
 
-            {/* Email - for login, signup, forgot-password */}
-            {(authMode === 'login' || authMode === 'signup' || authMode === 'forgot-password') && (
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="you@example.com"
-                  required
-                />
-              </div>
-            )}
-
-            {/* OTP Input - for verify-otp and signup-verify-otp */}
-            {(authMode === 'verify-otp' || authMode === 'signup-verify-otp') && (
-              <div className="space-y-2">
-                <Label>Verification Code</Label>
-                <div className="flex justify-center">
-                  <InputOTP 
-                    value={otp} 
-                    onChange={setOtp}
-                    maxLength={6}
-                  >
-                    <InputOTPGroup>
-                      <InputOTPSlot index={0} />
-                      <InputOTPSlot index={1} />
-                      <InputOTPSlot index={2} />
-                      <InputOTPSlot index={3} />
-                      <InputOTPSlot index={4} />
-                      <InputOTPSlot index={5} />
-                    </InputOTPGroup>
-                  </InputOTP>
+              {authMode === 'signup' && (
+                <div className="space-y-2">
+                  <Label htmlFor="username">Username</Label>
+                  <Input id="username" type="text" value={username} onChange={(e) => setUsername(e.target.value.replace(/[^a-zA-Z0-9_]/g, ''))} placeholder="your_username" maxLength={20} required />
+                  <div className="mt-1">{getUsernameStatusUI()}</div>
                 </div>
-                <p className="text-xs text-muted-foreground text-center mt-2">
-                  Didn't receive the code?{" "}
-                  <button
-                    type="button"
-                    onClick={handleResendOTP}
-                    disabled={resendCooldown > 0 || loading}
-                    className={`text-primary hover:underline ${resendCooldown > 0 ? 'opacity-50 cursor-not-allowed' : ''}`}
-                  >
-                    {resendCooldown > 0 ? `Resend in ${resendCooldown}s` : 'Resend'}
-                  </button>
-                </p>
-              </div>
-            )}
+              )}
 
-            {/* Password - for login, signup */}
-            {(authMode === 'login' || authMode === 'signup') && (
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="password">Password</Label>
-                  {authMode === 'login' && (
-                    <button
-                      type="button"
-                      onClick={() => setAuthMode('forgot-password')}
-                      className="text-xs text-primary hover:underline"
-                    >
-                      Forgot password?
-                    </button>
-                  )}
+              {(authMode === 'login' || authMode === 'signup' || authMode === 'forgot-password') && (
+                <div className="space-y-2">
+                  <Label htmlFor="email">Email</Label>
+                  <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" required />
                 </div>
-                <PasswordInput
-                  id="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  onFocus={() => authMode === 'signup' && setShowPasswordRequirements(true)}
-                  placeholder="••••••••"
-                  required
-                />
-                {authMode === 'signup' && showPasswordRequirements && (
-                  <div className="mt-2 p-3 bg-muted rounded-lg space-y-1">
-                    <p className="text-sm font-medium text-foreground mb-2">Password must contain:</p>
-                    <RequirementItem met={hasMinLength} text="At least 8 characters" />
-                    <RequirementItem met={hasUppercase} text="At least one uppercase letter" />
-                    <RequirementItem met={hasLowercase} text="At least one lowercase letter" />
-                    <RequirementItem met={hasNumber} text="At least one number" />
+              )}
+
+              {(authMode === 'verify-otp' || authMode === 'signup-verify-otp') && (
+                <div className="space-y-2">
+                  <Label>Verification Code</Label>
+                  <div className="flex justify-center">
+                    <InputOTP value={otp} onChange={setOtp} maxLength={6}>
+                      <InputOTPGroup>
+                        <InputOTPSlot index={0} />
+                        <InputOTPSlot index={1} />
+                        <InputOTPSlot index={2} />
+                        <InputOTPSlot index={3} />
+                        <InputOTPSlot index={4} />
+                        <InputOTPSlot index={5} />
+                      </InputOTPGroup>
+                    </InputOTP>
                   </div>
-                )}
-              </div>
-            )}
+                  <p className="text-xs text-muted-foreground text-center mt-2">
+                    Didn't receive the code?{" "}
+                    <button type="button" onClick={handleResendOTP} disabled={resendCooldown > 0 || loading} className={`text-primary hover:underline ${resendCooldown > 0 ? 'opacity-50 cursor-not-allowed' : ''}`}>
+                      {resendCooldown > 0 ? `Resend in ${resendCooldown}s` : 'Resend'}
+                    </button>
+                  </p>
+                </div>
+              )}
 
-            {/* Confirm Password - for signup */}
-            {authMode === 'signup' && (
-              <div className="space-y-2">
-                <Label htmlFor="confirmPassword">Re-enter Password</Label>
-                <PasswordInput
-                  id="confirmPassword"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  placeholder="••••••••"
-                  required
-                />
-                {confirmPassword && (
-                  <div className="mt-1 flex items-center gap-2 text-sm">
-                    {passwordsMatch ? (
-                      <>
-                        <Check className="h-4 w-4 text-green-500" />
-                        <span className="text-green-500">Passwords match</span>
-                      </>
-                    ) : (
-                      <>
-                        <X className="h-4 w-4 text-destructive" />
-                        <span className="text-destructive">Passwords do not match</span>
-                      </>
+              {(authMode === 'login' || authMode === 'signup') && (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="password">Password</Label>
+                    {authMode === 'login' && (
+                      <button type="button" onClick={() => setAuthMode('forgot-password')} className="text-xs text-primary hover:underline">Forgot password?</button>
                     )}
                   </div>
-                )}
-              </div>
-            )}
-
-            {/* New Password fields - for new-password */}
-            {authMode === 'new-password' && (
-              <>
-                <div className="space-y-2">
-                  <Label htmlFor="newPassword">New Password</Label>
-                  <PasswordInput
-                    id="newPassword"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    onFocus={() => setShowPasswordRequirements(true)}
-                    placeholder="••••••••"
-                    required
-                  />
-                  {showPasswordRequirements && (
+                  <PasswordInput id="password" value={password} onChange={(e) => setPassword(e.target.value)} onFocus={() => authMode === 'signup' && setShowPasswordRequirements(true)} placeholder="••••••••" required />
+                  {authMode === 'signup' && showPasswordRequirements && (
                     <div className="mt-2 p-3 bg-muted rounded-lg space-y-1">
                       <p className="text-sm font-medium text-foreground mb-2">Password must contain:</p>
                       <RequirementItem met={hasMinLength} text="At least 8 characters" />
@@ -615,69 +418,71 @@ const Auth = () => {
                     </div>
                   )}
                 </div>
+              )}
+
+              {authMode === 'signup' && (
                 <div className="space-y-2">
                   <Label htmlFor="confirmPassword">Re-enter Password</Label>
-                  <PasswordInput
-                    id="confirmPassword"
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    placeholder="••••••••"
-                    required
-                  />
+                  <PasswordInput id="confirmPassword" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} placeholder="••••••••" required />
                   {confirmPassword && (
                     <div className="mt-1 flex items-center gap-2 text-sm">
-                      {passwordsMatch ? (
-                        <>
-                          <Check className="h-4 w-4 text-green-500" />
-                          <span className="text-green-500">Passwords match</span>
-                        </>
-                      ) : (
-                        <>
-                          <X className="h-4 w-4 text-destructive" />
-                          <span className="text-destructive">Passwords do not match</span>
-                        </>
-                      )}
+                      {passwordsMatch ? <><Check className="h-4 w-4 text-green-500" /><span className="text-green-500">Passwords match</span></> : <><X className="h-4 w-4 text-destructive" /><span className="text-destructive">Passwords do not match</span></>}
                     </div>
                   )}
                 </div>
-              </>
-            )}
+              )}
 
-            <Button
-              type="submit"
-              className="w-full"
-              disabled={isSubmitDisabled()}
-            >
-              {getButtonText()}
-            </Button>
-          </form>
+              {authMode === 'new-password' && (
+                <>
+                  <div className="space-y-2">
+                    <Label htmlFor="newPassword">New Password</Label>
+                    <PasswordInput id="newPassword" value={password} onChange={(e) => setPassword(e.target.value)} onFocus={() => setShowPasswordRequirements(true)} placeholder="••••••••" required />
+                    {showPasswordRequirements && (
+                      <div className="mt-2 p-3 bg-muted rounded-lg space-y-1">
+                        <p className="text-sm font-medium text-foreground mb-2">Password must contain:</p>
+                        <RequirementItem met={hasMinLength} text="At least 8 characters" />
+                        <RequirementItem met={hasUppercase} text="At least one uppercase letter" />
+                        <RequirementItem met={hasLowercase} text="At least one lowercase letter" />
+                        <RequirementItem met={hasNumber} text="At least one number" />
+                      </div>
+                    )}
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="confirmPassword">Re-enter Password</Label>
+                    <PasswordInput id="confirmPassword" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} placeholder="••••••••" required />
+                    {confirmPassword && (
+                      <div className="mt-1 flex items-center gap-2 text-sm">
+                        {passwordsMatch ? <><Check className="h-4 w-4 text-green-500" /><span className="text-green-500">Passwords match</span></> : <><X className="h-4 w-4 text-destructive" /><span className="text-destructive">Passwords do not match</span></>}
+                      </div>
+                    )}
+                  </div>
+                </>
+              )}
+
+              <Button type="submit" className="w-full h-11" disabled={isSubmitDisabled()}>
+                {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {getButtonText()}
+              </Button>
+            </form>
           )}
 
-          {!rateLimitMessage && (
-          <div className="mt-4 text-center text-sm space-y-2">
-            {(authMode === 'forgot-password' || authMode === 'verify-otp' || authMode === 'new-password' || authMode === 'signup-verify-otp') ? (
-              <button
-                type="button"
-                onClick={handleBackToLogin}
-                className="text-primary hover:underline"
-              >
-                Back to sign in
-              </button>
-            ) : (
-              <button
-                type="button"
-                onClick={() => setAuthMode(authMode === 'login' ? 'signup' : 'login')}
-                className="text-primary hover:underline"
-              >
-                {authMode === 'login'
-                  ? "Don't have an account? Sign up"
-                  : "Already have an account? Sign in"}
-              </button>
-            )}
-          </div>
+          {!rateLimitMessage && (authMode === 'login' || authMode === 'signup') && (
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-border" /></div>
+              <div className="relative flex justify-center text-xs"><span className="bg-background px-3 text-muted-foreground">or</span></div>
+            </div>
           )}
-        </CardContent>
-      </Card>
+
+          {!rateLimitMessage && (authMode === 'login' || authMode === 'signup') && (
+            <p className="text-center text-sm text-muted-foreground">
+              {authMode === 'login' ? "Don't have an account?" : "Already have an account?"}{" "}
+              <button type="button" onClick={() => setAuthMode(authMode === 'login' ? 'signup' : 'login')} className="text-primary font-semibold hover:underline">
+                {authMode === 'login' ? "Sign up" : "Sign in"}
+              </button>
+            </p>
+          )}
+        </div>
+      </div>
     </div>
   );
 };
