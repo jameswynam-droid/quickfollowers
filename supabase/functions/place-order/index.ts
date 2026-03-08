@@ -193,23 +193,20 @@ Deno.serve(async (req) => {
     console.log(`Placing order with ${provider} API...`);
     
     // Build the order payload
+    // For drip-feed orders, send the total quantity (quantity × runs) to the provider
+    const apiQuantity = (runs && runs > 1) ? quantity * runs : quantity;
+
     const orderPayload: Record<string, any> = {
       key: apiKey,
       action: 'add',
       service: parseInt(actualServiceId),
       link: link,
-      quantity: quantity,
+      quantity: apiQuantity,
     };
 
     // Add comments for custom comment services
     if (comments) {
       orderPayload.comments = comments;
-    }
-
-    // Add drip-feed parameters if provided
-    if (runs && interval) {
-      orderPayload.runs = runs;
-      orderPayload.interval = interval;
     }
 
     const apiResponse = await fetch(apiUrl, {
