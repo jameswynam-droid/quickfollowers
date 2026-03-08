@@ -67,7 +67,8 @@ function pickColumns(table: string, record: any): any {
 }
 
 function reorderTables(tables: string[]): string[] {
-  const priority = ['services', 'profiles'];
+  // Parent tables first, then dependent tables
+  const priority = ['services', 'profiles', 'user_roles', 'tickets'];
   const ordered = priority.filter(t => tables.includes(t));
   const rest = tables.filter(t => !priority.includes(t));
   return [...ordered, ...rest];
