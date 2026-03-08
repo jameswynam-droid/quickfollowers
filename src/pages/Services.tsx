@@ -309,12 +309,13 @@ const Services = () => {
       return;
     }
 
-    // Calculate total cost based on pricing model
-    // Per-1 pricing when min=max=1, otherwise per-1K
+    // Calculate total cost based on pricing model, accounting for drip-feed runs
+    const runs = dripFeedEnabled ? parseInt(dripFeedRuns || "1") || 1 : 1;
+    const totalQuantity = quantity * runs;
     const isPerOnePricing = selectedService.min_order === 1 && selectedService.max_order === 1;
     const totalCost = isPerOnePricing
-      ? (quantity * selectedService.markedUpRate).toFixed(2)
-      : ((quantity / 1000) * selectedService.markedUpRate).toFixed(2);
+      ? (totalQuantity * selectedService.markedUpRate).toFixed(2)
+      : ((totalQuantity / 1000) * selectedService.markedUpRate).toFixed(2);
 
     setPlacingOrder(true);
     toast.loading("Placing your order...", { id: "placing-order" });
@@ -681,25 +682,31 @@ const Services = () => {
                 <span className="font-medium">{selectedService.average_time}</span>
               </div>
             )}
-            {orderQuantity && selectedService && (
-              <div className="p-3 sm:p-4 bg-primary/10 border border-primary/20 rounded-lg space-y-2">
-                <div className="flex justify-between text-xs sm:text-sm">
-                  <span className="text-muted-foreground">Rate:</span>
-                  <span className="font-medium">
-                    {formatPrice(selectedService.markedUpRate)}
-                  </span>
+            {orderQuantity && selectedService && (() => {
+              const qty = parseInt(orderQuantity || "0");
+              const runs = dripFeedEnabled ? parseInt(dripFeedRuns || "1") || 1 : 1;
+              const totalQty = qty * runs;
+              const isPerOne = selectedService.min_order === 1 && selectedService.max_order === 1;
+              const totalCost = isPerOne
+                ? totalQty * selectedService.markedUpRate
+                : (totalQty / 1000) * selectedService.markedUpRate;
+              return (
+                <div className="p-3 sm:p-4 bg-primary/10 border border-primary/20 rounded-lg space-y-2">
+                  <div className="flex justify-between text-xs sm:text-sm">
+                    <span className="text-muted-foreground">Rate:</span>
+                    <span className="font-medium">
+                      {formatPrice(selectedService.markedUpRate)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-sm sm:text-lg font-bold">
+                    <span>Total Cost:</span>
+                    <span className="text-primary">
+                      {formatPrice(totalCost)}
+                    </span>
+                  </div>
                 </div>
-                <div className="flex justify-between text-sm sm:text-lg font-bold">
-                  <span>Total Cost:</span>
-                  <span className="text-primary">
-                    {/* Per-1 pricing when min=max=1, otherwise per-1K */}
-                    {selectedService.min_order === 1 && selectedService.max_order === 1
-                      ? formatPrice(parseInt(orderQuantity || "0") * selectedService.markedUpRate)
-                      : formatPrice((parseInt(orderQuantity || "0") / 1000) * selectedService.markedUpRate)}
-                  </span>
-                </div>
-              </div>
-            )}
+              );
+            })()}
             <Button onClick={handlePlaceOrder} className="w-full" disabled={placingOrder}>
               {placingOrder ? "Placing Order..." : "Confirm Order"}
             </Button>

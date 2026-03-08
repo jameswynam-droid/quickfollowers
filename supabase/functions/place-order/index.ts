@@ -100,12 +100,12 @@ Deno.serve(async (req) => {
     const isPremium = isPremiumService(service.name, service.category);
     const markedUpRate = calculateMarkup(service.rate, isPremium);
     
-    // Calculate charge with markup
-    // Per-1 pricing when min=max=1, otherwise per-1K (SMM panel standard)
+    // Calculate charge with markup, accounting for drip-feed runs
+    const totalQuantity = (runs && runs > 1) ? quantity * runs : quantity;
     const isPerOnePricing = service.min_order === 1 && service.max_order === 1;
     const charge = isPerOnePricing
-      ? parseFloat((markedUpRate * quantity).toFixed(2))
-      : parseFloat(((markedUpRate * quantity) / 1000).toFixed(2));
+      ? parseFloat((markedUpRate * totalQuantity).toFixed(2))
+      : parseFloat(((markedUpRate * totalQuantity) / 1000).toFixed(2));
 
     console.log(`Service: ${service.name}, Original rate: ${service.rate}, Marked up rate: ${markedUpRate}, Quantity: ${quantity}, Charge: ${charge}`);
 
