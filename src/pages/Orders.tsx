@@ -191,7 +191,13 @@ const Orders = () => {
   };
 
   if (loading) {
-    return <FullPageLoader message="Loading orders..." />;
+    return (
+      <div className="min-h-screen flex flex-col">
+        <Header />
+        <main className="flex-grow container mx-auto px-3 sm:px-4 py-4 sm:py-8"><OrdersSkeleton /></main>
+        <Footer />
+      </div>
+    );
   }
 
   return (

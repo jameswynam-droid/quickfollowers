@@ -421,7 +421,13 @@ const Services = () => {
   };
 
   if (loading) {
-    return <FullPageLoader message="Loading services..." />;
+    return (
+      <div className="min-h-screen flex flex-col bg-background">
+        <Header />
+        <main className="flex-grow container mx-auto px-3 sm:px-4 py-4 sm:py-8"><ServicesSkeleton /></main>
+        <Footer />
+      </div>
+    );
   }
 
   const filteredCategories = getFilteredCategories();

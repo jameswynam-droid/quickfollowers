@@ -270,7 +270,13 @@ const Tickets = () => {
   };
 
   if (loading) {
-    return <FullPageLoader message="Loading tickets..." />;
+    return (
+      <div className="min-h-screen flex flex-col">
+        <Header />
+        <main className="flex-grow container mx-auto px-3 sm:px-4 py-4 sm:py-8"><TicketsSkeleton /></main>
+        <Footer />
+      </div>
+    );
   }
 
   return (
