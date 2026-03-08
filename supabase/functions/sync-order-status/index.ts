@@ -235,7 +235,7 @@ async function processRefund(supabaseClient: any, order: any) {
         type: 'refund',
         amount: refundAmount,
         balance_after: 0,
-        description: `Refund for cancelled order`,
+        description: `Refund for order #${order.api_order_id || order.id}`,
         reference_id: order.api_order_id || order.id,
       })
       .select('id')
