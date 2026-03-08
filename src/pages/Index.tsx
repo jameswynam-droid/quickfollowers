@@ -251,37 +251,23 @@ const Index = () => {
             <p className="text-xs sm:text-sm font-medium text-primary tracking-wide uppercase mb-2">FAQ</p>
             <h2 className="text-2xl sm:text-4xl font-extrabold text-foreground tracking-tight">Common questions</h2>
           </div>
-          <div className="space-y-3 sm:space-y-4">
-            <details className="group bg-card/80 dark:bg-card/60 backdrop-blur-sm rounded-xl sm:rounded-2xl shadow-lg px-4 sm:px-8 py-4 sm:py-6 open:shadow-xl transition-all border border-border dark:border-border/80 hover:border-primary/50">
-              <summary className="font-bold text-sm sm:text-lg cursor-pointer list-none flex items-center justify-between text-foreground">
-                Are the followers real?
-                <i className="fa-solid fa-chevron-down text-primary group-open:rotate-180 transition-transform text-xs sm:text-base"></i>
-              </summary>
-              <p className="text-muted-foreground mt-3 sm:mt-4 leading-relaxed text-xs sm:text-base">
-                We deliver a mix of real and high-quality accounts that look authentic. Drops are rare, but we
-                offer 30-day refill on eligible services.
-              </p>
-            </details>
-            <details className="group bg-card/80 dark:bg-card/60 backdrop-blur-sm rounded-xl sm:rounded-2xl shadow-lg px-4 sm:px-8 py-4 sm:py-6 open:shadow-xl transition-all border border-border dark:border-border/80 hover:border-primary/50">
-              <summary className="font-bold text-sm sm:text-lg cursor-pointer list-none flex items-center justify-between text-foreground">
-                How long does it take to start?
-                <i className="fa-solid fa-chevron-down text-primary group-open:rotate-180 transition-transform text-xs sm:text-base"></i>
-              </summary>
-              <p className="text-muted-foreground mt-3 sm:mt-4 leading-relaxed text-xs sm:text-base">
-                Most orders start within 30-60 seconds. Larger campaigns may take up to 12 hours to ramp up
-                gradually.
-              </p>
-            </details>
-            <details className="group bg-card/80 dark:bg-card/60 backdrop-blur-sm rounded-xl sm:rounded-2xl shadow-lg px-4 sm:px-8 py-4 sm:py-6 open:shadow-xl transition-all border border-border dark:border-border/80 hover:border-primary/50">
-              <summary className="font-bold text-sm sm:text-lg cursor-pointer list-none flex items-center justify-between text-foreground">
-                Can I resell your services?
-                <i className="fa-solid fa-chevron-down text-primary group-open:rotate-180 transition-transform text-xs sm:text-base"></i>
-              </summary>
-              <p className="text-muted-foreground mt-3 sm:mt-4 leading-relaxed text-xs sm:text-base">
-                Absolutely. Open a sub-account and set your own prices. We keep no branding on delivered
-                engagement.
-              </p>
-            </details>
+          <div className="space-y-3">
+            {[
+              { q: "Are the followers real?", a: "We deliver a mix of real and high-quality accounts that look authentic. Drops are rare, but we offer 30-day refill on eligible services." },
+              { q: "How long does it take to start?", a: "Most orders start within 30-60 seconds. Larger campaigns may take up to 12 hours to ramp up gradually." },
+              { q: "Can I resell your services?", a: "Absolutely. Open a sub-account and set your own prices. We keep no branding on delivered engagement." },
+            ].map((faq, i) => (
+              <details key={i} className="group bg-card rounded-xl px-5 sm:px-7 py-4 sm:py-5 border border-border hover:border-primary/30 transition-colors">
+                <summary className="font-semibold text-sm sm:text-base cursor-pointer list-none flex items-center justify-between text-foreground">
+                  {faq.q}
+                  <i className="fa-solid fa-plus text-muted-foreground group-open:hidden text-xs"></i>
+                  <i className="fa-solid fa-minus text-primary hidden group-open:inline text-xs"></i>
+                </summary>
+                <p className="text-muted-foreground mt-3 leading-relaxed text-xs sm:text-sm">
+                  {faq.a}
+                </p>
+              </details>
+            ))}
           </div>
         </div>
       </section>

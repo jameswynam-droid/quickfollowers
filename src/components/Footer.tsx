@@ -2,7 +2,7 @@ import logoImg from "@/assets/logo.png";
 
 const Footer = () => {
   return (
-    <footer id="contact" className="bg-gray-900 text-gray-300 py-8 sm:py-12">
+    <footer id="contact" className="bg-foreground text-background/70 py-8 sm:py-12">
       <div className="max-w-7xl mx-auto px-4 grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-8">
         <div className="col-span-2 md:col-span-1">
           <div className="flex items-center gap-2 text-white font-bold text-lg sm:text-xl mb-3 sm:mb-4">
