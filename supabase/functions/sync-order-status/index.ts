@@ -218,11 +218,13 @@ async function processRefund(supabaseClient: any, order: any) {
     const refundAmount = parseFloat(order.charge);
     if (isNaN(refundAmount) || refundAmount <= 0) return;
 
+    // Check for existing refund using both possible reference_id values
+    const refRefId = order.api_order_id || order.id;
     const { data: existingRefunds } = await supabaseClient
       .from('transactions')
       .select('id')
-      .eq('reference_id', order.id)
-      .eq('type', 'refund');
+      .eq('type', 'refund')
+      .or(`reference_id.eq.${order.id},reference_id.eq.${refRefId}`);
 
     if (existingRefunds && existingRefunds.length > 0) return;
 
