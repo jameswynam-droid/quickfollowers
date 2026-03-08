@@ -174,15 +174,22 @@ export default function AddFunds() {
         : amountNum;
 
       if (selectedMethod === "flutterwave" || selectedMethod === "mobilemoney") {
+        // For Flutterwave: send the user's display currency & amount so checkout shows their currency
+        // Also send the NGN equivalent so the backend can credit the correct NGN balance
+        const isMobileMoney = selectedMethod === "mobilemoney";
+        const checkoutCurrency = isMobileMoney
+          ? MOBILE_MONEY_CURRENCIES[currency]
+          : currency === "NGN" ? "NGN" : currency;
+        const checkoutAmount = currency === "NGN" ? amountNum : amountNum;
+        const ngnEquivalent = Number(convertToNGN(amountNum).toFixed(2));
+
         const { data, error } = await supabase.functions.invoke("initialize-flutterwave", {
           body: {
-            amount: normalizedAmount,
+            amount: checkoutAmount,
             redirect_url,
-            payment_type: selectedMethod === "mobilemoney" ? "mobilemoney" : undefined,
-            currency:
-              selectedMethod === "mobilemoney"
-                ? MOBILE_MONEY_CURRENCIES[currency]
-                : "NGN",
+            payment_type: isMobileMoney ? "mobilemoney" : undefined,
+            currency: checkoutCurrency,
+            ngn_equivalent: ngnEquivalent,
           },
         });
 

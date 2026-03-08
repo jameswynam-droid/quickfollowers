@@ -31,18 +31,23 @@ Deno.serve(async (req: Request) => {
     }
 
     // Parse request body
-    const { amount, redirect_url, payment_type, currency: requestedCurrency } = await req.json();
-    console.log("Received request:", { amount, redirect_url, userId: user.id });
+    const { amount, redirect_url, payment_type, currency: requestedCurrency, ngn_equivalent } = await req.json();
+    console.log("Received request:", { amount, redirect_url, userId: user.id, currency: requestedCurrency, ngn_equivalent });
 
     if (!amount || amount <= 0) {
       throw new Error("Amount must be greater than zero");
     }
 
+    // Determine the checkout currency
+    const chargeCurrency = requestedCurrency || "NGN";
+    
     // Enforce minimum deposit for NGN
-    const chargeCurrency = (payment_type === "mobilemoney" && requestedCurrency) ? requestedCurrency : "NGN";
     if (chargeCurrency === "NGN" && amount < 100) {
       throw new Error("Minimum deposit amount is ₦100");
     }
+    
+    // The NGN equivalent is used for balance crediting (sent from frontend based on live rates)
+    const balanceAmount = chargeCurrency === "NGN" ? amount : (ngn_equivalent || amount);
 
     // Get user's profile for email
     const { data: profile, error: profileError } = await supabaseAdmin
@@ -81,7 +86,7 @@ Deno.serve(async (req: Request) => {
         },
         meta: {
           user_id: user.id,
-          base_amount: amount,
+          base_amount: balanceAmount,
         },
         customizations: {
           title: "QuickFollowers",
