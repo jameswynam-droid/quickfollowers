@@ -249,7 +249,7 @@ export default function AddFunds() {
               </CardHeader>
               <CardContent>
                 <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground font-medium">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground font-medium pointer-events-none select-none">
                     {currencySymbol}
                   </span>
                   <Input
@@ -259,7 +259,8 @@ export default function AddFunds() {
                     placeholder="0.00"
                     value={amount}
                     onChange={(e) => setAmount(e.target.value)}
-                    className="pl-8 text-lg h-12"
+                    style={{ paddingLeft: `${Math.max(currencySymbol.length * 0.75 + 1, 2)}rem` }}
+                    className="text-lg h-12"
                     required
                     disabled={loading}
                   />
