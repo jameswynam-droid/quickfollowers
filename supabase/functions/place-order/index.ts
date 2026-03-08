@@ -63,6 +63,12 @@ Deno.serve(async (req) => {
       { global: { headers: { Authorization: `Bearer ${jwt}` } } }
     );
 
+    // Service role client for privileged operations (inserts with non-pending status, balance updates)
+    const supabaseAdmin = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    );
+
     // Get the authenticated user
     const { data: { user }, error: userError } = await supabaseClient.auth.getUser(jwt);
 
