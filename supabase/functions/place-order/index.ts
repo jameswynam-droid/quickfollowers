@@ -63,6 +63,12 @@ Deno.serve(async (req) => {
       { global: { headers: { Authorization: `Bearer ${jwt}` } } }
     );
 
+    // Service role client for privileged operations (inserts with non-pending status, balance updates)
+    const supabaseAdmin = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    );
+
     // Get the authenticated user
     const { data: { user }, error: userError } = await supabaseClient.auth.getUser(jwt);
 
@@ -123,7 +129,7 @@ Deno.serve(async (req) => {
 
     if (profile.balance < charge) {
       // Create a failed order record so the bot can see the reason
-      await supabaseClient.from('orders').insert({
+      await supabaseAdmin.from('orders').insert({
         user_id: profile.id,
         service_id: service_id,
         link: link,
@@ -201,7 +207,7 @@ Deno.serve(async (req) => {
         console.error('Provider API balance error:', apiResult.error);
         
         // Store the failed order with reason
-        await supabaseClient.from('orders').insert({
+        await supabaseAdmin.from('orders').insert({
           user_id: profile.id,
           service_id: service_id,
           link: link,
@@ -221,7 +227,7 @@ Deno.serve(async (req) => {
       }
       
       // Store any other failed order with reason
-      await supabaseClient.from('orders').insert({
+      await supabaseAdmin.from('orders').insert({
         user_id: profile.id,
         service_id: service_id,
         link: link,
@@ -237,7 +243,7 @@ Deno.serve(async (req) => {
     console.log(`Order placed successfully with ${provider} API:`, apiResult.order);
 
     // Create order record with marked up charge
-    const { data: order, error: orderError } = await supabaseClient
+    const { data: order, error: orderError } = await supabaseAdmin
       .from('orders')
       .insert({
         user_id: profile.id,
@@ -257,7 +263,7 @@ Deno.serve(async (req) => {
 
     // Deduct balance
     const newBalance = parseFloat(profile.balance) - charge;
-    const { error: updateError } = await supabaseClient
+    const { error: updateError } = await supabaseAdmin
       .from('profiles')
       .update({ balance: newBalance })
       .eq('id', profile.id);
@@ -267,7 +273,7 @@ Deno.serve(async (req) => {
     }
 
     // Create transaction record
-    const { error: txError } = await supabaseClient
+    const { error: txError } = await supabaseAdmin
       .from('transactions')
       .insert({
         user_id: profile.id,

@@ -31,7 +31,7 @@ Deno.serve(async (req: Request) => {
     }
 
     // Parse request body
-    const { amount, redirect_url } = await req.json();
+    const { amount, redirect_url, payment_type } = await req.json();
     console.log("Received request:", { amount, redirect_url, userId: user.id });
 
     if (!amount || amount < 100) {
@@ -62,13 +62,7 @@ Deno.serve(async (req: Request) => {
     // Redirect URL goes to verify-flutterwave which will verify payment status
     const verifyRedirectUrl = `${supabaseUrl}/functions/v1/verify-flutterwave?tx_ref=${txRef}&origin=${encodeURIComponent(redirect_url || '')}`;
     
-    const flutterwaveResponse = await fetch("https://api.flutterwave.com/v3/payments", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${flutterwaveSecretKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
+      const payloadBody: Record<string, any> = {
         tx_ref: txRef,
         amount: amount,
         currency: "NGN",
@@ -85,8 +79,21 @@ Deno.serve(async (req: Request) => {
           title: "QuickFollowers",
           description: "Add funds to your account",
         },
-      }),
-    });
+      };
+
+      // If mobile money is requested, restrict payment options
+      if (payment_type === "mobilemoney") {
+        payloadBody.payment_options = "mobilemoney,mobilemoneyghana,mobilemoneyfranco,mobilemoneyuganda,mobilemoneyrwanda,mobilemoneyzambia,mpesa";
+      }
+
+      const flutterwaveResponse = await fetch("https://api.flutterwave.com/v3/payments", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${flutterwaveSecretKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payloadBody),
+      });
 
     const flutterwaveData = await flutterwaveResponse.json();
     console.log("Flutterwave response:", flutterwaveData);
