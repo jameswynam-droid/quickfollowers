@@ -38,6 +38,12 @@ Deno.serve(async (req: Request) => {
       throw new Error("Amount must be greater than zero");
     }
 
+    // Enforce minimum deposit for NGN
+    const chargeCurrency = (payment_type === "mobilemoney" && requestedCurrency) ? requestedCurrency : "NGN";
+    if (chargeCurrency === "NGN" && amount < 100) {
+      throw new Error("Minimum deposit amount is ₦100");
+    }
+
     // Get user's profile for email
     const { data: profile, error: profileError } = await supabaseAdmin
       .from("profiles")
