@@ -60,8 +60,8 @@ Deno.serve(async (req) => {
 
     const { order_id } = await req.json();
 
-    if (!order_id) {
-      throw new Error('Order ID is required');
+    if (!order_id || typeof order_id !== 'string' || order_id.length > 100) {
+      throw new Error('Invalid order ID');
     }
 
     // Get original order details

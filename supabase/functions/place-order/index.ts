@@ -81,9 +81,33 @@ Deno.serve(async (req) => {
 
     const { service_id, link, quantity, comments, runs, interval }: OrderRequest = await req.json();
 
-    // Validate input
+    // Validate input - presence
     if (!service_id || !link || !quantity) {
       throw new Error('Missing required fields');
+    }
+
+    // Validate quantity is a positive integer
+    if (!Number.isInteger(quantity) || quantity < 1) {
+      throw new Error('Invalid quantity: must be a positive integer');
+    }
+
+    // Validate link format
+    const linkPattern = /^https?:\/\/.+/;
+    if (typeof link !== 'string' || !linkPattern.test(link) || link.length > 500) {
+      throw new Error('Invalid link format');
+    }
+
+    // Validate service_id format
+    if (typeof service_id !== 'string' || service_id.length > 100) {
+      throw new Error('Invalid service ID');
+    }
+
+    // Validate optional drip-feed params
+    if (runs !== undefined && (!Number.isInteger(runs) || runs < 1 || runs > 100)) {
+      throw new Error('Invalid runs value');
+    }
+    if (interval !== undefined && (!Number.isInteger(interval) || interval < 1 || interval > 1440)) {
+      throw new Error('Invalid interval value');
     }
 
     // Get service details including provider
