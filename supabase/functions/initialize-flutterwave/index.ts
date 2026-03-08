@@ -34,8 +34,8 @@ Deno.serve(async (req: Request) => {
     const { amount, redirect_url, payment_type, currency: requestedCurrency } = await req.json();
     console.log("Received request:", { amount, redirect_url, userId: user.id });
 
-    if (!amount || amount < 100) {
-      throw new Error("Minimum amount is 100 NGN");
+    if (!amount || amount <= 0) {
+      throw new Error("Amount must be greater than zero");
     }
 
     // Get user's profile for email
