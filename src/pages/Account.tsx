@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { PasswordInput } from "@/components/PasswordInput";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import { CurrencySelector } from "@/components/CurrencySelector";
-import FullPageLoader from "@/components/FullPageLoader";
+import { AccountSkeleton } from "@/components/LoadingSkeleton";
 import { toast } from "sonner";
 import { Mail, Lock, Check, X, User, Globe } from "lucide-react";
 import { useNoIndex } from "@/hooks/useNoIndex";
