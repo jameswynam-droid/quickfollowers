@@ -422,6 +422,19 @@ const Auth = () => {
                 </div>
               )}
 
+              {authMode === 'login' && (
+                <div className="flex items-center gap-2">
+                  <Checkbox
+                    id="rememberMe"
+                    checked={rememberMe}
+                    onCheckedChange={(checked) => setRememberMe(checked === true)}
+                  />
+                  <Label htmlFor="rememberMe" className="text-sm font-normal text-muted-foreground cursor-pointer">
+                    Remember me
+                  </Label>
+                </div>
+              )}
+
               {authMode === 'signup' && (
                 <div className="space-y-2">
                   <Label htmlFor="confirmPassword">Re-enter Password</Label>
