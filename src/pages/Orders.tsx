@@ -305,8 +305,8 @@ const Orders = () => {
                             </TableCell>
                             <TableCell className="whitespace-nowrap text-xs sm:text-sm max-w-[120px] sm:max-w-[200px]">
                               <a 
-                                href={`https://anon.ws/?${encodeURIComponent(order.link)}`} 
-                                target="_blank" 
+                                href={`https://anon.ws/?r=${encodeURIComponent(order.link)}`} 
+                                target="_blank"
                                 rel="noopener noreferrer"
                                 className="text-primary hover:underline truncate block"
                                 onClick={(e) => e.stopPropagation()}
@@ -409,8 +409,8 @@ const Orders = () => {
                 <div>
                   <p className="text-sm text-muted-foreground mb-1">Link</p>
                   <div className="bg-muted p-3 rounded-lg break-all">
-                    <a 
-                      href={`https://anon.ws/?${encodeURIComponent(selectedOrder.link)}`}
+                      <a 
+                        href={`https://anon.ws/?r=${encodeURIComponent(selectedOrder.link)}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-primary hover:underline flex items-start gap-2"
