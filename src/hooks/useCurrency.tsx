@@ -12,6 +12,7 @@ interface CurrencyContextType {
   setCurrency: (currency: CurrencyCode) => void;
   formatPrice: (ngnAmount: number) => string;
   convertFromNGN: (ngnAmount: number) => number;
+  convertToNGN: (amountInSelectedCurrency: number) => number;
   currencySymbol: string;
   userLocation: string | null;
  ratesLoading: boolean;
