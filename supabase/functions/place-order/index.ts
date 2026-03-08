@@ -270,7 +270,7 @@ Deno.serve(async (req) => {
         user_id: profile.id,
         service_id: service_id,
         link: link,
-        quantity: quantity,
+        quantity: totalQuantity,
         charge: charge,
         status: 'processing',
         api_order_id: apiResult.order.toString(),

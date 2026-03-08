@@ -35,7 +35,7 @@ export const useSessionGuard = () => {
           // First load of this browser session — mark as alive
           // If session_start exists but tab_alive doesn't, browser was restarted
           const timeSinceStart = Date.now() - parseInt(sessionStart, 10);
-          if (timeSinceStart > 5000) {
+          if (timeSinceStart > 30000) {
             // Browser was likely restarted (not a fresh login)
             await forceLogout();
             return;
