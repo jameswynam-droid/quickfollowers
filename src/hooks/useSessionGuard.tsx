@@ -1,54 +1,16 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
 const ABSOLUTE_SESSION_LIFETIME_MS = 86400 * 1000; // 24 hours
-const CHECK_INTERVAL_MS = 60 * 1000; // check every minute
+const CHECK_INTERVAL_MS = 5 * 60 * 1000; // check every 5 minutes (was 1 min)
 
 export const useSessionGuard = () => {
+  const hasCheckedBrowserRestart = useRef(false);
+
   useEffect(() => {
-    const checkSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return;
-
-      const sessionStart = localStorage.getItem('session_start');
-      const rememberMe = localStorage.getItem('remember_me') === 'true';
-
-      // If no session_start recorded, set it now (for existing sessions)
-      if (!sessionStart) {
-        localStorage.setItem('session_start', Date.now().toString());
-        return;
-      }
-
-      const elapsed = Date.now() - parseInt(sessionStart, 10);
-
-      // Absolute 24-hour session lifetime
-      if (elapsed >= ABSOLUTE_SESSION_LIFETIME_MS) {
-        await forceLogout();
-        return;
-      }
-
-      // If "Remember me" was not checked, clear session on tab/browser reopen
-      // We detect this by checking sessionStorage — it clears when browser closes
-      if (!rememberMe) {
-        const tabAlive = sessionStorage.getItem('tab_alive');
-        if (!tabAlive) {
-          // First load of this browser session — mark as alive
-          // If session_start exists but tab_alive doesn't, browser was restarted
-          const timeSinceStart = Date.now() - parseInt(sessionStart, 10);
-          if (timeSinceStart > 30000) {
-            // Browser was likely restarted (not a fresh login)
-            await forceLogout();
-            return;
-          }
-        }
-        sessionStorage.setItem('tab_alive', 'true');
-      }
-    };
-
     const forceLogout = async () => {
       try { await supabase.auth.signOut({ scope: 'global' }); } catch {}
       try { await supabase.auth.signOut({ scope: 'local' }); } catch {}
-      // Clear all auth data
       const keysToRemove: string[] = [];
       for (let i = 0; i < localStorage.length; i++) {
         const key = localStorage.key(i);
@@ -61,11 +23,49 @@ export const useSessionGuard = () => {
       window.location.replace("/");
     };
 
-    // Check immediately
-    checkSession();
+    const checkSession = async (isInitial: boolean) => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
 
-    // Then check periodically
-    const interval = setInterval(checkSession, CHECK_INTERVAL_MS);
+      const sessionStart = localStorage.getItem('session_start');
+      const rememberMe = localStorage.getItem('remember_me') === 'true';
+
+      // If no session_start recorded, set it now (for existing sessions)
+      if (!sessionStart) {
+        localStorage.setItem('session_start', Date.now().toString());
+        sessionStorage.setItem('tab_alive', 'true');
+        return;
+      }
+
+      const elapsed = Date.now() - parseInt(sessionStart, 10);
+
+      // Absolute 24-hour session lifetime
+      if (elapsed >= ABSOLUTE_SESSION_LIFETIME_MS) {
+        await forceLogout();
+        return;
+      }
+
+      // Browser restart detection — only check ONCE on initial mount
+      if (!rememberMe && isInitial && !hasCheckedBrowserRestart.current) {
+        hasCheckedBrowserRestart.current = true;
+        const tabAlive = sessionStorage.getItem('tab_alive');
+        if (!tabAlive) {
+          // No tab_alive means browser was restarted
+          // Grace period: if session just started (< 60s), don't log out
+          if (elapsed > 60000) {
+            await forceLogout();
+            return;
+          }
+        }
+        sessionStorage.setItem('tab_alive', 'true');
+      }
+    };
+
+    // Check immediately (initial = true)
+    checkSession(true);
+
+    // Then check periodically (initial = false — skip browser restart check)
+    const interval = setInterval(() => checkSession(false), CHECK_INTERVAL_MS);
 
     return () => clearInterval(interval);
   }, []);
