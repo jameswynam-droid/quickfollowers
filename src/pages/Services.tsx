@@ -331,6 +331,15 @@ const Services = () => {
       return;
     }
 
+    // Validate drip-feed interval when drip-feed is enabled
+    if (dripFeedEnabled) {
+      const interval = parseInt(dripFeedInterval);
+      if (!dripFeedInterval || isNaN(interval) || interval < 1) {
+        toast.error("Incorrect interval");
+        return;
+      }
+    }
+
     // Calculate total cost based on pricing model, accounting for drip-feed runs
     const runs = dripFeedEnabled ? parseInt(dripFeedRuns || "1") || 1 : 1;
     const totalQuantity = quantity * runs;
