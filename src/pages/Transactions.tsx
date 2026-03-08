@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
-import FullPageLoader from "@/components/FullPageLoader";
+import { TransactionsSkeleton } from "@/components/LoadingSkeleton";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
@@ -93,7 +93,13 @@ const Transactions = () => {
   };
 
   if (loading) {
-    return <FullPageLoader message="Loading transactions..." />;
+    return (
+      <div className="min-h-screen flex flex-col">
+        <Header />
+        <main className="flex-grow container mx-auto px-3 sm:px-4 py-4 sm:py-8"><TransactionsSkeleton /></main>
+        <Footer />
+      </div>
+    );
   }
 
   return (

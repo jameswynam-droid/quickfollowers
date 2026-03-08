@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
-import FullPageLoader from "@/components/FullPageLoader";
+import { OrdersSkeleton } from "@/components/LoadingSkeleton";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -191,7 +191,13 @@ const Orders = () => {
   };
 
   if (loading) {
-    return <FullPageLoader message="Loading orders..." />;
+    return (
+      <div className="min-h-screen flex flex-col">
+        <Header />
+        <main className="flex-grow container mx-auto px-3 sm:px-4 py-4 sm:py-8"><OrdersSkeleton /></main>
+        <Footer />
+      </div>
+    );
   }
 
   return (

@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
-import FullPageLoader from "@/components/FullPageLoader";
+import { ServicesSkeleton } from "@/components/LoadingSkeleton";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -421,7 +421,13 @@ const Services = () => {
   };
 
   if (loading) {
-    return <FullPageLoader message="Loading services..." />;
+    return (
+      <div className="min-h-screen flex flex-col bg-background">
+        <Header />
+        <main className="flex-grow container mx-auto px-3 sm:px-4 py-4 sm:py-8"><ServicesSkeleton /></main>
+        <Footer />
+      </div>
+    );
   }
 
   const filteredCategories = getFilteredCategories();

@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { PasswordInput } from "@/components/PasswordInput";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import { CurrencySelector } from "@/components/CurrencySelector";
-import FullPageLoader from "@/components/FullPageLoader";
+import { AccountSkeleton } from "@/components/LoadingSkeleton";
 import { toast } from "sonner";
 import { Mail, Lock, Check, X, User, Globe } from "lucide-react";
 import { useNoIndex } from "@/hooks/useNoIndex";
@@ -218,7 +218,13 @@ const Account = () => {
   );
 
   if (loading) {
-    return <FullPageLoader message="Loading account..." />;
+    return (
+      <div className="min-h-screen flex flex-col">
+        <Header />
+        <main className="flex-grow container mx-auto px-3 sm:px-4 py-4 sm:py-8"><AccountSkeleton /></main>
+        <Footer />
+      </div>
+    );
   }
 
   return (

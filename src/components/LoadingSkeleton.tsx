@@ -55,30 +55,32 @@ export const DashboardSkeleton = () => (
 );
 
 export const ServicesSkeleton = () => (
-  <div className="space-y-6">
-    <div className="flex justify-between items-center">
-      <Skeleton className="h-10 w-48" />
-      <Skeleton className="h-10 w-32" />
+  <div className="space-y-6 sm:space-y-8">
+    {/* Page header */}
+    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="space-y-1.5">
+        <Skeleton className="h-8 sm:h-10 w-48" />
+        <Skeleton className="h-4 w-64" />
+      </div>
     </div>
-    
-    <div className="flex gap-4">
-      <Skeleton className="h-10 flex-1 max-w-md" />
-      <Skeleton className="h-10 w-48" />
+
+    {/* Search + Filter */}
+    <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
+      <Skeleton className="h-10 flex-1" />
+      <Skeleton className="h-10 w-full sm:w-64" />
     </div>
-    
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-      {[...Array(9)].map((_, i) => (
+
+    {/* Collapsible category cards */}
+    <div className="space-y-3 sm:space-y-4">
+      {[...Array(6)].map((_, i) => (
         <Card key={i}>
-          <CardHeader>
-            <Skeleton className="h-6 w-3/4" />
-            <Skeleton className="h-4 w-1/2" />
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <Skeleton className="h-4 w-full" />
-            <Skeleton className="h-4 w-2/3" />
-            <div className="flex justify-between pt-2">
-              <Skeleton className="h-5 w-20" />
-              <Skeleton className="h-5 w-16" />
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div className="space-y-1.5">
+                <Skeleton className="h-5 w-40 sm:w-56" />
+                <Skeleton className="h-3.5 w-20" />
+              </div>
+              <Skeleton className="h-5 w-5 rounded" />
             </div>
           </CardContent>
         </Card>
@@ -88,25 +90,34 @@ export const ServicesSkeleton = () => (
 );
 
 export const OrdersSkeleton = () => (
-  <div className="space-y-6">
-    <div className="flex justify-between items-center">
-      <Skeleton className="h-10 w-48" />
-      <Skeleton className="h-10 w-36" />
+  <div className="space-y-6 sm:space-y-8">
+    {/* Page header */}
+    <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+      <div className="space-y-1.5">
+        <Skeleton className="h-8 sm:h-10 w-44" />
+        <Skeleton className="h-4 w-48" />
+      </div>
+      <Skeleton className="h-9 w-24" />
     </div>
-    
+
+    {/* Search + Filter */}
+    <div className="flex flex-col sm:flex-row gap-3">
+      <Skeleton className="h-10 flex-1" />
+      <Skeleton className="h-10 w-full sm:w-[150px]" />
+    </div>
+
+    {/* Table */}
     <Card>
-      <CardContent className="pt-6">
-        <div className="space-y-4">
-          <div className="flex gap-4 border-b pb-4">
-            {[...Array(7)].map((_, i) => (
-              <Skeleton key={i} className="h-5 flex-1" />
-            ))}
-          </div>
-          {[...Array(10)].map((_, i) => (
-            <div key={i} className="flex gap-4 py-2">
-              {[...Array(7)].map((_, j) => (
-                <Skeleton key={j} className="h-5 flex-1" />
-              ))}
+      <CardContent className="p-0 sm:p-6">
+        <div className="space-y-3 p-4 sm:p-0">
+          {[...Array(8)].map((_, i) => (
+            <div key={i} className="flex items-center gap-3 sm:gap-4">
+              <Skeleton className="h-4 w-2/5 sm:w-1/4" />
+              <Skeleton className="h-4 w-16 hidden sm:block" />
+              <Skeleton className="h-4 w-20" />
+              <Skeleton className="h-4 w-16 hidden sm:block" />
+              <Skeleton className="h-5 w-16 rounded-full" />
+              <Skeleton className="h-4 w-20 hidden md:block" />
             </div>
           ))}
         </div>
@@ -116,26 +127,91 @@ export const OrdersSkeleton = () => (
 );
 
 export const TransactionsSkeleton = () => (
-  <div className="space-y-6">
-    <Skeleton className="h-10 w-48" />
-    
+  <div className="space-y-6 sm:space-y-8">
+    {/* Page header */}
+    <div className="flex items-center gap-3 sm:gap-4">
+      <Skeleton className="h-10 w-10 rounded-md" />
+      <div className="space-y-1.5">
+        <Skeleton className="h-8 sm:h-10 w-44" />
+        <Skeleton className="h-4 w-52" />
+      </div>
+    </div>
+
+    {/* Table card */}
     <Card>
-      <CardContent className="pt-6">
-        <div className="space-y-4">
-          <div className="flex gap-4 border-b pb-4">
-            {[...Array(5)].map((_, i) => (
-              <Skeleton key={i} className="h-5 flex-1" />
-            ))}
-          </div>
-          {[...Array(10)].map((_, i) => (
-            <div key={i} className="flex gap-4 py-2">
-              {[...Array(5)].map((_, j) => (
-                <Skeleton key={j} className="h-5 flex-1" />
-              ))}
+      <CardHeader className="p-3 sm:p-6">
+        <Skeleton className="h-6 w-36" />
+      </CardHeader>
+      <CardContent className="p-0 sm:p-6 sm:pt-0">
+        <div className="space-y-3 p-4 sm:p-0">
+          {[...Array(8)].map((_, i) => (
+            <div key={i} className="flex items-center gap-3 sm:gap-4">
+              <Skeleton className="h-5 w-16 rounded-full" />
+              <Skeleton className="h-4 w-16 font-mono" />
+              <Skeleton className="h-4 w-16 hidden sm:block" />
+              <Skeleton className="h-4 w-20" />
+              <Skeleton className="h-4 w-20 hidden md:block" />
+              <Skeleton className="h-4 w-16" />
             </div>
           ))}
         </div>
       </CardContent>
     </Card>
+  </div>
+);
+
+export const TicketsSkeleton = () => (
+  <div className="space-y-6 sm:space-y-8">
+    {/* Page header */}
+    <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+      <div className="space-y-1.5">
+        <Skeleton className="h-8 sm:h-10 w-48" />
+        <Skeleton className="h-4 w-44" />
+      </div>
+      <Skeleton className="h-9 w-28" />
+    </div>
+
+    {/* Ticket cards */}
+    <div className="space-y-3">
+      {[...Array(5)].map((_, i) => (
+        <Card key={i}>
+          <CardContent className="p-4">
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex-1 space-y-2">
+                <Skeleton className="h-5 w-3/4 sm:w-1/2" />
+                <Skeleton className="h-3.5 w-32" />
+              </div>
+              <Skeleton className="h-5 w-16 rounded-full" />
+            </div>
+          </CardContent>
+        </Card>
+      ))}
+    </div>
+  </div>
+);
+
+export const AccountSkeleton = () => (
+  <div className="space-y-6">
+    {/* Profile header */}
+    <Skeleton className="h-28 w-full rounded-2xl" />
+
+    {/* Settings cards */}
+    {[...Array(3)].map((_, i) => (
+      <Card key={i}>
+        <CardContent className="p-4 sm:p-6 space-y-4">
+          <div className="flex items-center gap-2">
+            <Skeleton className="h-5 w-5" />
+            <Skeleton className="h-5 w-32" />
+          </div>
+          <div className="space-y-3">
+            <Skeleton className="h-4 w-24" />
+            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-4 w-24" />
+            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-10 w-full" />
+          </div>
+        </CardContent>
+      </Card>
+    ))}
   </div>
 );
