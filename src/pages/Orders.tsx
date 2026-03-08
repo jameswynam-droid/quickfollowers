@@ -92,8 +92,9 @@ const Orders = () => {
         return;
       }
       setUser(session.user);
-      await syncOrderStatuses();
       await fetchOrders(session.user.id);
+      // Defer sync to after page renders - don't block loading
+      setTimeout(() => syncOrderStatuses(), 2000);
     } catch (error) {
       console.error("Auth check error:", error);
       navigate("/auth");

@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import { createContext, useContext, useState, useEffect, useRef, ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
 interface Notification {
@@ -22,7 +22,6 @@ interface NotificationContextType {
 
 const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
 
-// Default notifications for new users
 const DEFAULT_NOTIFICATIONS: Omit<Notification, "id" | "createdAt" | "read">[] = [
   {
     title: "Welcome to QuickFollowers! 🎉",
@@ -40,8 +39,9 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [hasEverOpened, setHasEverOpenedState] = useState(false);
   const [readIds, setReadIds] = useState<Set<string>>(new Set());
+  const readIdsRef = useRef<Set<string>>(new Set());
 
-  // Load read state and check if opened
+  // Load read state once
   useEffect(() => {
     const hasOpened = localStorage.getItem("notifications_opened") === "true";
     setHasEverOpenedState(hasOpened);
@@ -49,14 +49,16 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
     const savedReadIds = localStorage.getItem("notifications_read");
     if (savedReadIds) {
       try {
-        setReadIds(new Set(JSON.parse(savedReadIds)));
+        const parsed = new Set<string>(JSON.parse(savedReadIds));
+        setReadIds(parsed);
+        readIdsRef.current = parsed;
       } catch {
-        // Ignore parse errors
+        // Ignore
       }
     }
   }, []);
 
-  // Fetch bell notifications from database and merge with defaults
+  // Fetch bell notifications ONCE (no readIds dependency to avoid re-subscription loops)
   useEffect(() => {
     const fetchBellNotifications = async () => {
       const { data: dbNotifications } = await supabase
@@ -65,53 +67,44 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
         .eq("is_active", true)
         .order("created_at", { ascending: false });
 
-      // Convert DB notifications to our format
+      const currentReadIds = readIdsRef.current;
+
       const dbNotifs: Notification[] = (dbNotifications || []).map((n) => ({
         id: n.id,
         title: n.title,
         message: n.message,
         type: n.type as "info" | "success" | "warning",
         createdAt: new Date(n.created_at),
-        read: readIds.has(n.id),
+        read: currentReadIds.has(n.id),
       }));
 
-      // Create default notifications
       const defaultNotifs: Notification[] = DEFAULT_NOTIFICATIONS.map((n, i) => ({
         ...n,
         id: `default-${i}`,
-        createdAt: new Date(Date.now() - (i + 100) * 3600000), // Older than DB notifs
-        read: readIds.has(`default-${i}`),
+        createdAt: new Date(Date.now() - (i + 100) * 3600000),
+        read: currentReadIds.has(`default-${i}`),
       }));
 
-      // Merge: DB notifications first, then defaults
       const merged = [...dbNotifs, ...defaultNotifs];
       merged.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
-
       setNotifications(merged);
     };
 
     fetchBellNotifications();
 
-    // Subscribe to realtime updates
     const channel = supabase
       .channel("bell-notifications-changes")
       .on(
         "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "bell_notifications",
-        },
-        () => {
-          fetchBellNotifications();
-        }
+        { event: "*", schema: "public", table: "bell_notifications" },
+        () => fetchBellNotifications()
       )
       .subscribe();
 
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [readIds]);
+  }, []); // No readIds dependency - prevents re-subscription loop
 
   const setHasEverOpened = (value: boolean) => {
     setHasEverOpenedState(value);
@@ -125,6 +118,7 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
   const markAsRead = (id: string) => {
     setReadIds((prev) => {
       const updated = new Set(prev).add(id);
+      readIdsRef.current = updated;
       saveReadIds(updated);
       return updated;
     });
@@ -137,6 +131,7 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
     setReadIds((prev) => {
       const updated = new Set(prev);
       notifications.forEach((n) => updated.add(n.id));
+      readIdsRef.current = updated;
       saveReadIds(updated);
       return updated;
     });

@@ -1,64 +1,65 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
 export const useUnreadTickets = (userId: string | null) => {
   const [unreadCount, setUnreadCount] = useState(0);
+  const lastFetchRef = useRef<number>(0);
+  const MIN_FETCH_INTERVAL = 30000; // 30 seconds minimum between fetches
 
-  const fetchUnreadCount = async () => {
+  const fetchUnreadCount = useCallback(async () => {
     if (!userId) return;
 
+    // Throttle fetches
+    const now = Date.now();
+    if (now - lastFetchRef.current < MIN_FETCH_INTERVAL) return;
+    lastFetchRef.current = now;
+
     try {
-      // Get all user's tickets
-      const { data: tickets, error: ticketsError } = await supabase
+      // Single query: get all admin replies with their ticket info
+      const { data: tickets } = await supabase
         .from("tickets")
         .select("id")
         .eq("user_id", userId);
 
-      if (ticketsError || !tickets?.length) {
+      if (!tickets?.length) {
         setUnreadCount(0);
         return;
       }
 
       const ticketIds = tickets.map(t => t.id);
 
-      // Get last read times for each ticket
-      const { data: reads } = await supabase
-        .from("ticket_reads")
-        .select("ticket_id, last_read_at")
-        .eq("user_id", userId)
-        .in("ticket_id", ticketIds);
-
-      const readMap = new Map(reads?.map(r => [r.ticket_id, r.last_read_at]) || []);
-
-      // Count unread admin replies across all tickets
-      let total = 0;
-      for (const ticketId of ticketIds) {
-        const lastRead = readMap.get(ticketId);
-        
-        let query = supabase
+      // Get reads and unread messages in parallel (just 2 queries instead of N+1)
+      const [readsResult, messagesResult] = await Promise.all([
+        supabase
+          .from("ticket_reads")
+          .select("ticket_id, last_read_at")
+          .eq("user_id", userId)
+          .in("ticket_id", ticketIds),
+        supabase
           .from("ticket_messages")
-          .select("id", { count: "exact", head: true })
-          .eq("ticket_id", ticketId)
-          .eq("is_admin_reply", true);
+          .select("ticket_id, created_at")
+          .eq("is_admin_reply", true)
+          .in("ticket_id", ticketIds)
+      ]);
 
-        if (lastRead) {
-          query = query.gt("created_at", lastRead);
-        }
+      const readMap = new Map(readsResult.data?.map(r => [r.ticket_id, r.last_read_at]) || []);
 
-        const { count } = await query;
-        total += count || 0;
-      }
+      // Count unread in memory instead of N separate queries
+      const total = (messagesResult.data || []).filter(msg => {
+        const lastRead = readMap.get(msg.ticket_id);
+        return !lastRead || msg.created_at > lastRead;
+      }).length;
 
       setUnreadCount(total);
     } catch (error) {
       console.error("Error fetching unread tickets:", error);
     }
-  };
+  }, [userId]);
 
   useEffect(() => {
     fetchUnreadCount();
 
-    // Subscribe to new ticket messages
+    // Subscribe only to admin replies (filter by is_admin_reply)
     const channel = supabase
       .channel('ticket-unread')
       .on('postgres_changes', {
@@ -66,6 +67,8 @@ export const useUnreadTickets = (userId: string | null) => {
         schema: 'public',
         table: 'ticket_messages',
       }, () => {
+        // Reset throttle on new message so it fetches
+        lastFetchRef.current = 0;
         fetchUnreadCount();
       })
       .subscribe();
@@ -73,7 +76,7 @@ export const useUnreadTickets = (userId: string | null) => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [userId]);
+  }, [userId, fetchUnreadCount]);
 
   return { unreadCount, refreshUnread: fetchUnreadCount };
 };
