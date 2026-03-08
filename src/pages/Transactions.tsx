@@ -82,12 +82,19 @@ const Transactions = () => {
     return <Badge variant="outline" className="text-[10px] px-1.5">N/A</Badge>;
   };
 
+  const getRefundOrderId = (tx: any) => {
+    if (tx.reference_id) return tx.reference_id;
+    const match = tx.description?.match(/#([A-Za-z0-9-]+)/);
+    return match?.[1] || null;
+  };
+
   const getTransactionId = (tx: any) => {
     if (tx.type === 'deposit') {
       return tx.short_id ? `#${tx.short_id}` : '—';
     }
     if (tx.type === 'refund') {
-      return tx.reference_id ? `#${tx.reference_id}` : '—';
+      const refundOrderId = getRefundOrderId(tx);
+      return refundOrderId ? `#${refundOrderId}` : '—';
     }
     return '—';
   };
