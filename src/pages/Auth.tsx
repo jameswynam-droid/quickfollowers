@@ -324,10 +324,10 @@ const Auth = () => {
       <div className="flex-1 flex items-center justify-center p-4 sm:p-8 bg-background">
         <div className="w-full max-w-[420px] space-y-6">
           {/* Mobile logo */}
-          <div className="lg:hidden flex justify-center mb-4">
-            <Link to="/" className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl overflow-hidden shadow-lg">
-                <img src={logoImg} alt="QuickFollowers" className="w-full h-full object-cover" width="36" height="36" />
+          <div className="lg:hidden flex justify-center mb-6">
+            <Link to="/" className="flex flex-col items-center gap-3">
+              <div className="w-16 h-16 rounded-2xl overflow-hidden shadow-lg">
+                <img src={logoImg} alt="QuickFollowers" className="w-full h-full object-cover" width="64" height="64" />
               </div>
               <span className="text-xl font-black bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">QuickFollowers</span>
             </Link>
