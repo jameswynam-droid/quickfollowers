@@ -107,7 +107,7 @@ export default function AddFunds() {
   const [checkingAuth, setCheckingAuth] = useState(true);
   const { toast } = useToast();
   const navigate = useNavigate();
-  const { currency, currencySymbol, convertFromNGN } = useCurrency();
+  const { currency, currencySymbol, convertFromNGN, convertToNGN } = useCurrency();
 
   const isMobileMoneySupported = currency in MOBILE_MONEY_CURRENCIES;
 
@@ -168,14 +168,21 @@ export default function AddFunds() {
 
     try {
       const redirect_url = window.location.origin;
+      const isNgnCheckout = selectedMethod === "paystack" || selectedMethod === "flutterwave";
+      const normalizedAmount = isNgnCheckout
+        ? Number(convertToNGN(amountNum).toFixed(2))
+        : amountNum;
 
       if (selectedMethod === "flutterwave" || selectedMethod === "mobilemoney") {
         const { data, error } = await supabase.functions.invoke("initialize-flutterwave", {
           body: {
-            amount: amountNum,
+            amount: normalizedAmount,
             redirect_url,
             payment_type: selectedMethod === "mobilemoney" ? "mobilemoney" : undefined,
-            currency: selectedMethod === "mobilemoney" ? MOBILE_MONEY_CURRENCIES[currency] : undefined,
+            currency:
+              selectedMethod === "mobilemoney"
+                ? MOBILE_MONEY_CURRENCIES[currency]
+                : "NGN",
           },
         });
 
@@ -188,7 +195,7 @@ export default function AddFunds() {
         }
       } else {
         const { data, error } = await supabase.functions.invoke("initialize-payment", {
-          body: { amount: amountNum, redirect_url },
+          body: { amount: normalizedAmount, redirect_url },
         });
 
         if (error) throw error;

@@ -12,6 +12,7 @@ interface CurrencyContextType {
   setCurrency: (currency: CurrencyCode) => void;
   formatPrice: (ngnAmount: number) => string;
   convertFromNGN: (ngnAmount: number) => number;
+  convertToNGN: (amountInSelectedCurrency: number) => number;
   currencySymbol: string;
   userLocation: string | null;
  ratesLoading: boolean;
@@ -67,8 +68,14 @@ export const CurrencyProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const convertFromNGN = (ngnAmount: number): number => {
-     const rate = getRate(currency);
+    const rate = getRate(currency);
     return ngnAmount * rate;
+  };
+
+  const convertToNGN = (amountInSelectedCurrency: number): number => {
+    const rate = getRate(currency);
+    if (!rate || rate <= 0) return amountInSelectedCurrency;
+    return amountInSelectedCurrency / rate;
   };
 
   const formatPrice = (ngnAmount: number): string => {
@@ -88,6 +95,7 @@ export const CurrencyProvider = ({ children }: { children: ReactNode }) => {
         setCurrency,
         formatPrice,
         convertFromNGN,
+        convertToNGN,
         currencySymbol: CURRENCIES[currency].symbol,
         userLocation,
          ratesLoading,
