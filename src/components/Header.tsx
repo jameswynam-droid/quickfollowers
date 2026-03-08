@@ -94,6 +94,9 @@ const Header = ({ onAuthClick }: HeaderProps) => {
                 Orders
               </Link>
               <TicketLink className="text-foreground/80 hover:text-primary transition inline-flex items-center" />
+              <Link to="/account" className="text-foreground/80 hover:text-primary transition">
+                Account
+              </Link>
               <a
                 href="https://wa.me/+2348071365600?text=Hello%20QuickFollowers"
                 target="_blank"
