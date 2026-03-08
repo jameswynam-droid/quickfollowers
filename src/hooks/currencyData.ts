@@ -11,8 +11,11 @@
    INR: { symbol: "₹", name: "Indian Rupee", rate: 0.053 },
    TZS: { symbol: "TSh", name: "Tanzanian Shilling", rate: 1.52 },
    ZMW: { symbol: "ZK", name: "Zambian Kwacha", rate: 0.017 },
-   XOF: { symbol: "CFA", name: "West African CFA Franc", rate: 0.38 },
-   // Additional currencies from supported list
+  XOF: { symbol: "CFA", name: "West African CFA Franc (XOF)", rate: 0.38 },
+  XAF: { symbol: "FCFA", name: "Central African CFA Franc (XAF)", rate: 0.38 },
+  RWF: { symbol: "FRw", name: "Rwandan Franc", rate: 0.86 },
+  MWK: { symbol: "MK", name: "Malawian Kwacha", rate: 1.09 },
+  // Additional currencies from supported list
    AED: { symbol: "د.إ", name: "UAE Dirham", rate: 0.0023 },
    ALL: { symbol: "L", name: "Albanian Lek", rate: 0.058 },
    AUD: { symbol: "A$", name: "Australian Dollar", rate: 0.00097 },
@@ -78,7 +81,7 @@
  export type CurrencyCode = keyof typeof CURRENCIES;
  
  // Currencies shown in hamburger menu (limited set)
- export const HAMBURGER_CURRENCIES: CurrencyCode[] = ["NGN", "USD", "GHS", "KES", "ZAR", "TZS", "ZMW", "XOF"];
+ export const HAMBURGER_CURRENCIES: CurrencyCode[] = ["NGN", "USD", "GHS", "KES", "ZAR", "TZS", "ZMW", "XOF", "XAF", "RWF", "UGX", "MWK"];
  
  // Map countries to currencies
  export const COUNTRY_CURRENCY_MAP: Record<string, CurrencyCode> = {
@@ -100,7 +103,15 @@
    IN: "INR",
    TZ: "TZS",
    ZM: "ZMW",
-   CI: "XOF",
+    CI: "XOF",
+    RW: "RWF",
+    MW: "MWK",
+    CM: "XAF",
+    GA: "XAF",
+    TD: "XAF",
+    CG: "XAF",
+    CF: "XAF",
+    GQ: "XAF",
    AE: "AED",
    AL: "ALL",
    AU: "AUD",
