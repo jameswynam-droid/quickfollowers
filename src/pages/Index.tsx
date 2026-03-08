@@ -25,42 +25,36 @@ const Index = () => {
       iconColor: "text-pink-500",
       title: "Instagram Services",
       description: "Loading...",
-      price: "₦0",
     },
     {
       icon: "fa-brands fa-tiktok",
       iconColor: "text-foreground",
       title: "TikTok Services",
       description: "Loading...",
-      price: "₦0",
     },
     {
       icon: "fa-brands fa-youtube",
       iconColor: "text-red-500",
       title: "YouTube Services",
       description: "Loading...",
-      price: "₦0",
     },
     {
       icon: "fa-brands fa-x-twitter",
       iconColor: "text-foreground",
       title: "X Services",
       description: "Loading...",
-      price: "₦0",
     },
     {
       icon: "fa-brands fa-facebook",
       iconColor: "text-blue-500",
       title: "Facebook Services",
       description: "Loading...",
-      price: "₦0",
     },
     {
       icon: "fa-brands fa-spotify",
       iconColor: "text-green-500",
       title: "Spotify Services",
       description: "Loading...",
-      price: "₦0",
     },
   ]);
 
