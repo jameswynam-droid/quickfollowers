@@ -146,10 +146,10 @@ export default function AddFunds() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!amountNum || amountNum < 100) {
+    if (!amountNum || amountNum < minAmount) {
       toast({
         title: "Invalid Amount",
-        description: `Minimum deposit is ${currencySymbol}100`,
+        description: `Minimum deposit is ${minAmountDisplay} (≈ ₦${MIN_NGN})`,
         variant: "destructive",
       });
       return;
@@ -245,7 +245,7 @@ export default function AddFunds() {
             <Card>
               <CardHeader>
                 <CardTitle className="text-lg">Amount</CardTitle>
-                <CardDescription>Enter the amount you want to add (minimum {currencySymbol}100)</CardDescription>
+                <CardDescription>Enter the amount you want to add (minimum {minAmountDisplay})</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="relative">
@@ -255,7 +255,7 @@ export default function AddFunds() {
                   <Input
                     type="number"
                     step="0.01"
-                    min="100"
+                    min={minAmount}
                     placeholder="0.00"
                     value={amount}
                     onChange={(e) => setAmount(e.target.value)}
