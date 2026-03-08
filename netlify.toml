@@ -1,9 +1,16 @@
-# Disable aggressive caching for HTML and API calls
+# Security and cache headers for all pages
 [[headers]]
   for = "/*"
   [headers.values]
     Cache-Control = "no-cache, no-store, must-revalidate"
     Pragma = "no-cache"
+    X-Frame-Options = "SAMEORIGIN"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Permissions-Policy = "camera=(), microphone=(), geolocation=()"
+    Cross-Origin-Opener-Policy = "same-origin"
+    Strict-Transport-Security = "max-age=31536000; includeSubDomains"
+    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdnjs.cloudflare.com https://js.paystack.co https://checkout.flutterwave.com; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; img-src 'self' data: blob: https:; font-src 'self' https://cdnjs.cloudflare.com; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.exchangerate-data.com https://open.er-api.com https://api.paystack.co https://api.flutterwave.com; frame-src https://js.paystack.co https://checkout.flutterwave.com; object-src 'none'; base-uri 'self'"
 
 # Allow caching for static assets (images, fonts, etc.)
 [[headers]]
