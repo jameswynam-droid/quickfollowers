@@ -107,7 +107,7 @@ export default function AddFunds() {
   const [checkingAuth, setCheckingAuth] = useState(true);
   const { toast } = useToast();
   const navigate = useNavigate();
-  const { currency, currencySymbol, convertFromNGN } = useCurrency();
+  const { currency, currencySymbol, convertFromNGN, convertToNGN } = useCurrency();
 
   const isMobileMoneySupported = currency in MOBILE_MONEY_CURRENCIES;
 
