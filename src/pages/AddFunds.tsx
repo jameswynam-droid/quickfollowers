@@ -135,6 +135,11 @@ export default function AddFunds() {
   const fee = selectedPaymentMethod.feeCalculation(amountNum);
   const total = amountNum + fee;
 
+  // Minimum deposit is ₦500 NGN equivalent in the user's currency
+  const MIN_NGN = 500;
+  const minAmount = Math.ceil(convertFromNGN(MIN_NGN));
+  const minAmountDisplay = `${currencySymbol}${minAmount.toLocaleString()}`;
+
   const formatAmount = (val: number) =>
     `${currencySymbol}${val.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
