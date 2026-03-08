@@ -79,46 +79,46 @@ const Index = () => {
 
   const fetchServices = async () => {
     try {
-      const { data, error } = await supabase
-        .from("services")
-        .select("*")
-        .order("rate", { ascending: true });
+      const platformMap: { [key: string]: { icon: string; color: string; keyword: string } } = {
+        instagram: { icon: "fa-brands fa-instagram", color: "text-pink-500", keyword: "Instagram" },
+        tiktok: { icon: "fa-brands fa-tiktok", color: "text-foreground", keyword: "TikTok" },
+        youtube: { icon: "fa-brands fa-youtube", color: "text-red-500", keyword: "YouTube" },
+        twitter: { icon: "fa-brands fa-x-twitter", color: "text-foreground", keyword: "Twitter" },
+        facebook: { icon: "fa-brands fa-facebook", color: "text-blue-500", keyword: "Facebook" },
+        spotify: { icon: "fa-brands fa-spotify", color: "text-green-500", keyword: "Spotify" },
+      };
 
-      if (error) throw error;
+      // Fetch cheapest service per platform using ilike filters (avoids 1000 row limit)
+      const results = await Promise.all(
+        Object.entries(platformMap).map(async ([platform, config]) => {
+          const [cheapestRes, countRes] = await Promise.all([
+            supabase
+              .from("services")
+              .select("rate")
+              .or(`category.ilike.%${platform}%,name.ilike.%${platform}%`)
+              .order("rate", { ascending: true })
+              .limit(1),
+            supabase
+              .from("services")
+              .select("id", { count: "exact", head: true })
+              .or(`category.ilike.%${platform}%,name.ilike.%${platform}%`),
+          ]);
 
-      if (data) {
-        const platformMap: { [key: string]: { icon: string; color: string; keyword: string } } = {
-          instagram: { icon: "fa-brands fa-instagram", color: "text-pink-500", keyword: "Instagram" },
-          tiktok: { icon: "fa-brands fa-tiktok", color: "text-foreground", keyword: "TikTok" },
-          youtube: { icon: "fa-brands fa-youtube", color: "text-red-500", keyword: "YouTube" },
-          twitter: { icon: "fa-brands fa-x-twitter", color: "text-foreground", keyword: "Twitter" },
-          facebook: { icon: "fa-brands fa-facebook", color: "text-blue-500", keyword: "Facebook" },
-          spotify: { icon: "fa-brands fa-spotify", color: "text-green-500", keyword: "Spotify" },
-        };
-
-        const updatedServices = Object.entries(platformMap).map(([platform, config]) => {
-          const platformServices = data.filter(
-            (s: Service) =>
-              s.category.toLowerCase().includes(platform) ||
-              s.name.toLowerCase().includes(config.keyword.toLowerCase())
-          );
-
-          const cheapestService = platformServices[0];
-          const serviceCount = platformServices.length;
+          const cheapest = cheapestRes.data?.[0];
+          const count = countRes.count ?? 0;
 
           return {
             icon: config.icon,
             iconColor: config.color,
             title: `${config.keyword} Services`,
-            description: cheapestService
-              ? `${serviceCount}+ services available. Starting from ₦${Number(cheapestService.rate).toFixed(2)} per 1000`
+            description: cheapest
+              ? `${count}+ services available. Starting from ₦${Number(cheapest.rate).toFixed(2)} per 1000`
               : "Services coming soon",
-            price: cheapestService ? `From ₦${Number(cheapestService.rate).toFixed(2)}` : "N/A",
           };
-        });
+        })
+      );
 
-        setServices(updatedServices);
-      }
+      setServices(results);
     } catch (error) {
       console.error("Error fetching services:", error);
     }
