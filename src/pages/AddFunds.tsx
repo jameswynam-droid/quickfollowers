@@ -168,21 +168,26 @@ export default function AddFunds() {
 
     try {
       const redirect_url = window.location.origin;
-      const isNgnCheckout = selectedMethod === "paystack" || selectedMethod === "flutterwave";
-      const normalizedAmount = isNgnCheckout
-        ? Number(convertToNGN(amountNum).toFixed(2))
-        : amountNum;
+      // Paystack only supports NGN, so convert for Paystack
+      const paystackAmount = Number(convertToNGN(amountNum).toFixed(2));
 
       if (selectedMethod === "flutterwave" || selectedMethod === "mobilemoney") {
+        // For Flutterwave: send the user's display currency & amount so checkout shows their currency
+        // Also send the NGN equivalent so the backend can credit the correct NGN balance
+        const isMobileMoney = selectedMethod === "mobilemoney";
+        const checkoutCurrency = isMobileMoney
+          ? MOBILE_MONEY_CURRENCIES[currency]
+          : currency === "NGN" ? "NGN" : currency;
+        const checkoutAmount = currency === "NGN" ? amountNum : amountNum;
+        const ngnEquivalent = Number(convertToNGN(amountNum).toFixed(2));
+
         const { data, error } = await supabase.functions.invoke("initialize-flutterwave", {
           body: {
-            amount: normalizedAmount,
+            amount: checkoutAmount,
             redirect_url,
-            payment_type: selectedMethod === "mobilemoney" ? "mobilemoney" : undefined,
-            currency:
-              selectedMethod === "mobilemoney"
-                ? MOBILE_MONEY_CURRENCIES[currency]
-                : "NGN",
+            payment_type: isMobileMoney ? "mobilemoney" : undefined,
+            currency: checkoutCurrency,
+            ngn_equivalent: ngnEquivalent,
           },
         });
 
@@ -195,7 +200,7 @@ export default function AddFunds() {
         }
       } else {
         const { data, error } = await supabase.functions.invoke("initialize-payment", {
-          body: { amount: normalizedAmount, redirect_url },
+          body: { amount: paystackAmount, redirect_url },
         });
 
         if (error) throw error;
