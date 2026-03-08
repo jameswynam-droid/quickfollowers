@@ -36,14 +36,19 @@ const Header = ({ onAuthClick }: HeaderProps) => {
 
   const handleLogout = async () => {
     try {
-      await supabase.auth.signOut();
-      setIsAuthenticated(false);
-      setUserId(null);
-      toast.success("Logged out successfully");
-      navigate("/");
-    } catch (error) {
-      toast.error("Failed to log out");
+      const { error } = await supabase.auth.signOut();
+      if (error) {
+        // Force clear local session even if server-side logout fails
+        await supabase.auth.signOut({ scope: 'local' });
+      }
+    } catch {
+      // Last resort: clear local session
+      await supabase.auth.signOut({ scope: 'local' });
     }
+    setIsAuthenticated(false);
+    setUserId(null);
+    toast.success("Logged out successfully");
+    navigate("/");
   };
 
   const TicketLink = ({ className, onClick, children }: { className?: string; onClick?: () => void; children?: React.ReactNode }) => (
