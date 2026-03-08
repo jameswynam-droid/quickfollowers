@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -17,7 +17,6 @@ const Header = ({ onAuthClick }: HeaderProps) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
-  const navigate = useNavigate();
   const { unreadCount } = useUnreadTickets(userId);
 
   useEffect(() => {
@@ -34,21 +33,32 @@ const Header = ({ onAuthClick }: HeaderProps) => {
     return () => subscription.unsubscribe();
   }, []);
 
+  const clearLocalAuthState = () => {
+    const clearStorage = (storage: Storage) => {
+      Object.keys(storage).forEach((key) => {
+        if (key.startsWith("sb-") && key.endsWith("-auth-token")) {
+          storage.removeItem(key);
+        }
+      });
+    };
+
+    clearStorage(localStorage);
+    clearStorage(sessionStorage);
+  };
+
   const handleLogout = async () => {
     try {
-      const { error } = await supabase.auth.signOut();
-      if (error) {
-        // Force clear local session even if server-side logout fails
-        await supabase.auth.signOut({ scope: 'local' });
-      }
+      await supabase.auth.signOut(); // best effort global
     } catch {
-      // Last resort: clear local session
-      await supabase.auth.signOut({ scope: 'local' });
+      // ignore, we'll still clear local state below
+    } finally {
+      await supabase.auth.signOut({ scope: "local" }).catch(() => undefined);
+      clearLocalAuthState();
+      setIsAuthenticated(false);
+      setUserId(null);
+      toast.success("Logged out successfully");
+      window.location.replace("/auth?mode=login");
     }
-    setIsAuthenticated(false);
-    setUserId(null);
-    toast.success("Logged out successfully");
-    navigate("/");
   };
 
   const TicketLink = ({ className, onClick, children }: { className?: string; onClick?: () => void; children?: React.ReactNode }) => (
