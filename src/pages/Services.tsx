@@ -125,6 +125,8 @@ const Services = () => {
     
     try {
       if (isManual) toast.info("Syncing latest services...");
+      // Clear cache before sync
+      try { sessionStorage.removeItem('services_cache'); sessionStorage.removeItem('services_cache_expiry'); } catch {}
       const { error } = await supabase.functions.invoke("sync-services");
       if (error) throw error;
       
@@ -153,7 +155,24 @@ const Services = () => {
     syncAndFetchServices(true);
   };
 
+  const SERVICES_CACHE_KEY = 'services_cache';
+  const SERVICES_CACHE_EXPIRY_KEY = 'services_cache_expiry';
+  const SERVICES_CACHE_DURATION = 60 * 60 * 1000; // 1 hour
+
   const fetchServices = async () => {
+    // Check sessionStorage cache first
+    try {
+      const cached = sessionStorage.getItem(SERVICES_CACHE_KEY);
+      const expiry = sessionStorage.getItem(SERVICES_CACHE_EXPIRY_KEY);
+      if (cached && expiry && Date.now() < parseInt(expiry)) {
+        const organized = organizeServices(JSON.parse(cached));
+        setOrganizedCategories(organized);
+        setLoading(false);
+        console.log("Using cached services");
+        return;
+      }
+    } catch { /* ignore cache errors */ }
+
     const pageSize = 1000;
     let page = 0;
     let all: any[] = [];
@@ -164,7 +183,7 @@ const Services = () => {
         const to = from + pageSize - 1;
         const { data, error } = await supabase
           .from("services")
-          .select("*")
+          .select("id, name, category, rate, min_order, max_order, type, provider, dripfeed, average_time, description")
           .order("name", { ascending: true })
           .range(from, to);
 
@@ -172,15 +191,18 @@ const Services = () => {
 
         const batch = data || [];
         all = all.concat(batch);
-        console.log(`Fetched batch ${page + 1}:`, batch.length, `Total so far:`, all.length);
 
         if (batch.length < pageSize) break;
         page++;
       }
 
-      console.log("Total raw services fetched:", all.length);
+      // Cache results
+      try {
+        sessionStorage.setItem(SERVICES_CACHE_KEY, JSON.stringify(all));
+        sessionStorage.setItem(SERVICES_CACHE_EXPIRY_KEY, (Date.now() + SERVICES_CACHE_DURATION).toString());
+      } catch { /* ignore quota errors */ }
+
       const organized = organizeServices(all);
-      console.log("Organized categories:", organized.length);
       setOrganizedCategories(organized);
     } catch (error: any) {
       console.error("Error loading services:", error);

@@ -35,108 +35,35 @@ Deno.serve(async (req) => {
     const owletApiKey = Deno.env.get('OWLET_API_KEY');
     const smmfollowsApiKey = Deno.env.get('SMMFOLLOWS_API_KEY');
 
+    // Group orders by provider for batch status checks
+    const owletOrders = pendingOrders.filter(o => o.api_order_id && !o.service_id.startsWith('smmfollows-'));
+    const smmfollowsOrders = pendingOrders.filter(o => o.api_order_id && o.service_id.startsWith('smmfollows-'));
+
     let updatedCount = 0;
     let refundedCount = 0;
 
-    for (const order of pendingOrders) {
-      if (!order.api_order_id) continue;
+    // Batch check owlet orders (up to 100 at a time using multiorder status)
+    if (owletApiKey && owletOrders.length > 0) {
+      const result = await batchCheckStatus(
+        'https://therealowlet.com/api/v2',
+        owletApiKey,
+        owletOrders,
+        supabaseClient
+      );
+      updatedCount += result.updated;
+      refundedCount += result.refunded;
+    }
 
-      const provider = order.service_id.startsWith('smmfollows-') ? 'smmfollows' : 'owlet';
-      
-      let apiUrl: string;
-      let apiKey: string | undefined;
-
-      if (provider === 'owlet') {
-        apiUrl = 'https://therealowlet.com/api/v2';
-        apiKey = owletApiKey;
-      } else {
-        apiUrl = 'https://smmfollows.com/api/v2';
-        apiKey = smmfollowsApiKey;
-      }
-
-      if (!apiKey) continue;
-
-      try {
-        const response = await fetch(apiUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            key: apiKey,
-            action: 'status',
-            order: parseInt(order.api_order_id),
-          }),
-        });
-
-        if (!response.ok) continue;
-
-        const result = await response.json();
-        
-        if (result && typeof result === 'object' && 'error' in result) continue;
-
-        // Use exact API status mapped to our DB enum
-        let newStatus: string;
-        const apiStatus = result.status?.toLowerCase();
-        
-        if (apiStatus === 'completed') {
-          newStatus = 'completed';
-        } else if (apiStatus === 'canceled' || apiStatus === 'cancelled') {
-          newStatus = 'cancelled';
-        } else if (apiStatus === 'partial') {
-          newStatus = 'partial';
-        } else if (apiStatus === 'in progress' || apiStatus === 'inprogress' || apiStatus === 'processing') {
-          newStatus = 'processing';
-        } else if (apiStatus === 'pending') {
-          newStatus = 'pending';
-        } else if (apiStatus === 'refunded') {
-          newStatus = 'cancelled'; // Treat refunded as cancelled for refund processing
-        } else if (apiStatus === 'failed' || apiStatus === 'error') {
-          newStatus = 'failed';
-        } else {
-          console.log(`Unknown status "${result.status}" for order ${order.id}`);
-          continue;
-        }
-
-        const updateData: any = {
-          updated_at: new Date().toISOString(),
-        };
-
-        let hasChanges = false;
-
-        if (newStatus !== order.status) {
-          updateData.status = newStatus;
-          hasChanges = true;
-        }
-
-        if (result.start_count !== undefined && result.start_count !== null) {
-          updateData.start_count = parseInt(result.start_count);
-          hasChanges = true;
-        }
-        if (result.remains !== undefined && result.remains !== null) {
-          updateData.remains = parseInt(result.remains);
-          hasChanges = true;
-        }
-
-        if (hasChanges) {
-          const { error: updateError } = await supabaseClient
-            .from('orders')
-            .update(updateData)
-            .eq('id', order.id);
-
-          if (updateError) {
-            console.error(`Error updating order ${order.id}:`, updateError);
-          } else {
-            console.log(`Order ${order.id} updated: status=${newStatus}, remains=${result.remains}, start_count=${result.start_count}`);
-            updatedCount++;
-
-            if (newStatus !== order.status && (newStatus === 'cancelled' || newStatus === 'failed')) {
-              await processRefund(supabaseClient, order);
-              refundedCount++;
-            }
-          }
-        }
-      } catch (error) {
-        console.error(`Error checking status for order ${order.id}:`, error);
-      }
+    // Batch check smmfollows orders
+    if (smmfollowsApiKey && smmfollowsOrders.length > 0) {
+      const result = await batchCheckStatus(
+        'https://smmfollows.com/api/v2',
+        smmfollowsApiKey,
+        smmfollowsOrders,
+        supabaseClient
+      );
+      updatedCount += result.updated;
+      refundedCount += result.refunded;
     }
 
     return new Response(
@@ -158,6 +85,134 @@ Deno.serve(async (req) => {
   }
 });
 
+async function batchCheckStatus(
+  apiUrl: string,
+  apiKey: string,
+  orders: any[],
+  supabaseClient: any
+) {
+  let updated = 0;
+  let refunded = 0;
+
+  // Try batch/multi-order status first (1 API call for up to 100 orders)
+  const BATCH_SIZE = 100;
+  for (let i = 0; i < orders.length; i += BATCH_SIZE) {
+    const batch = orders.slice(i, i + BATCH_SIZE);
+    const orderIds = batch.map(o => parseInt(o.api_order_id)).join(',');
+
+    try {
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          key: apiKey,
+          action: 'status',
+          orders: orderIds,
+        }),
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        
+        // Multi-order response: { "order_id": { status, start_count, remains }, ... }
+        if (result && typeof result === 'object' && !('error' in result) && !('status' in result)) {
+          for (const order of batch) {
+            const statusData = result[order.api_order_id];
+            if (statusData) {
+              const r = await processOrderStatus(supabaseClient, order, statusData);
+              updated += r.updated;
+              refunded += r.refunded;
+            }
+          }
+          continue; // Batch succeeded, skip individual checks
+        }
+      }
+    } catch (e) {
+      console.log('Batch status check failed, falling back to individual:', e);
+    }
+
+    // Fallback: check individually
+    for (const order of batch) {
+      try {
+        const response = await fetch(apiUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            key: apiKey,
+            action: 'status',
+            order: parseInt(order.api_order_id),
+          }),
+        });
+
+        if (!response.ok) continue;
+        const result = await response.json();
+        if (result && typeof result === 'object' && 'error' in result) continue;
+
+        const r = await processOrderStatus(supabaseClient, order, result);
+        updated += r.updated;
+        refunded += r.refunded;
+      } catch (error) {
+        console.error(`Error checking status for order ${order.id}:`, error);
+      }
+    }
+  }
+
+  return { updated, refunded };
+}
+
+function mapApiStatus(apiStatus: string): string | null {
+  const s = apiStatus?.toLowerCase();
+  if (s === 'completed') return 'completed';
+  if (s === 'canceled' || s === 'cancelled') return 'cancelled';
+  if (s === 'partial') return 'partial';
+  if (s === 'in progress' || s === 'inprogress' || s === 'processing') return 'processing';
+  if (s === 'pending') return 'pending';
+  if (s === 'refunded') return 'cancelled';
+  if (s === 'failed' || s === 'error') return 'failed';
+  return null;
+}
+
+async function processOrderStatus(supabaseClient: any, order: any, result: any) {
+  let updated = 0;
+  let refunded = 0;
+
+  const newStatus = mapApiStatus(result.status);
+  if (!newStatus) return { updated: 0, refunded: 0 };
+
+  const updateData: any = { updated_at: new Date().toISOString() };
+  let hasChanges = false;
+
+  if (newStatus !== order.status) {
+    updateData.status = newStatus;
+    hasChanges = true;
+  }
+  if (result.start_count !== undefined && result.start_count !== null) {
+    updateData.start_count = parseInt(result.start_count);
+    hasChanges = true;
+  }
+  if (result.remains !== undefined && result.remains !== null) {
+    updateData.remains = parseInt(result.remains);
+    hasChanges = true;
+  }
+
+  if (hasChanges) {
+    const { error: updateError } = await supabaseClient
+      .from('orders')
+      .update(updateData)
+      .eq('id', order.id);
+
+    if (!updateError) {
+      updated = 1;
+      if (newStatus !== order.status && (newStatus === 'cancelled' || newStatus === 'failed')) {
+        await processRefund(supabaseClient, order);
+        refunded = 1;
+      }
+    }
+  }
+
+  return { updated, refunded };
+}
+
 async function processRefund(supabaseClient: any, order: any) {
   try {
     const refundAmount = parseFloat(order.charge);
@@ -170,8 +225,6 @@ async function processRefund(supabaseClient: any, order: any) {
       .eq('type', 'refund');
 
     if (existingRefunds && existingRefunds.length > 0) return;
-
-    console.log(`Processing refund of ${refundAmount} for order ${order.id}`);
 
     const { data: newTransaction, error: transactionError } = await supabaseClient
       .from('transactions')
@@ -207,8 +260,6 @@ async function processRefund(supabaseClient: any, order: any) {
       .from('transactions')
       .update({ balance_after: newBalance })
       .eq('id', newTransaction.id);
-
-    console.log(`Refund processed for order ${order.id}. New balance: ${newBalance}`);
   } catch (error) {
     console.error(`Error processing refund for order ${order.id}:`, error);
   }

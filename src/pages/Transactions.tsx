@@ -37,7 +37,7 @@ const Transactions = () => {
     setLoading(true);
     const { data, error } = await supabase
       .from("transactions")
-      .select("*")
+      .select("id, type, amount, balance_after, description, created_at, payment_method, short_id")
       .eq("user_id", userId)
       .in("type", ["deposit", "refund"])
       .order("created_at", { ascending: false });

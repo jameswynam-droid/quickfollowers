@@ -60,17 +60,23 @@ const Orders = () => {
           filter: `user_id=eq.${user.id}`,
         },
         (payload) => {
-          console.log('Real-time order update:', payload);
-          // Refetch orders when any change occurs
-          fetchOrders(user.id);
+          // Update single order in-place instead of refetching all
+          if (payload.eventType === 'UPDATE' && payload.new) {
+            setOrders(prev => prev.map(o => 
+              o.id === payload.new.id ? { ...o, ...payload.new } : o
+            ));
+          } else if (payload.eventType === 'INSERT') {
+            // Only refetch for new orders
+            fetchOrders(user.id);
+          }
         }
       )
       .subscribe();
 
-    // Set up periodic sync with external providers (every 30 seconds)
+    // Set up periodic sync with external providers (every 3 minutes to reduce egress)
     const syncInterval = setInterval(() => {
       syncOrderStatuses();
-    }, 30000);
+    }, 180000);
 
     return () => {
       supabase.removeChannel(channel);
@@ -110,7 +116,7 @@ const Orders = () => {
     try {
       const { data, error } = await supabase
         .from("orders")
-        .select("*, services(name, category, provider)")
+        .select("id, api_order_id, link, quantity, charge, status, remains, start_count, created_at, service_id, services(name, category, provider)")
         .eq("user_id", userId)
         .order("created_at", { ascending: false });
       

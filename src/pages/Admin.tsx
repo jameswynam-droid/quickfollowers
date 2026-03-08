@@ -59,7 +59,7 @@ const Admin = () => {
       // First get payments
       const { data: paymentsData, error: paymentsError } = await supabase
         .from("payments")
-        .select("*")
+        .select("id, user_id, amount, status, bank_details, notes, proof_url, created_at")
         .eq("status", "pending")
         .order("created_at", { ascending: false });
 

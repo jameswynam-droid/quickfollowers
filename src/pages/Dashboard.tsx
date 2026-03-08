@@ -62,12 +62,12 @@ const Dashboard = () => {
   };
 
   const fetchProfile = async (userId: string) => {
-    const { data } = await supabase.from("profiles").select("*").eq("id", userId).single();
+    const { data } = await supabase.from("profiles").select("balance, full_name, username, email").eq("id", userId).single();
     if (data) setProfile(data);
   };
 
   const fetchOrders = async (userId: string) => {
-    const { data } = await supabase.from("orders").select("*, services(name)").eq("user_id", userId).order("created_at", { ascending: false }).limit(10);
+    const { data } = await supabase.from("orders").select("id, quantity, charge, status, created_at, services(name)").eq("user_id", userId).order("created_at", { ascending: false }).limit(10);
     setOrders(data || []);
     
     const { count } = await supabase.from("orders").select("*", { count: "exact", head: true }).eq("user_id", userId);
