@@ -5,14 +5,14 @@ const Footer = () => {
     <footer id="contact" className="bg-foreground text-background/70 py-8 sm:py-12">
       <div className="max-w-7xl mx-auto px-4 grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-8">
         <div className="col-span-2 md:col-span-1">
-          <div className="flex items-center gap-2 text-white font-bold text-lg sm:text-xl mb-3 sm:mb-4">
+          <div className="flex items-center gap-2 text-background font-bold text-lg sm:text-xl mb-3 sm:mb-4">
             <img src={logoImg} alt="QuickFollowers" className="w-8 h-8 rounded-lg" width="32" height="32" loading="lazy" decoding="async" />
             QuickFollowers
           </div>
           <p className="text-xs sm:text-sm">The fastest & cheapest SMM panel in Nigeria. Since 2023.</p>
         </div>
         <div>
-          <h4 className="font-semibold text-white mb-2 sm:mb-3 text-sm sm:text-base">Services</h4>
+          <h4 className="font-semibold text-background mb-2 sm:mb-3 text-sm sm:text-base">Services</h4>
           <ul className="space-y-1.5 sm:space-y-2 text-xs sm:text-sm">
             <li>
               <a href="#services" className="hover:text-primary transition">
@@ -37,7 +37,7 @@ const Footer = () => {
           </ul>
         </div>
         <div>
-          <h4 className="font-semibold text-white mb-2 sm:mb-3 text-sm sm:text-base">Support</h4>
+          <h4 className="font-semibold text-background mb-2 sm:mb-3 text-sm sm:text-base">Support</h4>
           <ul className="space-y-1.5 sm:space-y-2 text-xs sm:text-sm">
             <li>
               <a href="#faq" className="hover:text-primary transition">
@@ -52,7 +52,7 @@ const Footer = () => {
           </ul>
         </div>
         <div className="col-span-2 md:col-span-1">
-          <h4 className="font-semibold text-white mb-2 sm:mb-3 text-sm sm:text-base">Contact</h4>
+          <h4 className="font-semibold text-background mb-2 sm:mb-3 text-sm sm:text-base">Contact</h4>
           <ul className="space-y-1.5 sm:space-y-2 text-xs sm:text-sm">
             <li>
               <a
@@ -78,7 +78,7 @@ const Footer = () => {
           </ul>
         </div>
       </div>
-      <div className="border-t border-gray-800 mt-6 sm:mt-10 pt-4 sm:pt-6 text-center text-xs">
+      <div className="border-t border-background/10 mt-6 sm:mt-10 pt-4 sm:pt-6 text-center text-xs">
         © 2025 QuickFollowers. All rights reserved.
       </div>
     </footer>
