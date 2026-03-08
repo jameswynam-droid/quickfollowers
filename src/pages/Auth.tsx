@@ -187,6 +187,9 @@ const Auth = () => {
       } else if (authMode === 'login') {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
+        // Store session metadata
+        localStorage.setItem('session_start', Date.now().toString());
+        localStorage.setItem('remember_me', rememberMe ? 'true' : 'false');
         toast.success("Welcome back!");
       }
     } catch (error: any) {
