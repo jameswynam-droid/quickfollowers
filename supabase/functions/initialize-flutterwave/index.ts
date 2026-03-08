@@ -68,8 +68,7 @@ Deno.serve(async (req: Request) => {
     // Redirect URL goes to verify-flutterwave which will verify payment status
     const verifyRedirectUrl = `${supabaseUrl}/functions/v1/verify-flutterwave?tx_ref=${txRef}&origin=${encodeURIComponent(redirect_url || '')}`;
     
-      // For mobile money, use the currency matching the user's country
-      const chargeCurrency = (payment_type === "mobilemoney" && requestedCurrency) ? requestedCurrency : "NGN";
+      // chargeCurrency already defined above
 
       const payloadBody: Record<string, any> = {
         tx_ref: txRef,
