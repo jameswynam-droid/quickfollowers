@@ -68,8 +68,14 @@ export const CurrencyProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const convertFromNGN = (ngnAmount: number): number => {
-     const rate = getRate(currency);
+    const rate = getRate(currency);
     return ngnAmount * rate;
+  };
+
+  const convertToNGN = (amountInSelectedCurrency: number): number => {
+    const rate = getRate(currency);
+    if (!rate || rate <= 0) return amountInSelectedCurrency;
+    return amountInSelectedCurrency / rate;
   };
 
   const formatPrice = (ngnAmount: number): string => {
