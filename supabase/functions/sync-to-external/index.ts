@@ -2,19 +2,59 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 };
 
 const TABLES_TO_SYNC = ['profiles', 'services', 'orders', 'transactions'] as const;
 const BATCH_SIZE = 500;
+const EXTERNAL_TIMEOUT_MS = 8000; // 8s timeout for external calls
 
-// Define which columns to sync per table (must match external DB schema)
 const TABLE_COLUMNS: Record<string, string> = {
   profiles: 'id, full_name, email, balance, username, created_at, updated_at',
   services: 'id, name, category, type, rate, min_order, max_order, description, provider, created_at, updated_at',
   orders: 'id, user_id, service_id, link, quantity, charge, status, api_order_id, start_count, remains, created_at, updated_at',
   transactions: 'id, user_id, type, amount, balance_after, description, reference_id, created_at',
 };
+
+// Quick health check - verify external project is reachable before doing work
+async function checkExternalHealth(externalUrl: string, externalKey: string): Promise<boolean> {
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 5000);
+    const res = await fetch(`${externalUrl}/rest/v1/`, {
+      method: 'HEAD',
+      headers: {
+        'apikey': externalKey,
+        'Authorization': `Bearer ${externalKey}`,
+      },
+      signal: controller.signal,
+    });
+    clearTimeout(timeout);
+    return res.ok || res.status === 200;
+  } catch {
+    return false;
+  }
+}
+
+function pickColumns(table: string, record: any): any {
+  const colStr = TABLE_COLUMNS[table];
+  if (!colStr) return record;
+  const cols = colStr.split(',').map(c => c.trim());
+  const filtered: any = {};
+  for (const col of cols) {
+    if (col in record) {
+      filtered[col] = record[col];
+    }
+  }
+  return filtered;
+}
+
+function reorderTables(tables: string[]): string[] {
+  const priority = ['services', 'profiles'];
+  const ordered = priority.filter(t => tables.includes(t));
+  const rest = tables.filter(t => !priority.includes(t));
+  return [...ordered, ...rest];
+}
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -30,18 +70,28 @@ Deno.serve(async (req) => {
     const internalKey = sanitize(Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'));
 
     if (!externalUrl || !externalKey || !internalUrl || !internalKey) {
-      throw new Error(`Missing env vars. ExtURL: ${!!externalUrl}, ExtKey: ${!!externalKey}, IntURL: ${!!internalUrl}, IntKey: ${!!internalKey}`);
+      throw new Error('Missing required environment variables');
     }
 
-    const internal = createClient(internalUrl, internalKey);
-    const external = createClient(externalUrl, externalKey);
-
+    // Parse body
     let body: { tables?: string[]; event?: string; table?: string; record?: any; old_record?: any } = {};
     try {
       body = await req.json();
     } catch {
       // No body = full sync
     }
+
+    // Health check - fast fail if external project is unavailable
+    const isHealthy = await checkExternalHealth(externalUrl, externalKey);
+    if (!isHealthy) {
+      const msg = 'External project is unreachable (possibly paused). Skipping sync.';
+      console.warn(msg);
+      return new Response(JSON.stringify({ skipped: true, reason: msg }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    const external = createClient(externalUrl, externalKey);
 
     // Webhook call (real-time single record sync)
     if (body.event && body.table && body.record) {
@@ -54,6 +104,7 @@ Deno.serve(async (req) => {
     }
 
     // Full sync
+    const internal = createClient(internalUrl, internalKey);
     const tablesToSync = body.tables?.length 
       ? TABLES_TO_SYNC.filter(t => body.tables!.includes(t))
       : [...TABLES_TO_SYNC];
@@ -122,7 +173,7 @@ Deno.serve(async (req) => {
 
         // Delete orphaned records from external
         if (allRecords.length > 0) {
-          const internalIds = allRecords.map(r => r.id);
+          const internalIds = new Set(allRecords.map(r => r.id));
           let externalIds: string[] = [];
           let extOffset = 0;
           let extHasMore = true;
@@ -140,7 +191,7 @@ Deno.serve(async (req) => {
             }
           }
 
-          const idsToDelete = externalIds.filter(id => !internalIds.includes(id));
+          const idsToDelete = externalIds.filter(id => !internalIds.has(id));
           if (idsToDelete.length > 0) {
             for (let i = 0; i < idsToDelete.length; i += BATCH_SIZE) {
               const batch = idsToDelete.slice(i, i + BATCH_SIZE);
@@ -171,20 +222,6 @@ Deno.serve(async (req) => {
     });
   }
 });
-
-// Pick only the columns that exist in the external DB for a given table
-function pickColumns(table: string, record: any): any {
-  const colStr = TABLE_COLUMNS[table];
-  if (!colStr) return record;
-  const cols = colStr.split(',').map(c => c.trim());
-  const filtered: any = {};
-  for (const col of cols) {
-    if (col in record) {
-      filtered[col] = record[col];
-    }
-  }
-  return filtered;
-}
 
 async function handleWebhookSync(
   external: any,
@@ -225,11 +262,4 @@ async function handleWebhookSync(
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }
-}
-
-function reorderTables(tables: string[]): string[] {
-  const priority = ['services', 'profiles'];
-  const ordered = priority.filter(t => tables.includes(t));
-  const rest = tables.filter(t => !priority.includes(t));
-  return [...ordered, ...rest];
 }
