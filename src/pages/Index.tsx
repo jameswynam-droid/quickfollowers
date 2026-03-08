@@ -19,44 +19,44 @@ interface Service {
 const Index = () => {
   const navigate = useNavigate();
   // Theme is now handled globally by ThemeProvider with localStorage persistence
-  const [services, setServices] = useState([
+  const services = [
     {
       icon: "fa-brands fa-instagram",
       iconColor: "text-pink-500",
       title: "Instagram Services",
-      description: "Loading...",
+      description: "757+ services available. Starting from ₦1.45 per 1000",
     },
     {
       icon: "fa-brands fa-tiktok",
       iconColor: "text-foreground",
       title: "TikTok Services",
-      description: "Loading...",
+      description: "1244+ services available. Starting from ₦1.12 per 1000",
     },
     {
       icon: "fa-brands fa-youtube",
       iconColor: "text-red-500",
       title: "YouTube Services",
-      description: "Loading...",
+      description: "2282+ services available. Starting from ₦69.67 per 1000",
     },
     {
       icon: "fa-brands fa-x-twitter",
       iconColor: "text-foreground",
-      title: "X Services",
-      description: "Loading...",
+      title: "Twitter Services",
+      description: "706+ services available. Starting from ₦1.38 per 1000",
     },
     {
       icon: "fa-brands fa-facebook",
       iconColor: "text-blue-500",
       title: "Facebook Services",
-      description: "Loading...",
+      description: "663+ services available. Starting from ₦1.45 per 1000",
     },
     {
       icon: "fa-brands fa-spotify",
       iconColor: "text-green-500",
       title: "Spotify Services",
-      description: "Loading...",
+      description: "1578+ services available. Starting from ₦153.28 per 1000",
     },
-  ]);
+  ];
 
   useEffect(() => {
     // Redirect authenticated users to dashboard
