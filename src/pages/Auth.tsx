@@ -8,6 +8,7 @@ import { PasswordInput } from "@/components/PasswordInput";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Check, X, Loader2, ArrowLeft, Shield, Zap, Users } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useNoIndex } from "@/hooks/useNoIndex";
 import logoImg from "@/assets/logo.png";
 
@@ -30,6 +31,7 @@ const Auth = () => {
   const [loading, setLoading] = useState(false);
   const [resendCooldown, setResendCooldown] = useState(0);
   const [showPasswordRequirements, setShowPasswordRequirements] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
   const navigate = useNavigate();
 
   const hasMinLength = password.length >= 8;
@@ -185,6 +187,9 @@ const Auth = () => {
       } else if (authMode === 'login') {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
+        // Store session metadata
+        localStorage.setItem('session_start', Date.now().toString());
+        localStorage.setItem('remember_me', rememberMe ? 'true' : 'false');
         toast.success("Welcome back!");
       }
     } catch (error: any) {
@@ -417,6 +422,19 @@ const Auth = () => {
                       <RequirementItem met={hasNumber} text="At least one number" />
                     </div>
                   )}
+                </div>
+              )}
+
+              {authMode === 'login' && (
+                <div className="flex items-center gap-2">
+                  <Checkbox
+                    id="rememberMe"
+                    checked={rememberMe}
+                    onCheckedChange={(checked) => setRememberMe(checked === true)}
+                  />
+                  <Label htmlFor="rememberMe" className="text-sm font-normal text-muted-foreground cursor-pointer">
+                    Remember me
+                  </Label>
                 </div>
               )}
 
