@@ -29,7 +29,9 @@ export const NotificationBell = () => {
     }
   };
 
-  const shouldShake = hasUnread && !hasEverOpened;
+  // Only jingle for brand-new users who have never opened the bell
+  const isNewUser = !localStorage.getItem("notifications_opened");
+  const shouldShake = hasUnread && isNewUser;
 
   const formatTime = (date: Date) => {
     const now = new Date();
