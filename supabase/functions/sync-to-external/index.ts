@@ -5,15 +5,32 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 };
 
-const TABLES_TO_SYNC = ['profiles', 'services', 'orders', 'transactions'] as const;
+const TABLES_TO_SYNC = [
+  'profiles', 'services', 'user_roles',
+  'orders', 'transactions', 'payments',
+  'tickets', 'ticket_messages', 'ticket_reads',
+  'notifications', 'bell_notifications', 'floating_bell_notifications',
+  'pending_email_changes', 'otp_codes', 'otp_rate_limits',
+] as const;
 const BATCH_SIZE = 500;
 const EXTERNAL_TIMEOUT_MS = 8000; // 8s timeout for external calls
 
 const TABLE_COLUMNS: Record<string, string> = {
   profiles: 'id, full_name, email, balance, username, created_at, updated_at',
-  services: 'id, name, category, type, rate, min_order, max_order, description, provider, created_at, updated_at',
-  orders: 'id, user_id, service_id, link, quantity, charge, status, api_order_id, start_count, remains, created_at, updated_at',
-  transactions: 'id, user_id, type, amount, balance_after, description, reference_id, created_at',
+  services: 'id, name, category, type, rate, min_order, max_order, description, provider, average_time, dripfeed, created_at, updated_at',
+  user_roles: 'id, user_id, role, created_at',
+  orders: 'id, user_id, service_id, link, quantity, charge, status, api_order_id, start_count, remains, failure_reason, created_at, updated_at',
+  transactions: 'id, user_id, type, amount, balance_after, description, reference_id, payment_method, short_id, created_at',
+  payments: 'id, user_id, amount, status, approved_by, approved_at, proof_url, bank_details, notes, created_at, updated_at',
+  tickets: 'id, user_id, subject, status, priority, created_at, updated_at',
+  ticket_messages: 'id, ticket_id, sender_id, is_admin_reply, message, attachment_url, attachment_name, created_at',
+  ticket_reads: 'id, user_id, ticket_id, last_read_at',
+  notifications: 'id, title, message, type, is_active, created_by, expires_at, created_at, updated_at',
+  bell_notifications: 'id, title, message, type, is_active, created_by, created_at, updated_at',
+  floating_bell_notifications: 'id, title, summary, content, is_active, created_by, created_at, updated_at',
+  pending_email_changes: 'id, user_id, old_email, new_email, confirmation_token, old_email_confirmed, new_email_verified, expires_at, completed_at, created_at',
+  otp_codes: 'id, email, code, type, used, expires_at, created_at',
+  otp_rate_limits: 'id, email, request_count, window_start, created_at',
 };
 
 // Quick health check - verify external project is reachable before doing work
@@ -50,7 +67,8 @@ function pickColumns(table: string, record: any): any {
 }
 
 function reorderTables(tables: string[]): string[] {
-  const priority = ['services', 'profiles'];
+  // Parent tables first, then dependent tables
+  const priority = ['services', 'profiles', 'user_roles', 'tickets'];
   const ordered = priority.filter(t => tables.includes(t));
   const rest = tables.filter(t => !priority.includes(t));
   return [...ordered, ...rest];
