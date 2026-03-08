@@ -31,7 +31,7 @@ Deno.serve(async (req: Request) => {
     }
 
     // Parse request body
-    const { amount, redirect_url, payment_type } = await req.json();
+    const { amount, redirect_url, payment_type, currency: requestedCurrency } = await req.json();
     console.log("Received request:", { amount, redirect_url, userId: user.id });
 
     if (!amount || amount < 100) {
@@ -62,10 +62,13 @@ Deno.serve(async (req: Request) => {
     // Redirect URL goes to verify-flutterwave which will verify payment status
     const verifyRedirectUrl = `${supabaseUrl}/functions/v1/verify-flutterwave?tx_ref=${txRef}&origin=${encodeURIComponent(redirect_url || '')}`;
     
+      // For mobile money, use the currency matching the user's country
+      const chargeCurrency = (payment_type === "mobilemoney" && requestedCurrency) ? requestedCurrency : "NGN";
+
       const payloadBody: Record<string, any> = {
         tx_ref: txRef,
         amount: amount,
-        currency: "NGN",
+        currency: chargeCurrency,
         redirect_url: verifyRedirectUrl,
         customer: {
           email: profile.email,
