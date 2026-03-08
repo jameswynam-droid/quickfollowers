@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import Header from "@/components/Header";
@@ -6,57 +6,48 @@ import Footer from "@/components/Footer";
 import ServiceCard from "@/components/ServiceCard";
 import { Button } from "@/components/ui/button";
 
-interface Service {
-  id: string;
-  name: string;
-  category: string;
-  rate: number;
-  min_order: number;
-  max_order: number;
-  description: string | null;
-}
 
 const Index = () => {
   const navigate = useNavigate();
   // Theme is now handled globally by ThemeProvider with localStorage persistence
-  const [services, setServices] = useState([
+  const services = [
     {
       icon: "fa-brands fa-instagram",
       iconColor: "text-pink-500",
       title: "Instagram Services",
-      description: "Loading...",
+      description: "757+ services available. Starting from ₦1.45 per 1000",
     },
     {
       icon: "fa-brands fa-tiktok",
       iconColor: "text-foreground",
       title: "TikTok Services",
-      description: "Loading...",
+      description: "1244+ services available. Starting from ₦1.12 per 1000",
     },
     {
       icon: "fa-brands fa-youtube",
       iconColor: "text-red-500",
       title: "YouTube Services",
-      description: "Loading...",
+      description: "2282+ services available. Starting from ₦69.67 per 1000",
     },
     {
       icon: "fa-brands fa-x-twitter",
       iconColor: "text-foreground",
-      title: "X Services",
-      description: "Loading...",
+      title: "Twitter Services",
+      description: "706+ services available. Starting from ₦1.38 per 1000",
     },
     {
       icon: "fa-brands fa-facebook",
       iconColor: "text-blue-500",
       title: "Facebook Services",
-      description: "Loading...",
+      description: "663+ services available. Starting from ₦1.45 per 1000",
     },
     {
       icon: "fa-brands fa-spotify",
       iconColor: "text-green-500",
       title: "Spotify Services",
-      description: "Loading...",
+      description: "1578+ services available. Starting from ₦153.28 per 1000",
     },
-  ]);
+  ];
 
   useEffect(() => {
     // Redirect authenticated users to dashboard
@@ -67,56 +58,7 @@ const Index = () => {
     });
   }, [navigate]);
 
-  useEffect(() => {
-    fetchServices();
-  }, []);
 
-  const fetchServices = async () => {
-    try {
-      const platformMap: { [key: string]: { icon: string; color: string; keyword: string } } = {
-        instagram: { icon: "fa-brands fa-instagram", color: "text-pink-500", keyword: "Instagram" },
-        tiktok: { icon: "fa-brands fa-tiktok", color: "text-foreground", keyword: "TikTok" },
-        youtube: { icon: "fa-brands fa-youtube", color: "text-red-500", keyword: "YouTube" },
-        twitter: { icon: "fa-brands fa-x-twitter", color: "text-foreground", keyword: "Twitter" },
-        facebook: { icon: "fa-brands fa-facebook", color: "text-blue-500", keyword: "Facebook" },
-        spotify: { icon: "fa-brands fa-spotify", color: "text-green-500", keyword: "Spotify" },
-      };
-
-      // Fetch cheapest service per platform using ilike filters (avoids 1000 row limit)
-      const results = await Promise.all(
-        Object.entries(platformMap).map(async ([platform, config]) => {
-          const [cheapestRes, countRes] = await Promise.all([
-            supabase
-              .from("services")
-              .select("rate")
-              .or(`category.ilike.%${platform}%,name.ilike.%${platform}%`)
-              .order("rate", { ascending: true })
-              .limit(1),
-            supabase
-              .from("services")
-              .select("id", { count: "exact", head: true })
-              .or(`category.ilike.%${platform}%,name.ilike.%${platform}%`),
-          ]);
-
-          const cheapest = cheapestRes.data?.[0];
-          const count = countRes.count ?? 0;
-
-          return {
-            icon: config.icon,
-            iconColor: config.color,
-            title: `${config.keyword} Services`,
-            description: cheapest
-              ? `${count}+ services available. Starting from ₦${Number(cheapest.rate).toFixed(2)} per 1000`
-              : "Services coming soon",
-          };
-        })
-      );
-
-      setServices(results);
-    } catch (error) {
-      console.error("Error fetching services:", error);
-    }
-  };
 
   const handleAuthClick = (type: "login" | "signup") => {
     navigate(`/auth?mode=${type}`);
