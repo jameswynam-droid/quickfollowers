@@ -243,21 +243,45 @@ async function handleWebhookSync(
       const { error } = await external
         .from(table)
         .upsert(syncRecord, { onConflict: 'id' });
-      if (error) throw error;
+      if (error) {
+        // Detect HTML error pages (e.g. 522 timeout from paused/overloaded projects)
+        if (error.message?.includes('<!DOCTYPE') || error.message?.includes('Connection timed out')) {
+          console.warn(`External project unavailable for ${table}, skipping webhook sync`);
+          return new Response(JSON.stringify({ skipped: true, reason: 'External project unavailable' }), {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+        throw error;
+      }
     } else if (event === 'DELETE' && old_record) {
       const { error } = await external
         .from(table)
         .delete()
         .eq('id', old_record.id);
-      if (error) throw error;
+      if (error) {
+        if (error.message?.includes('<!DOCTYPE') || error.message?.includes('Connection timed out')) {
+          console.warn(`External project unavailable for ${table}, skipping webhook delete`);
+          return new Response(JSON.stringify({ skipped: true, reason: 'External project unavailable' }), {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+        throw error;
+      }
     }
 
     return new Response(JSON.stringify({ success: true, event, table }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (err) {
+    const errStr = String(err);
+    if (errStr.includes('<!DOCTYPE') || errStr.includes('Connection timed out')) {
+      console.warn(`External project unavailable for ${table}, skipping`);
+      return new Response(JSON.stringify({ skipped: true, reason: 'External project unavailable' }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
     console.error(`Webhook sync error for ${table}:`, err);
-    return new Response(JSON.stringify({ error: String(err) }), {
+    return new Response(JSON.stringify({ error: errStr }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
