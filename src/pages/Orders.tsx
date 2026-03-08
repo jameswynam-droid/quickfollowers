@@ -73,10 +73,10 @@ const Orders = () => {
       )
       .subscribe();
 
-    // Set up periodic sync with external providers (every 3 minutes to reduce egress)
+    // Set up periodic sync with external providers (every 30 seconds)
     const syncInterval = setInterval(() => {
       syncOrderStatuses();
-    }, 180000);
+    }, 30000);
 
     return () => {
       supabase.removeChannel(channel);
