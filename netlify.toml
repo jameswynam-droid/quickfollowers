@@ -10,7 +10,7 @@
     Permissions-Policy = "camera=(), microphone=(), geolocation=()"
     Cross-Origin-Opener-Policy = "same-origin"
     Strict-Transport-Security = "max-age=31536000; includeSubDomains"
-    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdnjs.cloudflare.com https://js.paystack.co https://checkout.flutterwave.com; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; img-src 'self' data: blob: https:; font-src 'self' https://cdnjs.cloudflare.com; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.exchangerate-data.com https://open.er-api.com https://api.paystack.co https://api.flutterwave.com; frame-src https://js.paystack.co https://checkout.flutterwave.com; object-src 'none'; base-uri 'self'"
+    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdnjs.cloudflare.com https://js.paystack.co https://checkout.flutterwave.com; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; img-src 'self' data: blob: https://*.supabase.co https://cdnjs.cloudflare.com; font-src 'self' https://cdnjs.cloudflare.com; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.exchangerate-data.com https://open.er-api.com https://api.paystack.co https://api.flutterwave.com; frame-src https://js.paystack.co https://checkout.flutterwave.com; frame-ancestors 'self'; form-action 'self'; object-src 'none'; base-uri 'self'"
 
 # Allow caching for static assets (images, fonts, etc.)
 [[headers]]
