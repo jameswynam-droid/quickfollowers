@@ -8,6 +8,7 @@ import { PasswordInput } from "@/components/PasswordInput";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Check, X, Loader2, ArrowLeft, Shield, Zap, Users } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useNoIndex } from "@/hooks/useNoIndex";
 import logoImg from "@/assets/logo.png";
 
@@ -30,6 +31,7 @@ const Auth = () => {
   const [loading, setLoading] = useState(false);
   const [resendCooldown, setResendCooldown] = useState(0);
   const [showPasswordRequirements, setShowPasswordRequirements] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
   const navigate = useNavigate();
 
   const hasMinLength = password.length >= 8;
