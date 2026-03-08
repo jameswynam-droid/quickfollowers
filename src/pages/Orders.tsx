@@ -305,7 +305,7 @@ const Orders = () => {
                             </TableCell>
                             <TableCell className="whitespace-nowrap text-xs sm:text-sm max-w-[120px] sm:max-w-[200px]">
                               <a 
-                                href={order.link} 
+                                href={`https://anon.ws/?${encodeURIComponent(order.link)}`} 
                                 target="_blank" 
                                 rel="noopener noreferrer"
                                 className="text-primary hover:underline truncate block"
@@ -410,7 +410,7 @@ const Orders = () => {
                   <p className="text-sm text-muted-foreground mb-1">Link</p>
                   <div className="bg-muted p-3 rounded-lg break-all">
                     <a 
-                      href={selectedOrder.link}
+                      href={`https://anon.ws/?${encodeURIComponent(selectedOrder.link)}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-primary hover:underline flex items-start gap-2"
