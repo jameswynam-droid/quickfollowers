@@ -12,7 +12,7 @@ import { cn } from "@/lib/utils";
 import flutterwaveLogo from "@/assets/flutterwave-logo.png";
 import paystackLogo from "@/assets/paystack-logo.png";
 
-type PaymentMethod = "paystack" | "flutterwave";
+type PaymentMethod = "paystack" | "flutterwave" | "mobilemoney";
 
 interface PaymentMethodOption {
   id: PaymentMethod;
@@ -37,10 +37,18 @@ const paymentSections: PaymentSection[] = [
       {
         id: "flutterwave",
         name: "Flutterwave",
-        description: "Pay with card, bank transfer, USSD, or mobile money",
+        description: "Pay with card, bank transfer, or USSD",
         fee: "No fees",
         feeCalculation: () => 0,
         icon: <img src={flutterwaveLogo} alt="Flutterwave" className="w-10 h-10 object-contain" width="40" height="40" loading="eager" decoding="async" />,
+      },
+      {
+        id: "mobilemoney",
+        name: "Mobile Money",
+        description: "Pay with MPesa, MTN, Airtel & other mobile wallets",
+        fee: "No fees",
+        feeCalculation: () => 0,
+        icon: <img src={flutterwaveLogo} alt="Mobile Money" className="w-10 h-10 object-contain" width="40" height="40" loading="eager" decoding="async" />,
       },
     ],
   },
@@ -110,9 +118,13 @@ export default function AddFunds() {
     try {
       const redirect_url = window.location.origin;
       
-      if (selectedMethod === "flutterwave") {
+      if (selectedMethod === "flutterwave" || selectedMethod === "mobilemoney") {
         const { data, error } = await supabase.functions.invoke("initialize-flutterwave", {
-          body: { amount: amountNum, redirect_url },
+          body: { 
+            amount: amountNum, 
+            redirect_url,
+            payment_type: selectedMethod === "mobilemoney" ? "mobilemoney" : undefined,
+          },
         });
 
         if (error) throw error;
