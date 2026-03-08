@@ -125,6 +125,8 @@ const Services = () => {
     
     try {
       if (isManual) toast.info("Syncing latest services...");
+      // Clear cache before sync
+      try { sessionStorage.removeItem('services_cache'); sessionStorage.removeItem('services_cache_expiry'); } catch {}
       const { error } = await supabase.functions.invoke("sync-services");
       if (error) throw error;
       
