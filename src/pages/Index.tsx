@@ -134,71 +134,76 @@ const Index = () => {
 
       {/* Hero Section */}
       <section className="relative gradient-hero text-white overflow-hidden">
-        {/* Animated background shapes */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute top-1/4 -left-20 w-48 sm:w-96 h-48 sm:h-96 bg-white/10 rounded-full blur-3xl animate-float"></div>
-          <div className="absolute bottom-1/4 -right-20 w-48 sm:w-96 h-48 sm:h-96 bg-white/10 rounded-full blur-3xl animate-float" style={{ animationDelay: '2s' }}></div>
+          <div className="absolute top-[15%] -left-16 w-40 sm:w-72 h-40 sm:h-72 bg-white/5 rounded-full blur-3xl"></div>
+          <div className="absolute bottom-[20%] -right-12 w-52 sm:w-80 h-52 sm:h-80 bg-white/5 rounded-full blur-3xl"></div>
         </div>
 
-        <div className="relative max-w-7xl mx-auto px-4 py-16 sm:py-32 text-center">
-          <div className="inline-block mb-4 sm:mb-6 px-3 sm:px-4 py-1.5 sm:py-2 bg-white/10 backdrop-blur-sm rounded-full text-xs sm:text-sm font-semibold border border-white/20">
-            🚀 Trusted by 500K+ Content Creators
+        <div className="relative max-w-7xl mx-auto px-4 py-16 sm:py-28 md:py-32">
+          <div className="max-w-3xl">
+            <p className="mb-4 sm:mb-5 text-xs sm:text-sm font-medium text-white/70 tracking-wide uppercase">
+              Trusted by 500K+ creators worldwide
+            </p>
+            
+            <h1 className="text-3xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold leading-[1.1] mb-5 sm:mb-7 tracking-tight">
+              Grow your audience.
+              <br />
+              <span className="text-yellow-300">
+                Not your workload.
+              </span>
+            </h1>
+            
+            <p className="text-sm sm:text-lg md:text-xl max-w-xl text-white/80 leading-relaxed mb-8 sm:mb-10">
+              Premium social media growth across Instagram, TikTok, YouTube, X, Facebook & Spotify — delivered in minutes, not days.
+            </p>
+            
+            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
+              <Button 
+                size="lg" 
+                onClick={() => handleAuthClick("signup")} 
+                className="text-sm sm:text-base shadow-xl bg-white text-primary hover:bg-white/90 font-bold px-6 sm:px-8"
+                variant="secondary"
+              >
+                Get Started Free
+                <i className="fa-solid fa-arrow-right ml-2"></i>
+              </Button>
+              <Button 
+                size="lg" 
+                onClick={() => (window.location.href = "#services")} 
+                className="text-sm sm:text-base bg-white/10 text-white hover:bg-white/20 border border-white/20 font-medium"
+                variant="ghost"
+              >
+                View Services
+              </Button>
+            </div>
           </div>
           
-          <h1 className="text-3xl sm:text-5xl md:text-7xl font-black leading-tight mb-4 sm:mb-6">
-            Grow Your Social Media
-            <br />
-            <span className="bg-gradient-to-r from-yellow-200 via-yellow-300 to-yellow-200 bg-clip-text text-transparent">
-              10x Faster
-            </span>
-          </h1>
-          
-          <p className="mt-4 sm:mt-6 text-sm sm:text-lg md:text-xl max-w-3xl mx-auto text-white/90 leading-relaxed font-medium px-4">
-            Premium SMM Panel • Real Engagement • Instant Delivery
-            <br />
-            Instagram • TikTok • YouTube • X • Facebook • Spotify
-          </p>
-          
-          <div className="mt-8 sm:mt-12 flex justify-center">
-            <Button 
-              size="lg" 
-              onClick={() => (window.location.href = "#services")} 
-              className="btn-pulse text-sm sm:text-lg shadow-2xl bg-white text-primary hover:bg-white/90 hover:scale-105"
-              variant="secondary"
-            >
-              <i className="fa-solid fa-rocket mr-2"></i>
-              Browse Services
-            </Button>
-          </div>
-          
-          {/* Stats */}
-          <div className="mt-12 sm:mt-20 grid grid-cols-3 gap-2 sm:gap-3 md:gap-8 max-w-3xl mx-auto px-2">
-            <div className="stat-card p-2 sm:p-3 md:p-6 bg-white/10 backdrop-blur-sm rounded-lg sm:rounded-xl md:rounded-2xl border border-white/20">
-              <div className="text-lg sm:text-2xl md:text-4xl lg:text-5xl font-black mb-0.5 sm:mb-1 md:mb-2">11M+</div>
-              <div className="text-white/80 text-[10px] sm:text-xs md:text-sm font-medium">Orders Delivered</div>
+          {/* Stats — asymmetric strip */}
+          <div className="mt-14 sm:mt-20 flex flex-wrap gap-6 sm:gap-10 md:gap-14">
+            <div>
+              <div className="text-2xl sm:text-3xl md:text-4xl font-extrabold">11M+</div>
+              <div className="text-white/60 text-xs sm:text-sm mt-0.5">Orders delivered</div>
             </div>
-            <div className="stat-card p-2 sm:p-3 md:p-6 bg-white/10 backdrop-blur-sm rounded-lg sm:rounded-xl md:rounded-2xl border border-white/20">
-              <div className="text-lg sm:text-2xl md:text-4xl lg:text-5xl font-black mb-0.5 sm:mb-1 md:mb-2">&lt;1min</div>
-              <div className="text-white/80 text-[10px] sm:text-xs md:text-sm font-medium">Avg. Start Time</div>
+            <div>
+              <div className="text-2xl sm:text-3xl md:text-4xl font-extrabold">&lt;1 min</div>
+              <div className="text-white/60 text-xs sm:text-sm mt-0.5">Avg. start time</div>
             </div>
-            <div className="stat-card p-2 sm:p-3 md:p-6 bg-white/10 backdrop-blur-sm rounded-lg sm:rounded-xl md:rounded-2xl border border-white/20">
-              <div className="text-lg sm:text-2xl md:text-4xl lg:text-5xl font-black mb-0.5 sm:mb-1 md:mb-2">24/7</div>
-              <div className="text-white/80 text-[10px] sm:text-xs md:text-sm font-medium">Live Support</div>
+            <div>
+              <div className="text-2xl sm:text-3xl md:text-4xl font-extrabold">24/7</div>
+              <div className="text-white/60 text-xs sm:text-sm mt-0.5">Live support</div>
             </div>
           </div>
         </div>
       </section>
 
       {/* Services Section */}
-      <section id="services" className="py-12 sm:py-24 bg-muted/30 dark:bg-muted/10">
+      <section id="services" className="py-14 sm:py-24 bg-muted/30 dark:bg-muted/10">
         <div className="max-w-7xl mx-auto px-4">
-          <div className="text-center mb-8 sm:mb-16">
-            <div className="inline-block mb-3 sm:mb-4 px-3 sm:px-4 py-1.5 sm:py-2 bg-primary/10 dark:bg-primary/20 rounded-full text-xs sm:text-sm font-semibold text-primary">
-              Premium Services
-            </div>
-            <h2 className="text-2xl sm:text-4xl md:text-5xl font-black mb-3 sm:mb-4 text-foreground">Choose Your Platform</h2>
-            <p className="text-muted-foreground text-sm sm:text-lg max-w-2xl mx-auto px-4">
-              High-quality engagement delivered instantly. All services come with a 30-day refill guarantee.
+          <div className="mb-10 sm:mb-16 max-w-xl">
+            <p className="text-xs sm:text-sm font-medium text-primary tracking-wide uppercase mb-2">Premium services</p>
+            <h2 className="text-2xl sm:text-4xl font-extrabold text-foreground tracking-tight mb-2 sm:mb-3">Pick your platform</h2>
+            <p className="text-muted-foreground text-sm sm:text-base">
+              High-quality engagement with a 30-day refill guarantee on eligible services.
             </p>
           </div>
           <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-8">
@@ -214,62 +219,37 @@ const Index = () => {
       </section>
 
       {/* How It Works */}
-      <section id="how" className="py-12 sm:py-24 bg-background">
-        <div className="max-w-6xl mx-auto px-4">
-          <div className="text-center mb-8 sm:mb-16">
-            <h2 className="text-2xl sm:text-4xl md:text-5xl font-black mb-3 sm:mb-4 text-foreground">How It Works</h2>
-            <p className="text-muted-foreground text-sm sm:text-lg">Start growing in minutes with our simple process</p>
+      <section id="how" className="py-14 sm:py-24 bg-background">
+        <div className="max-w-5xl mx-auto px-4">
+          <div className="mb-10 sm:mb-16">
+            <p className="text-xs sm:text-sm font-medium text-primary tracking-wide uppercase mb-2">Simple process</p>
+            <h2 className="text-2xl sm:text-4xl font-extrabold text-foreground tracking-tight">Three steps to growth</h2>
           </div>
-          <div className="grid md:grid-cols-3 gap-4 sm:gap-8">
-            <div className="relative p-4 sm:p-8 bg-card/80 dark:bg-card/60 backdrop-blur-sm rounded-xl sm:rounded-2xl border border-border dark:border-border/80 shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-2">
-              <div className="absolute -top-3 sm:-top-4 left-4 sm:left-8 w-8 h-8 sm:w-12 sm:h-12 rounded-lg sm:rounded-xl gradient-primary flex items-center justify-center text-white text-sm sm:text-xl font-black shadow-lg">
-                1
-              </div>
-              <div className="mt-4 sm:mt-6">
-                <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-xl sm:rounded-2xl bg-primary/10 dark:bg-primary/20 flex items-center justify-center mb-3 sm:mb-4 mx-auto">
-                  <i className="fa-solid fa-user-plus text-primary text-lg sm:text-2xl"></i>
+          <div className="grid md:grid-cols-3 gap-4 sm:gap-6">
+            {[
+              { num: "01", icon: "fa-solid fa-user-plus", title: "Create Account", desc: "Quick registration with email verification. Get started in under 60 seconds." },
+              { num: "02", icon: "fa-solid fa-wallet", title: "Add Funds", desc: "Secure payment via Paystack, Flutterwave, or bank transfer. Credited instantly." },
+              { num: "03", icon: "fa-solid fa-paper-plane", title: "Place Order", desc: "Choose a service, paste your link, and watch the results roll in." },
+            ].map((step) => (
+              <div key={step.num} className="p-5 sm:p-7 bg-card rounded-xl sm:rounded-2xl border border-border hover:border-primary/40 transition-colors duration-300">
+                <span className="text-xs font-bold text-primary/50 tracking-widest">{step.num}</span>
+                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-primary/10 flex items-center justify-center my-3 sm:my-4">
+                  <i className={`${step.icon} text-primary text-base sm:text-lg`}></i>
                 </div>
-                <h3 className="text-lg sm:text-2xl font-bold mb-2 sm:mb-3 text-center text-foreground">Create Account</h3>
-                <p className="text-muted-foreground text-center leading-relaxed text-xs sm:text-base">Quick registration with email verification. Get started in under 60 seconds.</p>
+                <h3 className="text-base sm:text-lg font-bold mb-1.5 sm:mb-2 text-foreground">{step.title}</h3>
+                <p className="text-muted-foreground text-xs sm:text-sm leading-relaxed">{step.desc}</p>
               </div>
-            </div>
-            <div className="relative p-4 sm:p-8 bg-card/80 dark:bg-card/60 backdrop-blur-sm rounded-xl sm:rounded-2xl border border-border dark:border-border/80 shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-2">
-              <div className="absolute -top-3 sm:-top-4 left-4 sm:left-8 w-8 h-8 sm:w-12 sm:h-12 rounded-lg sm:rounded-xl gradient-primary flex items-center justify-center text-white text-sm sm:text-xl font-black shadow-lg">
-                2
-              </div>
-              <div className="mt-4 sm:mt-6">
-                <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-xl sm:rounded-2xl bg-success/10 dark:bg-success/20 flex items-center justify-center mb-3 sm:mb-4 mx-auto">
-                  <i className="fa-solid fa-wallet text-success text-lg sm:text-2xl"></i>
-                </div>
-                <h3 className="text-lg sm:text-2xl font-bold mb-2 sm:mb-3 text-center text-foreground">Add Funds</h3>
-                <p className="text-muted-foreground text-center leading-relaxed text-xs sm:text-base">Secure bank transfer deposit. Funds credited instantly to your account.</p>
-              </div>
-            </div>
-            <div className="relative p-4 sm:p-8 bg-card/80 dark:bg-card/60 backdrop-blur-sm rounded-xl sm:rounded-2xl border border-border dark:border-border/80 shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-2">
-              <div className="absolute -top-3 sm:-top-4 left-4 sm:left-8 w-8 h-8 sm:w-12 sm:h-12 rounded-lg sm:rounded-xl gradient-primary flex items-center justify-center text-white text-sm sm:text-xl font-black shadow-lg">
-                3
-              </div>
-              <div className="mt-4 sm:mt-6">
-                <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-xl sm:rounded-2xl bg-secondary/10 dark:bg-secondary/20 flex items-center justify-center mb-3 sm:mb-4 mx-auto">
-                  <i className="fa-solid fa-rocket text-secondary text-lg sm:text-2xl"></i>
-                </div>
-                <h3 className="text-lg sm:text-2xl font-bold mb-2 sm:mb-3 text-center text-foreground">Place Order</h3>
-                <p className="text-muted-foreground text-center leading-relaxed text-xs sm:text-base">Choose service, paste link, and watch your growth skyrocket instantly.</p>
-              </div>
-            </div>
+            ))}
           </div>
         </div>
       </section>
 
       {/* FAQ Section */}
-      <section id="faq" className="py-12 sm:py-24 bg-muted/30 dark:bg-muted/10">
-        <div className="max-w-4xl mx-auto px-4">
-          <div className="text-center mb-8 sm:mb-16">
-            <div className="inline-block mb-3 sm:mb-4 px-3 sm:px-4 py-1.5 sm:py-2 bg-primary/10 dark:bg-primary/20 rounded-full text-xs sm:text-sm font-semibold text-primary">
-              FAQ
-            </div>
-            <h2 className="text-2xl sm:text-4xl md:text-5xl font-black mb-3 sm:mb-4 text-foreground">Frequently Asked Questions</h2>
-            <p className="text-muted-foreground text-sm sm:text-lg">Everything you need to know about our services</p>
+      <section id="faq" className="py-14 sm:py-24 bg-muted/30 dark:bg-muted/10">
+        <div className="max-w-3xl mx-auto px-4">
+          <div className="mb-10 sm:mb-14">
+            <p className="text-xs sm:text-sm font-medium text-primary tracking-wide uppercase mb-2">FAQ</p>
+            <h2 className="text-2xl sm:text-4xl font-extrabold text-foreground tracking-tight">Common questions</h2>
           </div>
           <div className="space-y-3 sm:space-y-4">
             <details className="group bg-card/80 dark:bg-card/60 backdrop-blur-sm rounded-xl sm:rounded-2xl shadow-lg px-4 sm:px-8 py-4 sm:py-6 open:shadow-xl transition-all border border-border dark:border-border/80 hover:border-primary/50">
@@ -307,31 +287,24 @@ const Index = () => {
       </section>
 
       {/* CTA Section */}
-      <section className="relative py-12 sm:py-24 gradient-hero text-white overflow-hidden">
-        {/* Background decoration */}
+      <section className="relative py-14 sm:py-24 gradient-hero text-white overflow-hidden">
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute top-0 left-1/4 w-48 sm:w-96 h-48 sm:h-96 bg-white/10 rounded-full blur-3xl"></div>
-          <div className="absolute bottom-0 right-1/4 w-48 sm:w-96 h-48 sm:h-96 bg-white/10 rounded-full blur-3xl"></div>
+          <div className="absolute -top-20 right-0 w-60 sm:w-96 h-60 sm:h-96 bg-white/5 rounded-full blur-3xl"></div>
         </div>
         
-        <div className="relative max-w-4xl mx-auto px-4 text-center">
-          <div className="inline-block mb-4 sm:mb-6 px-3 sm:px-4 py-1.5 sm:py-2 bg-white/10 backdrop-blur-sm rounded-full text-xs sm:text-sm font-semibold border border-white/20">
-            Join 500,000+ Content Creators
-          </div>
-          <h2 className="text-2xl sm:text-4xl md:text-6xl font-black mb-4 sm:mb-6">Ready to Go Viral?</h2>
-          <p className="text-sm sm:text-xl text-white/90 mb-6 sm:mb-10 max-w-2xl mx-auto leading-relaxed px-4">
-            Create your account now and get instant access to premium social media growth services.
+        <div className="relative max-w-3xl mx-auto px-4">
+          <h2 className="text-2xl sm:text-4xl md:text-5xl font-extrabold mb-4 sm:mb-5 tracking-tight">Ready to start growing?</h2>
+          <p className="text-sm sm:text-lg text-white/75 mb-7 sm:mb-10 max-w-lg leading-relaxed">
+            Create your free account and get access to premium social media services — no contracts, cancel anytime.
           </p>
-          <div className="flex justify-center">
-            <Button 
-              size="lg" 
-              onClick={() => handleAuthClick("signup")} 
-              className="btn-pulse text-sm sm:text-lg shadow-2xl bg-white text-primary hover:bg-white/90 hover:scale-105"
-            >
-              <i className="fa-solid fa-user-plus mr-2"></i>
-              Create Free Account
-            </Button>
-          </div>
+          <Button 
+            size="lg" 
+            onClick={() => handleAuthClick("signup")} 
+            className="text-sm sm:text-base shadow-xl bg-white text-primary hover:bg-white/90 font-bold px-6 sm:px-8"
+          >
+            Create Free Account
+            <i className="fa-solid fa-arrow-right ml-2"></i>
+          </Button>
         </div>
       </section>
 
