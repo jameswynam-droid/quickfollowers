@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { CurrencyProvider } from "@/hooks/useCurrency";
 import { NotificationProvider } from "@/hooks/useNotifications";
+import { useSessionGuard } from "@/hooks/useSessionGuard";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import ConfirmEmailChange from "./pages/ConfirmEmailChange";
@@ -25,6 +26,11 @@ import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
+const SessionGuard = ({ children }: { children: React.ReactNode }) => {
+  useSessionGuard();
+  return <>{children}</>;
+};
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <CurrencyProvider>
@@ -32,28 +38,30 @@ const App = () => (
         <TooltipProvider>
           <Toaster />
           <Sonner />
-          <BrowserRouter>
-            <Routes>
-              <Route path="/" element={<Index />} />
-              <Route path="/auth" element={<Auth />} />
-              <Route path="/confirm-email-change" element={<ConfirmEmailChange />} />
-              <Route path="/seo-diagnostics" element={<SeoDiagnostics />} />
+          <SessionGuard>
+            <BrowserRouter>
+              <Routes>
+                <Route path="/" element={<Index />} />
+                <Route path="/auth" element={<Auth />} />
+                <Route path="/confirm-email-change" element={<ConfirmEmailChange />} />
+                <Route path="/seo-diagnostics" element={<SeoDiagnostics />} />
 
-              <Route path="/add-funds" element={<AddFunds />} />
-              <Route path="/payment/success" element={<PaymentSuccess />} />
-              <Route path="/payment/failed" element={<PaymentFailed />} />
+                <Route path="/add-funds" element={<AddFunds />} />
+                <Route path="/payment/success" element={<PaymentSuccess />} />
+                <Route path="/payment/failed" element={<PaymentFailed />} />
 
-              <Route path="/dashboard" element={<Dashboard />} />
-              <Route path="/services" element={<Services />} />
-              <Route path="/orders" element={<Orders />} />
-              <Route path="/transactions" element={<Transactions />} />
-              <Route path="/tickets" element={<Tickets />} />
-              <Route path="/account" element={<Account />} />
-              <Route path="/admin" element={<Admin />} />
-              <Route path="/admin/tickets" element={<AdminTickets />} />
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </BrowserRouter>
+                <Route path="/dashboard" element={<Dashboard />} />
+                <Route path="/services" element={<Services />} />
+                <Route path="/orders" element={<Orders />} />
+                <Route path="/transactions" element={<Transactions />} />
+                <Route path="/tickets" element={<Tickets />} />
+                <Route path="/account" element={<Account />} />
+                <Route path="/admin" element={<Admin />} />
+                <Route path="/admin/tickets" element={<AdminTickets />} />
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </BrowserRouter>
+          </SessionGuard>
         </TooltipProvider>
       </NotificationProvider>
     </CurrencyProvider>
