@@ -1525,21 +1525,9 @@ Deno.serve(async (req) => {
       return markers.some(m => desc.includes(m));
     };
 
-    // Fill in descriptions for all services
-    for (const service of allServicesData) {
-      // If provider already supplied a description, keep it (already set during fetch)
-      if (typeof service.description === 'string' && service.description.trim().length > 0) {
-        continue;
-      }
-
-      // Use generated descriptions with detailed instructions for each service type
-      service.description = generateDescription(
-        service.name,
-        service.category,
-        service.min_order.toString(),
-        service.max_order.toString(),
-      );
-    }
+    // Descriptions come directly from the API providers.
+    // If the provider didn't supply one, leave it as null (no auto-generation).
+    // normalizeProviderDescription already handled brand replacement during fetch.
 
     // Final sanitization of all string fields before upserting
     for (const service of allServicesData) {
