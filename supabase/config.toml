@@ -16,6 +16,9 @@ verify_jwt = true
 [functions.initialize-flutterwave]
 verify_jwt = true
 
+[functions.authorize-flutterwave]
+verify_jwt = true
+
 [functions.initiate-email-change]
 verify_jwt = true
 
