@@ -73,14 +73,24 @@ const Orders = () => {
       )
       .subscribe();
 
-    // Set up periodic sync with external providers (every 30 seconds)
+    // Sync with external providers every 10 seconds for near real-time updates
+    syncOrderStatuses();
     const syncInterval = setInterval(() => {
       syncOrderStatuses();
-    }, 30000);
+    }, 10000);
+
+    // Also sync when user returns to tab
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        syncOrderStatuses();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
 
     return () => {
       supabase.removeChannel(channel);
       clearInterval(syncInterval);
+      document.removeEventListener('visibilitychange', handleVisibility);
     };
   }, [user]);
 
