@@ -1525,9 +1525,34 @@ Deno.serve(async (req) => {
       return markers.some(m => desc.includes(m));
     };
 
-    // Descriptions come directly from the API providers.
-    // If the provider didn't supply one, leave it as null (no auto-generation).
-    // normalizeProviderDescription already handled brand replacement during fetch.
+    // Apply description logic:
+    // 1. If provider supplied a description → use it (already set)
+    // 2. If no provider description but an existing custom/instructional description exists → preserve it
+    // 3. If no provider description and no existing → use generateDescription fallback
+    for (const service of allServicesData) {
+      if (!service.description) {
+        const existing = existingDescriptions[service.id];
+        if (existing && isCustomDescription(existing)) {
+          // Preserve existing custom/instructional description
+          service.description = existing;
+        } else {
+          // Generate a fallback description
+          service.description = generateDescription(
+            service.name,
+            service.category,
+            service.min_order.toString(),
+            service.max_order.toString(),
+          );
+        }
+      } else {
+        // Provider gave a description - use it, but don't overwrite existing custom ones
+        // unless the provider description is more detailed
+        const existing = existingDescriptions[service.id];
+        if (existing && isCustomDescription(existing) && !isCustomDescription(service.description) && existing.length > service.description.length) {
+          service.description = existing;
+        }
+      }
+    }
 
     // Final sanitization of all string fields before upserting
     for (const service of allServicesData) {

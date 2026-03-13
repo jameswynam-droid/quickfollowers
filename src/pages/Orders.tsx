@@ -73,11 +73,12 @@ const Orders = () => {
       )
       .subscribe();
 
-    // Sync with external providers every 10 seconds for near real-time updates
-    syncOrderStatuses();
+    // Sync with external providers every 30 seconds
+    // Deferred start to prioritize initial rendering
+    const startTimeout = setTimeout(() => syncOrderStatuses(), 2000);
     const syncInterval = setInterval(() => {
       syncOrderStatuses();
-    }, 10000);
+    }, 30000);
 
     // Also sync when user returns to tab
     const handleVisibility = () => {

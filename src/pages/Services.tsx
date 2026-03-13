@@ -595,9 +595,11 @@ const Services = () => {
           
           {/* Show instructional description if available */}
           {selectedService?.description && (
-            <div className="p-3 bg-muted/50 border border-border rounded-lg text-xs sm:text-sm whitespace-pre-line">
-              {selectedService.description}
-            </div>
+            <ScrollArea className="max-h-[200px] sm:max-h-[250px]">
+              <div className="p-3 bg-muted/50 border border-border rounded-lg text-xs sm:text-sm whitespace-pre-line break-words overflow-wrap-anywhere">
+                {selectedService.description}
+              </div>
+            </ScrollArea>
           )}
           
           <div className="space-y-4">
