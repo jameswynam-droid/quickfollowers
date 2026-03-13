@@ -90,6 +90,7 @@ const Orders = () => {
 
     return () => {
       supabase.removeChannel(channel);
+      clearTimeout(startTimeout);
       clearInterval(syncInterval);
       document.removeEventListener('visibilitychange', handleVisibility);
     };
