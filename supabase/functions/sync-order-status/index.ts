@@ -229,9 +229,8 @@ async function processOrderStatus(supabaseClient: any, order: any, result: any) 
   return { updated, refunded };
 }
 
-async function processRefund(supabaseClient: any, order: any) {
+async function processRefund(supabaseClient: any, order: any, refundAmount: number) {
   try {
-    const refundAmount = parseFloat(order.charge);
     if (isNaN(refundAmount) || refundAmount <= 0) return;
 
     // Check for existing refund using both possible reference_id values
