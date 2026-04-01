@@ -214,7 +214,12 @@ export default function AddFunds() {
           throw new Error("No checkout URL received");
         }
 
-        window.location.href = data.authorization_url;
+        const authUrl = data.authorization_url;
+        if (authUrl && (authUrl.startsWith('https://checkout.paystack.com') || authUrl.startsWith('https://paystack.com'))) {
+          window.location.href = authUrl;
+        } else {
+          throw new Error("Invalid payment URL received");
+        }
         return;
       }
     } catch (error: any) {

@@ -14,7 +14,6 @@ Nigeria's fastest SMM panel. Buy real Instagram followers, TikTok views, YouTube
 - React + TypeScript
 - Vite
 - Tailwind CSS
-- Supabase (backend)
 
 ## Development
 
@@ -25,4 +24,4 @@ npm run dev
 
 ## Deployment
 
-The app is deployed automatically via the cloud platform.
+The app is deployed automatically via the hosting platform.
