@@ -194,7 +194,12 @@ export default function AddFunds() {
         if (error) throw error;
 
         if (data.payment_url) {
-          window.location.href = data.payment_url;
+          const paymentUrl = data.payment_url;
+          if (paymentUrl && (paymentUrl.startsWith('https://checkout.flutterwave.com') || paymentUrl.startsWith('https://flutterwave.com'))) {
+            window.location.href = paymentUrl;
+          } else {
+            throw new Error("Invalid payment URL received");
+          }
         } else {
           throw new Error("No payment URL received");
         }
