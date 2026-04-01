@@ -203,9 +203,25 @@ async function processOrderStatus(supabaseClient: any, order: any, result: any) 
 
     if (!updateError) {
       updated = 1;
-      if (newStatus !== order.status && (newStatus === 'cancelled' || newStatus === 'failed')) {
-        await processRefund(supabaseClient, order);
-        refunded = 1;
+      if (newStatus !== order.status) {
+        if (newStatus === 'cancelled' || newStatus === 'failed') {
+          // Full refund for cancelled/failed orders
+          await processRefund(supabaseClient, order, parseFloat(order.charge));
+          refunded = 1;
+        } else if (newStatus === 'partial') {
+          // Partial refund based on remains
+          const remains = result.remains !== undefined ? parseInt(result.remains) : 0;
+          if (remains > 0) {
+            const isPerOne = order.quantity === 1;
+            const refundAmount = isPerOne
+              ? 0 // Per-one pricing with partial doesn't make sense
+              : (remains / order.quantity) * parseFloat(order.charge);
+            if (refundAmount > 0) {
+              await processRefund(supabaseClient, order, refundAmount);
+              refunded = 1;
+            }
+          }
+        }
       }
     }
   }
