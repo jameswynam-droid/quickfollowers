@@ -196,7 +196,7 @@ export const organizeServices = (rawServices: any[]): ServiceCategory[] => {
       max_order: service.max_order,
       type: service.type,
       description: service.description,
-      provider: service.provider || 'owlet',
+      provider: 'quickfollowers',
       dripfeed: service.dripfeed || false,
       average_time: service.average_time || null,
     };

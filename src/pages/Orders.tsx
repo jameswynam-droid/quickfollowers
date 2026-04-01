@@ -127,7 +127,7 @@ const Orders = () => {
     try {
       const { data, error } = await supabase
         .from("orders")
-        .select("id, api_order_id, link, quantity, charge, status, remains, start_count, created_at, service_id, services(name, category, provider)")
+        .select("id, api_order_id, link, quantity, charge, status, remains, start_count, created_at, service_id, services(name, category)")
         .eq("user_id", userId)
         .order("created_at", { ascending: false });
       
@@ -346,8 +346,7 @@ const Orders = () => {
                               </Badge>
                             </TableCell>
                             <TableCell className="whitespace-nowrap">
-                              {(order.services?.provider === 'owlet' || order.services?.provider === 'smmfollows') && 
-                               (order.status === 'completed' || order.status === 'cancelled') && (
+                            {(order.status === 'completed' || order.status === 'cancelled') && (
                                 <Button
                                   variant="outline"
                                   size="sm"

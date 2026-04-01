@@ -164,7 +164,12 @@ const Auth = () => {
         });
         if (error) throw error;
         if (data.user && data.user.identities && data.user.identities.length === 0) throw new Error("An account with this email already exists. Please sign in instead.");
-        toast.success("Account created successfully! Welcome to QuickFollowers!");
+        // Sign out so user must log in manually
+        await supabase.auth.signOut();
+        toast.success("Account created successfully! Please sign in.");
+        setAuthMode('login');
+        setPassword(""); setConfirmPassword(""); setOtp(""); setUsername("");
+        return;
       } else if (authMode === 'forgot-password') {
         await sendOTP(email);
         toast.success("OTP code sent to your email!");

@@ -48,12 +48,12 @@ verify_jwt = false
 verify_jwt = false
 
 [auth]
-site_url = "https://id-preview--92633b06-ce4f-4cc5-accd-124a59937de2.lovable.app"
+site_url = "https://quickfollowers.online"
 
 [auth.email]
 enable_signup = true
 double_confirm_changes = true
-enable_confirmations = true
+enable_confirmations = false
 otp_length = 6
 otp_expiry = 3600
 

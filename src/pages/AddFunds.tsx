@@ -194,7 +194,12 @@ export default function AddFunds() {
         if (error) throw error;
 
         if (data.payment_url) {
-          window.location.href = data.payment_url;
+          const paymentUrl = data.payment_url;
+          if (paymentUrl && (paymentUrl.startsWith('https://checkout.flutterwave.com') || paymentUrl.startsWith('https://flutterwave.com'))) {
+            window.location.href = paymentUrl;
+          } else {
+            throw new Error("Invalid payment URL received");
+          }
         } else {
           throw new Error("No payment URL received");
         }
@@ -209,7 +214,12 @@ export default function AddFunds() {
           throw new Error("No checkout URL received");
         }
 
-        window.location.href = data.authorization_url;
+        const authUrl = data.authorization_url;
+        if (authUrl && (authUrl.startsWith('https://checkout.paystack.com') || authUrl.startsWith('https://paystack.com'))) {
+          window.location.href = authUrl;
+        } else {
+          throw new Error("Invalid payment URL received");
+        }
         return;
       }
     } catch (error: any) {
