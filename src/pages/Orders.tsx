@@ -346,8 +346,7 @@ const Orders = () => {
                               </Badge>
                             </TableCell>
                             <TableCell className="whitespace-nowrap">
-                              {(order.services?.provider === 'owlet' || order.services?.provider === 'smmfollows') && 
-                               (order.status === 'completed' || order.status === 'cancelled') && (
+                            {(order.status === 'completed' || order.status === 'cancelled') && (
                                 <Button
                                   variant="outline"
                                   size="sm"
