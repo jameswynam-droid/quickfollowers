@@ -113,14 +113,12 @@ const Orders = () => {
 
   const syncOrderStatuses = async () => {
     try {
-      const { data, error } = await supabase.functions.invoke('sync-order-status');
+      const { error } = await supabase.functions.invoke('sync-order-status');
       if (error) {
-        console.error("Error syncing order statuses:", error);
-      } else {
-        console.log("Order status sync:", data);
+        console.error("Sync error");
       }
     } catch (error) {
-      console.error("Error syncing order statuses:", error);
+      // Silent fail for background sync
     }
   };
   const fetchOrders = async (userId: string) => {
