@@ -13,6 +13,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { useNoIndex } from "@/hooks/useNoIndex";
+import { Textarea } from "@/components/ui/textarea";
 import { MessageSquare, Paperclip, Send, X, Image, ArrowLeft } from "lucide-react";
 
 interface Ticket {
