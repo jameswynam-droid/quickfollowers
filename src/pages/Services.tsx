@@ -183,7 +183,7 @@ const Services = () => {
         const to = from + pageSize - 1;
         const { data, error } = await supabase
           .from("services")
-          .select("name, category, rate, min_order, max_order, type, dripfeed, average_time, description")
+          .select("id, name, category, rate, min_order, max_order, type, dripfeed, average_time, description")
           .order("name", { ascending: true })
           .range(from, to);
 
