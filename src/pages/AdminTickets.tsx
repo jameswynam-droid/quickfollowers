@@ -432,7 +432,7 @@ const AdminTickets = () => {
                   </Button>
                 </div>
               )}
-              <div className="flex gap-2">
+              <div className="flex gap-2 items-end">
                 <label className="cursor-pointer">
                   <Input
                     type="file"
@@ -444,12 +444,12 @@ const AdminTickets = () => {
                     <span><Paperclip className="h-4 w-4" /></span>
                   </Button>
                 </label>
-                <Input
+                <Textarea
                   placeholder="Type your reply..."
                   value={newMessage}
                   onChange={(e) => setNewMessage(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && handleSendMessage()}
-                  className="flex-1"
+                  className="flex-1 min-h-[40px] max-h-[120px] resize-none"
+                  rows={1}
                 />
                 <Button onClick={handleSendMessage} disabled={sending} size="icon">
                   <Send className="h-4 w-4" />

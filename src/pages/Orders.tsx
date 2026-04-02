@@ -127,7 +127,7 @@ const Orders = () => {
     try {
       const { data, error } = await supabase
         .from("orders")
-        .select("id, api_order_id, link, quantity, charge, status, remains, start_count, created_at, service_id, services(name, category)")
+        .select("id, api_order_id, link, quantity, charge, status, remains, start_count, created_at, services(name, category)")
         .eq("user_id", userId)
         .order("created_at", { ascending: false });
       
