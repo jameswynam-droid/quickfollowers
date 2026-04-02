@@ -113,21 +113,19 @@ const Orders = () => {
 
   const syncOrderStatuses = async () => {
     try {
-      const { data, error } = await supabase.functions.invoke('sync-order-status');
+      const { error } = await supabase.functions.invoke('sync-order-status');
       if (error) {
-        console.error("Error syncing order statuses:", error);
-      } else {
-        console.log("Order status sync:", data);
+        console.error("Sync error");
       }
     } catch (error) {
-      console.error("Error syncing order statuses:", error);
+      // Silent fail for background sync
     }
   };
   const fetchOrders = async (userId: string) => {
     try {
       const { data, error } = await supabase
         .from("orders")
-        .select("id, api_order_id, link, quantity, charge, status, remains, start_count, created_at, service_id, services(name, category)")
+        .select("id, api_order_id, link, quantity, charge, status, remains, start_count, created_at, services(name, category)")
         .eq("user_id", userId)
         .order("created_at", { ascending: false });
       

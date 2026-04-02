@@ -168,7 +168,7 @@ const Services = () => {
         const organized = organizeServices(JSON.parse(cached));
         setOrganizedCategories(organized);
         setLoading(false);
-        console.log("Using cached services");
+        // Using cached services
         return;
       }
     } catch { /* ignore cache errors */ }

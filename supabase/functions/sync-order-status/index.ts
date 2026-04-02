@@ -212,13 +212,17 @@ async function processOrderStatus(supabaseClient: any, order: any, result: any) 
           // Partial refund based on remains
           const remains = result.remains !== undefined ? parseInt(result.remains) : 0;
           if (remains > 0) {
-            const isPerOne = order.quantity === 1;
-            const refundAmount = isPerOne
-              ? 0 // Per-one pricing with partial doesn't make sense
-              : (remains / order.quantity) * parseFloat(order.charge);
-            if (refundAmount > 0) {
-              await processRefund(supabaseClient, order, refundAmount);
+            // If remains equals quantity, it's a full refund
+            if (remains >= order.quantity) {
+              await processRefund(supabaseClient, order, parseFloat(order.charge));
               refunded = 1;
+            } else {
+              // Proportional refund
+              const refundAmount = (remains / order.quantity) * parseFloat(order.charge);
+              if (refundAmount > 0.01) {
+                await processRefund(supabaseClient, order, refundAmount);
+                refunded = 1;
+              }
             }
           }
         }
