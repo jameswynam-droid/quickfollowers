@@ -13,7 +13,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { ChevronDown, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
-import { organizeServices, OrganizedService, ServiceCategory } from "@/utils/serviceOrganizer";
+import { organizeServices, OrganizedService, ServiceCategory, getDisplayServiceId } from "@/utils/serviceOrganizer";
 import { useNoIndex } from "@/hooks/useNoIndex";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { FloatingNotificationBell } from "@/components/FloatingNotificationBell";
