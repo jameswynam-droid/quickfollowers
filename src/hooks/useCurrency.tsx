@@ -58,7 +58,7 @@ export const CurrencyProvider = ({ children }: { children: ReactNode }) => {
         }
       }
     } catch (error) {
-      console.log("Could not detect location, defaulting to NGN");
+      // Could not detect location, defaulting to NGN
     }
   };
 

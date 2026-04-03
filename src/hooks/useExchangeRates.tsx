@@ -129,7 +129,7 @@ const getHistoricalUrl = (date: string) =>
        setRates(cached.rates);
        setLastUpdated(new Date(cached.timestamp));
        setIsUsingFallback(false);
-       console.log("Using cached exchange rates");
+       // Using cached exchange rates
      } else {
        // Fetch fresh rates
        fetchRates();
