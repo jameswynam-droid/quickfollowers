@@ -582,7 +582,7 @@ const Services = () => {
         <DialogContent className="max-w-[95vw] sm:max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-lg">Place Order</DialogTitle>
-            <DialogDescription className="text-xs sm:text-sm">{selectedService?.name}</DialogDescription>
+            <DialogDescription className="text-xs sm:text-sm">ID {selectedService ? getDisplayServiceId(selectedService.id) : ''} — {selectedService?.name}</DialogDescription>
           </DialogHeader>
           
           {/* Show user's current balance */}
