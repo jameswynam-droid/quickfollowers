@@ -526,7 +526,7 @@ const Services = () => {
                         <Card key={service.id} className="group hover:shadow-xl hover:border-primary/50 transition-all duration-300">
                           <CardHeader className="p-3 sm:pb-3 space-y-2">
                             <CardTitle className="text-xs sm:text-sm leading-tight line-clamp-2 group-hover:text-primary transition-colors">
-                              {service.name}
+                              <span className="text-muted-foreground font-normal">ID {getDisplayServiceId(service.id)}</span> — {service.name}
                             </CardTitle>
                             <CardDescription className="text-xs text-muted-foreground line-clamp-2">
                               Order range: {service.min_order.toLocaleString()} - {service.max_order.toLocaleString()}
