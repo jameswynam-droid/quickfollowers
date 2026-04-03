@@ -14,7 +14,7 @@ import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "sonner";
 import { useNoIndex } from "@/hooks/useNoIndex";
-import { Plus, MessageSquare, Paperclip, Send, X, Image } from "lucide-react";
+import { Plus, MessageSquare, Paperclip, Send, X, Image, ArrowLeft } from "lucide-react";
 
 interface Ticket {
   id: string;
