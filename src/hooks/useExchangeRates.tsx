@@ -17,7 +17,7 @@ const getPreviousDayDate = (): string => {
 
 // Historical API URL format
 const getHistoricalUrl = (date: string) => 
-  `https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@${date}/v1/currencies`;
+  `https://${date}.currency-api.pages.dev/v1/currencies`;
  
  // Fallback rates (NGN as base currency, rate = how much of target currency per 1 NGN)
  const FALLBACK_RATES: Record<string, number> = Object.fromEntries(
