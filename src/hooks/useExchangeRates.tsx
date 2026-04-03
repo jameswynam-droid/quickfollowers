@@ -5,8 +5,8 @@
  const CACHE_EXPIRY_KEY = "exchange_rates_expiry";
  const CACHE_DURATION_MS = 24 * 60 * 60 * 1000; // 24 hours
  
-// API URLs (fawazahmed0/exchange-api - free, no rate limits, 200+ currencies)
-const API_LATEST_URL = "https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies";
+// API URLs (fawazahmed0/exchange-api hosted on GitHub Pages - no CSP issues)
+const API_LATEST_URL = "https://latest.currency-api.pages.dev/v1/currencies";
 
 // Helper to get previous day's date in YYYY-MM-DD format
 const getPreviousDayDate = (): string => {
@@ -17,7 +17,7 @@ const getPreviousDayDate = (): string => {
 
 // Historical API URL format
 const getHistoricalUrl = (date: string) => 
-  `https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@${date}/v1/currencies`;
+  `https://${date}.currency-api.pages.dev/v1/currencies`;
  
  // Fallback rates (NGN as base currency, rate = how much of target currency per 1 NGN)
  const FALLBACK_RATES: Record<string, number> = Object.fromEntries(
@@ -105,7 +105,7 @@ const getHistoricalUrl = (date: string) =>
          setLastUpdated(new Date());
          setIsUsingFallback(false);
          
-         console.log("Exchange rates updated successfully from API");
+         // Exchange rates updated successfully
        }
      } catch (error) {
        console.warn("Failed to fetch exchange rates, using fallback:", error);
@@ -129,7 +129,7 @@ const getHistoricalUrl = (date: string) =>
        setRates(cached.rates);
        setLastUpdated(new Date(cached.timestamp));
        setIsUsingFallback(false);
-       console.log("Using cached exchange rates");
+       // Using cached exchange rates
      } else {
        // Fetch fresh rates
        fetchRates();

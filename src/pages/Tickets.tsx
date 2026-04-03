@@ -14,7 +14,7 @@ import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "sonner";
 import { useNoIndex } from "@/hooks/useNoIndex";
-import { Plus, MessageSquare, Paperclip, Send, X, Image } from "lucide-react";
+import { Plus, MessageSquare, Paperclip, Send, X, Image, ArrowLeft } from "lucide-react";
 
 interface Ticket {
   id: string;
@@ -395,11 +395,14 @@ const Tickets = () => {
         <Dialog open={!!selectedTicket} onOpenChange={() => setSelectedTicket(null)}>
           <DialogContent className="w-screen h-screen max-w-none max-h-none rounded-none flex flex-col p-0 sm:max-w-2xl sm:h-[90vh] sm:rounded-lg">
             <DialogHeader className="p-4 border-b shrink-0">
-              <div className="flex items-start justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <Button variant="ghost" size="icon" className="shrink-0 h-8 w-8" onClick={() => setSelectedTicket(null)}>
+                  <ArrowLeft className="h-4 w-4" />
+                </Button>
                 <div className="min-w-0 flex-1">
-                  <DialogTitle className="truncate pr-8">{selectedTicket?.subject}</DialogTitle>
+                  <DialogTitle className="truncate text-sm">{selectedTicket?.subject}</DialogTitle>
                   <div className="flex items-center gap-2 mt-1">
-                    <Badge variant={getStatusColor(selectedTicket?.status || "")} className="capitalize">
+                    <Badge variant={getStatusColor(selectedTicket?.status || "")} className="capitalize text-xs">
                       {selectedTicket?.status?.replace('_', ' ')}
                     </Badge>
                   </div>
@@ -465,7 +468,7 @@ const Tickets = () => {
             </ScrollArea>
             
             {selectedTicket?.status !== 'closed' && (
-              <div className="p-4 border-t shrink-0">
+              <div className="p-3 sm:p-4 border-t shrink-0 pb-[env(safe-area-inset-bottom,8px)]">
                 {attachment && (
                   <div className="mb-2 flex items-center gap-2 text-sm text-muted-foreground bg-muted p-2 rounded">
                     <Image className="h-4 w-4" />

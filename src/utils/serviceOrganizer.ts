@@ -154,6 +154,19 @@ export const formatPrice = (price: number): string => {
   });
 };
 
+// Strip provider prefix from service IDs for display (e.g., "owlet-4506" → "4506")
+export const getDisplayServiceId = (id: string): string => {
+  const parts = id.split('-');
+  // If there's a prefix like "owlet-" or "smmfollows-", return only the numeric part
+  if (parts.length >= 2) {
+    const numericPart = parts[parts.length - 1];
+    if (/^\d+$/.test(numericPart)) {
+      return numericPart;
+    }
+  }
+  return id;
+};
+
 export const organizeServices = (rawServices: any[]): ServiceCategory[] => {
   // Filter valid services
   const validServices = rawServices.filter(service => {

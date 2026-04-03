@@ -13,7 +13,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { ChevronDown, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
-import { organizeServices, OrganizedService, ServiceCategory } from "@/utils/serviceOrganizer";
+import { organizeServices, OrganizedService, ServiceCategory, getDisplayServiceId } from "@/utils/serviceOrganizer";
 import { useNoIndex } from "@/hooks/useNoIndex";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { FloatingNotificationBell } from "@/components/FloatingNotificationBell";
@@ -526,7 +526,7 @@ const Services = () => {
                         <Card key={service.id} className="group hover:shadow-xl hover:border-primary/50 transition-all duration-300">
                           <CardHeader className="p-3 sm:pb-3 space-y-2">
                             <CardTitle className="text-xs sm:text-sm leading-tight line-clamp-2 group-hover:text-primary transition-colors">
-                              {service.name}
+                              <span className="text-muted-foreground font-normal">ID {getDisplayServiceId(service.id)}</span> — {service.name}
                             </CardTitle>
                             <CardDescription className="text-xs text-muted-foreground line-clamp-2">
                               Order range: {service.min_order.toLocaleString()} - {service.max_order.toLocaleString()}
@@ -582,7 +582,7 @@ const Services = () => {
         <DialogContent className="max-w-[95vw] sm:max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-lg">Place Order</DialogTitle>
-            <DialogDescription className="text-xs sm:text-sm">{selectedService?.name}</DialogDescription>
+            <DialogDescription className="text-xs sm:text-sm">ID {selectedService ? getDisplayServiceId(selectedService.id) : ''} — {selectedService?.name}</DialogDescription>
           </DialogHeader>
           
           {/* Show user's current balance */}
