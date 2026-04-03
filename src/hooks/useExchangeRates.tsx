@@ -5,8 +5,8 @@
  const CACHE_EXPIRY_KEY = "exchange_rates_expiry";
  const CACHE_DURATION_MS = 24 * 60 * 60 * 1000; // 24 hours
  
-// API URLs (fawazahmed0/exchange-api - free, no rate limits, 200+ currencies)
-const API_LATEST_URL = "https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies";
+// API URLs (fawazahmed0/exchange-api hosted on GitHub Pages - no CSP issues)
+const API_LATEST_URL = "https://latest.currency-api.pages.dev/v1/currencies";
 
 // Helper to get previous day's date in YYYY-MM-DD format
 const getPreviousDayDate = (): string => {
