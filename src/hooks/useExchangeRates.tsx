@@ -105,7 +105,7 @@ const getHistoricalUrl = (date: string) =>
          setLastUpdated(new Date());
          setIsUsingFallback(false);
          
-         console.log("Exchange rates updated successfully from API");
+         // Exchange rates updated successfully
        }
      } catch (error) {
        console.warn("Failed to fetch exchange rates, using fallback:", error);
