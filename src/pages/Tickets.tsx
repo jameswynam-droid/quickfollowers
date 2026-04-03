@@ -393,7 +393,7 @@ const Tickets = () => {
 
         {/* Ticket Messages Dialog */}
         <Dialog open={!!selectedTicket} onOpenChange={() => setSelectedTicket(null)}>
-          <DialogContent className="max-w-2xl h-[85vh] flex flex-col p-0">
+          <DialogContent className="w-screen h-screen max-w-none max-h-none rounded-none flex flex-col p-0 sm:max-w-2xl sm:h-[90vh] sm:rounded-lg">
             <DialogHeader className="p-4 border-b shrink-0">
               <div className="flex items-start justify-between gap-4">
                 <div className="min-w-0 flex-1">
