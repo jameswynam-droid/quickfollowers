@@ -154,14 +154,23 @@ export const formatPrice = (price: number): string => {
   });
 };
 
-// Strip provider prefix from service IDs for display (e.g., "owlet-4506" → "4506")
+// Strip provider prefix from service IDs for display
+// Uses provider initial + numeric ID to ensure uniqueness across providers
+// e.g., "owlet-4506" → "O-4506", "smmfollows-4506" → "S-4506"
 export const getDisplayServiceId = (id: string): string => {
+  const prefixes: Record<string, string> = {
+    'owlet': 'O',
+    'smmfollows': 'S',
+    'followspanel': 'F',
+  };
+  
   const parts = id.split('-');
-  // If there's a prefix like "owlet-" or "smmfollows-", return only the numeric part
   if (parts.length >= 2) {
+    const provider = parts.slice(0, -1).join('-').toLowerCase();
     const numericPart = parts[parts.length - 1];
     if (/^\d+$/.test(numericPart)) {
-      return numericPart;
+      const prefix = prefixes[provider] || provider.charAt(0).toUpperCase();
+      return `${prefix}-${numericPart}`;
     }
   }
   return id;

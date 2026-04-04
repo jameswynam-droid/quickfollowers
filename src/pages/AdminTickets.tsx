@@ -341,7 +341,7 @@ const AdminTickets = () => {
                   <ArrowLeft className="h-4 w-4" />
                 </Button>
                 <div className="min-w-0 flex-1">
-                  <DialogTitle className="truncate text-sm">{selectedTicket?.subject}</DialogTitle>
+                  <DialogTitle className="text-sm leading-snug line-clamp-2">{selectedTicket?.subject}</DialogTitle>
                   <p className="text-xs text-muted-foreground mt-0.5">
                     {selectedTicket?.user_name || selectedTicket?.user_email}
                   </p>
@@ -425,7 +425,7 @@ const AdminTickets = () => {
               )}
             </ScrollArea>
             
-            <div className="p-4 border-t shrink-0 bg-background" style={{ paddingBottom: 'max(16px, env(safe-area-inset-bottom))' }}>
+            <div className="p-4 border-t shrink-0 bg-background" style={{ paddingBottom: 'max(24px, env(safe-area-inset-bottom))' }}>
               {attachment && (
                 <div className="mb-2 flex items-center gap-2 text-sm text-muted-foreground bg-muted p-2 rounded">
                   <Image className="h-4 w-4" />
