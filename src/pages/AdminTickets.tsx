@@ -341,7 +341,7 @@ const AdminTickets = () => {
                   <ArrowLeft className="h-4 w-4" />
                 </Button>
                 <div className="min-w-0 flex-1">
-                  <DialogTitle className="truncate text-sm">{selectedTicket?.subject}</DialogTitle>
+                  <DialogTitle className="text-sm leading-snug line-clamp-2">{selectedTicket?.subject}</DialogTitle>
                   <p className="text-xs text-muted-foreground mt-0.5">
                     {selectedTicket?.user_name || selectedTicket?.user_email}
                   </p>
