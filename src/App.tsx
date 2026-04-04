@@ -24,7 +24,15 @@ import PaymentFailed from "./pages/PaymentFailed";
 import Account from "./pages/Account";
 import NotFound from "./pages/NotFound";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 5 * 60 * 1000, // 5 minutes
+      refetchOnWindowFocus: false,
+      retry: 1,
+    },
+  },
+});
 
 const SessionGuard = ({ children }: { children: React.ReactNode }) => {
   useSessionGuard();

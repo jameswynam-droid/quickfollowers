@@ -476,7 +476,7 @@ const Services = () => {
 
         <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mb-6 sm:mb-8">
           <Input
-            placeholder="Search services..."
+            placeholder="Search by name or service ID..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="sm:flex-1"
