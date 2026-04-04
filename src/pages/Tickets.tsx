@@ -468,40 +468,40 @@ const Tickets = () => {
             </ScrollArea>
             
             {selectedTicket?.status !== 'closed' && (
-              <div className="p-3 sm:p-4 border-t shrink-0 pb-[env(safe-area-inset-bottom,8px)]">
-                {attachment && (
-                  <div className="mb-2 flex items-center gap-2 text-sm text-muted-foreground bg-muted p-2 rounded">
-                    <Image className="h-4 w-4" />
-                    <span className="truncate flex-1">{attachment.name}</span>
-                    <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setAttachment(null)}>
-                      <X className="h-3 w-3" />
-                    </Button>
-                  </div>
-                )}
-                <div className="flex gap-2">
-                  <label className="cursor-pointer">
-                    <Input
-                      type="file"
-                      accept="image/*,.pdf"
-                      className="hidden"
-                      onChange={(e) => setAttachment(e.target.files?.[0] || null)}
-                    />
-                    <Button variant="outline" size="icon" type="button" asChild>
-                      <span><Paperclip className="h-4 w-4" /></span>
-                    </Button>
-                  </label>
-                  <Textarea
-                    placeholder="Type your message..."
-                    value={newMessage}
-                    onChange={(e) => setNewMessage(e.target.value)}
-                    className="flex-1 min-h-[40px] max-h-[120px] resize-none"
-                    rows={1}
-                  />
-                  <Button onClick={handleSendMessage} disabled={sending} size="icon">
-                    <Send className="h-4 w-4" />
+            <div className="p-4 border-t shrink-0 bg-background" style={{ paddingBottom: 'max(16px, env(safe-area-inset-bottom))' }}>
+              {attachment && (
+                <div className="mb-2 flex items-center gap-2 text-sm text-muted-foreground bg-muted p-2 rounded">
+                  <Image className="h-4 w-4" />
+                  <span className="truncate flex-1">{attachment.name}</span>
+                  <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setAttachment(null)}>
+                    <X className="h-3 w-3" />
                   </Button>
                 </div>
+              )}
+              <div className="flex gap-2 items-end">
+                <label className="cursor-pointer">
+                  <Input
+                    type="file"
+                    accept="image/*,.pdf"
+                    className="hidden"
+                    onChange={(e) => setAttachment(e.target.files?.[0] || null)}
+                  />
+                  <Button variant="outline" size="icon" type="button" asChild>
+                    <span><Paperclip className="h-4 w-4" /></span>
+                  </Button>
+                </label>
+                <Textarea
+                  placeholder="Type your message..."
+                  value={newMessage}
+                  onChange={(e) => setNewMessage(e.target.value)}
+                  className="flex-1 min-h-[44px] max-h-[120px] resize-none text-base"
+                  rows={2}
+                />
+                <Button onClick={handleSendMessage} disabled={sending} size="icon" className="h-10 w-10 shrink-0">
+                  <Send className="h-4 w-4" />
+                </Button>
               </div>
+            </div>
             )}
           </DialogContent>
         </Dialog>

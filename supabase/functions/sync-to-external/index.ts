@@ -47,7 +47,8 @@ async function checkExternalHealth(externalUrl: string, externalKey: string): Pr
       signal: controller.signal,
     });
     clearTimeout(timeout);
-    return res.ok || res.status === 200;
+    // 200, 401, 403 all mean the project is reachable (401/403 = auth required but online)
+    return res.status < 500;
   } catch {
     return false;
   }
