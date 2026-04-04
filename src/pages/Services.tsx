@@ -227,6 +227,12 @@ const Services = () => {
         ...category,
         services: category.services.filter(service => {
           const serviceName = service.name.toLowerCase();
+          const displayId = getDisplayServiceId(service.id).toLowerCase();
+          // Check if search is purely numeric (searching by ID)
+          const isIdSearch = searchTerms.length === 1 && /^\d+$/.test(searchTerms[0]);
+          if (isIdSearch) {
+            return displayId === searchTerms[0] || displayId.includes(searchTerms[0]);
+          }
           // All search terms must appear in the service NAME only
           return searchTerms.every(term => serviceName.includes(term));
         })

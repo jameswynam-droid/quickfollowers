@@ -425,7 +425,7 @@ const AdminTickets = () => {
               )}
             </ScrollArea>
             
-            <div className="p-3 sm:p-4 border-t shrink-0 pb-[env(safe-area-inset-bottom,8px)]">
+            <div className="p-4 border-t shrink-0 bg-background" style={{ paddingBottom: 'max(16px, env(safe-area-inset-bottom))' }}>
               {attachment && (
                 <div className="mb-2 flex items-center gap-2 text-sm text-muted-foreground bg-muted p-2 rounded">
                   <Image className="h-4 w-4" />
@@ -451,10 +451,10 @@ const AdminTickets = () => {
                   placeholder="Type your reply..."
                   value={newMessage}
                   onChange={(e) => setNewMessage(e.target.value)}
-                  className="flex-1 min-h-[40px] max-h-[120px] resize-none"
-                  rows={1}
+                  className="flex-1 min-h-[44px] max-h-[120px] resize-none text-base"
+                  rows={2}
                 />
-                <Button onClick={handleSendMessage} disabled={sending} size="icon">
+                <Button onClick={handleSendMessage} disabled={sending} size="icon" className="h-10 w-10 shrink-0">
                   <Send className="h-4 w-4" />
                 </Button>
               </div>
