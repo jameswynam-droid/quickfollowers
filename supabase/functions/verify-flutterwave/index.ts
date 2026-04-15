@@ -98,47 +98,17 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    // DUPLICATE PREVENTION: Check if this tx_ref was already processed
-    const { data: existingTx } = await supabaseAdmin
-      .from("transactions")
-      .select("id")
-      .eq("reference_id", txRef)
-      .eq("type", "deposit")
-      .maybeSingle();
+    // Use atomic process_deposit to prevent duplicates
+    const { data: result, error: rpcError } = await supabaseAdmin.rpc("process_deposit", {
+      p_reference_id: txRef,
+      p_user_id: userId,
+      p_amount: baseAmount,
+      p_payment_method: "flutterwave",
+      p_description: `Flutterwave deposit`,
+    });
 
-    if (existingTx) {
-      console.log("Payment already processed for tx_ref:", txRef);
-      return new Response(null, {
-        status: 302,
-        headers: {
-          "Location": `${origin}/payment/success?reference=${encodeURIComponent(txRef || "")}`,
-        },
-      });
-    }
-
-    const { data: profile, error: profileError } = await supabaseAdmin
-      .from("profiles")
-      .select("balance")
-      .eq("id", userId)
-      .single();
-
-    if (profileError || !profile) {
-      return new Response(null, {
-        status: 302,
-        headers: {
-          "Location": `${origin}/dashboard?payment=failed&error=profile_not_found`,
-        },
-      });
-    }
-
-    const newBalance = Number(profile.balance) + Number(baseAmount);
-
-    const { error: updateError } = await supabaseAdmin
-      .from("profiles")
-      .update({ balance: newBalance })
-      .eq("id", userId);
-
-    if (updateError) {
+    if (rpcError) {
+      console.error("process_deposit RPC error:", rpcError);
       return new Response(null, {
         status: 302,
         headers: {
@@ -147,21 +117,10 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    // Create transaction record with payment method and reference
-    const { error: transactionError } = await supabaseAdmin
-      .from("transactions")
-      .insert({
-        user_id: userId,
-        type: "deposit",
-        amount: baseAmount,
-        balance_after: newBalance,
-        description: `Flutterwave deposit`,
-        reference_id: txRef,
-        payment_method: "flutterwave",
-      });
-
-    if (transactionError) {
-      console.error("Transaction record error:", transactionError);
+    if (result && !result.success) {
+      console.log("Payment already processed for tx_ref:", txRef);
+    } else {
+      console.log("Payment processed successfully for tx_ref:", txRef, "result:", result);
     }
 
     return new Response(null, {

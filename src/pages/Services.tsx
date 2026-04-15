@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import Header from "@/components/Header";
@@ -6,12 +6,10 @@ import Footer from "@/components/Footer";
 import FullPageLoader from "@/components/FullPageLoader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { ChevronDown, RefreshCw } from "lucide-react";
+import { RefreshCw, Search, ChevronDown } from "lucide-react";
 import { toast } from "sonner";
 import { organizeServices, OrganizedService, ServiceCategory, getDisplayServiceId } from "@/utils/serviceOrganizer";
 import { useNoIndex } from "@/hooks/useNoIndex";
@@ -23,18 +21,19 @@ import { ServiceNotifications } from "@/components/ServiceNotifications";
 import { FunctionsHttpError } from "@supabase/supabase-js";
 
 const Services = () => {
-  useNoIndex(); // Prevent search engine indexing
+  useNoIndex();
   const { formatPrice, convertFromNGN } = useCurrency();
   const [user, setUser] = useState<any>(null);
   const [userBalance, setUserBalance] = useState<number>(0);
   const [isAdmin, setIsAdmin] = useState(false);
   const [organizedCategories, setOrganizedCategories] = useState<ServiceCategory[]>([]);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [selectedPlatform, setSelectedPlatform] = useState<string>("all");
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
   const [lastSyncTime, setLastSyncTime] = useState<Date | null>(null);
-  const [orderDialogOpen, setOrderDialogOpen] = useState(false);
+
+  // SMM panel form state
+  const [selectedCategory, setSelectedCategory] = useState<string>("");
+  const [serviceSearch, setServiceSearch] = useState("");
   const [selectedService, setSelectedService] = useState<OrganizedService | null>(null);
   const [orderLink, setOrderLink] = useState("");
   const [orderQuantity, setOrderQuantity] = useState("");
@@ -42,9 +41,11 @@ const Services = () => {
   const [dripFeedEnabled, setDripFeedEnabled] = useState(false);
   const [dripFeedRuns, setDripFeedRuns] = useState("");
   const [dripFeedInterval, setDripFeedInterval] = useState("");
-  const [openCategories, setOpenCategories] = useState<Set<string>>(new Set());
+  const [placingOrder, setPlacingOrder] = useState(false);
+  const [serviceDropdownOpen, setServiceDropdownOpen] = useState(false);
 
-  // Check if service requires custom comments
+  const navigate = useNavigate();
+
   const isCustomCommentService = (service: OrganizedService | null) => {
     if (!service) return false;
     const nameLower = service.name.toLowerCase();
@@ -52,24 +53,9 @@ const Services = () => {
       (nameLower.includes('comment') && nameLower.includes('custom'));
   };
 
-  // Count lines in custom comments (for quantity)
   const getCommentLineCount = (comments: string) => {
     if (!comments.trim()) return 0;
     return comments.split('\n').filter(line => line.trim()).length;
-  };
-  const [placingOrder, setPlacingOrder] = useState(false);
-  const navigate = useNavigate();
-
-  const toggleCategory = (category: string) => {
-    setOpenCategories(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(category)) {
-        newSet.delete(category);
-      } else {
-        newSet.add(category);
-      }
-      return newSet;
-    });
   };
 
   const fetchUserBalance = async (userId: string) => {
@@ -78,89 +64,37 @@ const Services = () => {
       .select("balance")
       .eq("id", userId)
       .single();
-    
-    if (profile) {
-      setUserBalance(profile.balance);
-    }
+    if (profile) setUserBalance(profile.balance);
   };
 
   useEffect(() => {
     const checkAuth = async () => {
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        navigate("/auth");
-        return;
-      }
+      if (!session) { navigate("/auth"); return; }
       setUser(session.user);
       fetchUserBalance(session.user.id);
-      
-      // Check if user is admin
       const { data: roles } = await supabase
         .from("user_roles")
         .select("role")
         .eq("user_id", session.user.id)
         .eq("role", "admin")
         .maybeSingle();
-      
       setIsAdmin(!!roles);
     };
-    
     checkAuth();
   }, [navigate]);
 
   useEffect(() => {
     const storedSyncTime = localStorage.getItem('lastSyncTime');
-    if (storedSyncTime) {
-      setLastSyncTime(new Date(storedSyncTime));
-    }
+    if (storedSyncTime) setLastSyncTime(new Date(storedSyncTime));
     fetchServices();
   }, []);
 
-  const syncAndFetchServices = async (isManual = false) => {
-    if (isManual) {
-      setSyncing(true);
-    } else {
-      setLoading(true);
-    }
-    
-    try {
-      if (isManual) toast.info("Syncing latest services...");
-      // Clear cache before sync
-      try { sessionStorage.removeItem('services_cache'); sessionStorage.removeItem('services_cache_expiry'); } catch {}
-      const { error } = await supabase.functions.invoke("sync-services");
-      if (error) throw error;
-      
-      const syncTime = new Date();
-      setLastSyncTime(syncTime);
-      localStorage.setItem('lastSyncTime', syncTime.toISOString());
-      
-      toast.success("Services synced successfully!");
-      await fetchServices();
-    } catch (e) {
-      console.error("Sync failed:", e);
-      toast.error("Failed to sync services");
-      if (!isManual) {
-        await fetchServices();
-      }
-    } finally {
-      if (isManual) {
-        setSyncing(false);
-      } else {
-        setLoading(false);
-      }
-    }
-  };
-  
-  const handleManualSync = () => {
-    syncAndFetchServices(true);
-  };
-
   const SERVICES_CACHE_KEY = 'services_cache';
   const SERVICES_CACHE_EXPIRY_KEY = 'services_cache_expiry';
-  const SERVICES_CACHE_DURATION = 60 * 60 * 1000; // 1 hour
+  const SERVICES_CACHE_DURATION = 60 * 60 * 1000;
 
   const fetchServices = async () => {
-    // Check sessionStorage cache first
     try {
       const cached = sessionStorage.getItem(SERVICES_CACHE_KEY);
       const expiry = sessionStorage.getItem(SERVICES_CACHE_EXPIRY_KEY);
@@ -168,10 +102,9 @@ const Services = () => {
         const organized = organizeServices(JSON.parse(cached));
         setOrganizedCategories(organized);
         setLoading(false);
-        // Using cached services
         return;
       }
-    } catch { /* ignore cache errors */ }
+    } catch {}
 
     const pageSize = 1000;
     let page = 0;
@@ -186,22 +119,16 @@ const Services = () => {
           .select("id, name, category, rate, min_order, max_order, type, dripfeed, average_time, description")
           .order("name", { ascending: true })
           .range(from, to);
-
         if (error) throw error;
-
         const batch = data || [];
         all = all.concat(batch);
-
         if (batch.length < pageSize) break;
         page++;
       }
-
-      // Cache results
       try {
         sessionStorage.setItem(SERVICES_CACHE_KEY, JSON.stringify(all));
         sessionStorage.setItem(SERVICES_CACHE_EXPIRY_KEY, (Date.now() + SERVICES_CACHE_DURATION).toString());
-      } catch { /* ignore quota errors */ }
-
+      } catch {}
       const organized = organizeServices(all);
       setOrganizedCategories(organized);
     } catch (error: any) {
@@ -212,124 +139,108 @@ const Services = () => {
     }
   };
 
-  const getFilteredCategories = () => {
-    let filtered = organizedCategories;
-
-    if (selectedPlatform !== "all") {
-      filtered = filtered.filter(cat => 
-        cat.category.toLowerCase().includes(selectedPlatform.toLowerCase())
-      );
+  const syncAndFetchServices = async () => {
+    setSyncing(true);
+    try {
+      toast.info("Syncing latest services...");
+      try { sessionStorage.removeItem(SERVICES_CACHE_KEY); sessionStorage.removeItem(SERVICES_CACHE_EXPIRY_KEY); } catch {}
+      const { error } = await supabase.functions.invoke("sync-services");
+      if (error) throw error;
+      const syncTime = new Date();
+      setLastSyncTime(syncTime);
+      localStorage.setItem('lastSyncTime', syncTime.toISOString());
+      toast.success("Services synced successfully!");
+      await fetchServices();
+    } catch (e) {
+      console.error("Sync failed:", e);
+      toast.error("Failed to sync services");
+    } finally {
+      setSyncing(false);
     }
-
-    if (searchQuery) {
-      const searchTerms = searchQuery.toLowerCase().trim().split(/\s+/);
-      filtered = filtered.map(category => ({
-        ...category,
-        services: category.services.filter(service => {
-          const serviceName = service.name.toLowerCase();
-          const displayId = getDisplayServiceId(service.id).toLowerCase();
-          // Check if search is purely numeric (searching by ID)
-          const isIdSearch = searchTerms.length === 1 && /^\d+$/.test(searchTerms[0]);
-          if (isIdSearch) {
-            return displayId === searchTerms[0] || displayId.includes(searchTerms[0]);
-          }
-          // All search terms must appear in the service NAME only
-          return searchTerms.every(term => serviceName.includes(term));
-        })
-      })).filter(cat => cat.services.length > 0);
-    }
-
-    return filtered;
   };
 
-  const handleOrderClick = (service: OrganizedService) => {
+  // All unique categories
+  const categories = useMemo(() => {
+    return organizedCategories.map(c => c.category);
+  }, [organizedCategories]);
+
+  // Services in selected category, filtered by search
+  const filteredServices = useMemo(() => {
+    let services: OrganizedService[] = [];
+    if (selectedCategory) {
+      const cat = organizedCategories.find(c => c.category === selectedCategory);
+      if (cat) services = cat.services;
+    } else {
+      services = organizedCategories.flatMap(c => c.services);
+    }
+
+    if (serviceSearch.trim()) {
+      const terms = serviceSearch.toLowerCase().trim().split(/\s+/);
+      const isIdSearch = terms.length === 1 && /^\d+$/.test(terms[0]);
+      services = services.filter(s => {
+        if (isIdSearch) {
+          const displayId = getDisplayServiceId(s.id);
+          return displayId === terms[0] || displayId.includes(terms[0]);
+        }
+        const name = s.name.toLowerCase();
+        return terms.every(t => name.includes(t));
+      });
+    }
+    return services;
+  }, [organizedCategories, selectedCategory, serviceSearch]);
+
+  const selectService = useCallback((service: OrganizedService) => {
     setSelectedService(service);
-    setOrderDialogOpen(true);
-    setOrderLink("");
+    setServiceDropdownOpen(false);
     setOrderQuantity("");
     setCustomComments("");
     setDripFeedEnabled(false);
     setDripFeedRuns("");
     setDripFeedInterval("");
-  };
+  }, []);
 
-  // Parse backend errors into user-friendly messages
+  // Charge calculation
+  const charge = useMemo(() => {
+    if (!selectedService || !orderQuantity) return 0;
+    const qty = parseInt(orderQuantity) || 0;
+    const runs = dripFeedEnabled ? parseInt(dripFeedRuns || "1") || 1 : 1;
+    const totalQty = qty * runs;
+    const isPerOne = selectedService.min_order === 1 && selectedService.max_order === 1;
+    return isPerOne ? totalQty * selectedService.markedUpRate : (totalQty / 1000) * selectedService.markedUpRate;
+  }, [selectedService, orderQuantity, dripFeedEnabled, dripFeedRuns]);
+
   const getFriendlyErrorMessage = (error: string): string => {
-    // Check for specific error codes first
-    if (error === 'USER_INSUFFICIENT_BALANCE') {
-      return "Insufficient balance. Please add funds.";
-    }
-    
-    if (error === 'PROVIDER_ERROR') {
-      return "Something went wrong. Please try again.";
-    }
-    
+    if (error === 'USER_INSUFFICIENT_BALANCE') return "Insufficient balance. Please add funds.";
+    if (error === 'PROVIDER_ERROR') return "Something went wrong. Please try again.";
     const lowerError = error.toLowerCase();
-    
-    if (lowerError.includes('not authenticated') || lowerError.includes('session')) {
-      return "Your session has expired. Please sign in again.";
-    }
-    
-    if (lowerError.includes('service not found')) {
-      return "This service is no longer available. Please try a different one.";
-    }
-    
-    if (lowerError.includes('profile not found')) {
-      return "We couldn't find your account. Please try signing out and back in.";
-    }
-    
-    if (lowerError.includes('missing required fields') || lowerError.includes('invalid')) {
-      return "Please check that all fields are filled in correctly.";
-    }
-    
-    if (lowerError.includes('link')) {
-      return "Please enter a valid link for this service.";
-    }
-    
-    if (lowerError.includes('quantity') || lowerError.includes('min') || lowerError.includes('max')) {
-      return "The quantity you entered is outside the allowed range.";
-    }
-    
-    if (lowerError.includes('provider') || lowerError.includes('key not configured')) {
-      return "This service is temporarily unavailable. Please try again later.";
-    }
-    
-    // Generic fallback - don't expose technical details
+    if (lowerError.includes('not authenticated') || lowerError.includes('session')) return "Your session has expired. Please sign in again.";
+    if (lowerError.includes('service not found')) return "This service is no longer available.";
+    if (lowerError.includes('profile not found')) return "We couldn't find your account. Please try signing out and back in.";
+    if (lowerError.includes('missing required fields') || lowerError.includes('invalid')) return "Please check that all fields are filled in correctly.";
+    if (lowerError.includes('link')) return "Please enter a valid link for this service.";
+    if (lowerError.includes('quantity') || lowerError.includes('min') || lowerError.includes('max')) return "The quantity you entered is outside the allowed range.";
+    if (lowerError.includes('provider') || lowerError.includes('key not configured')) return "This service is temporarily unavailable.";
     return "Something went wrong. Please try again.";
   };
 
-  // supabase.functions.invoke() returns `data=null` on non-2xx, and the actual JSON body
-  // is accessible via FunctionsHttpError.context
   const extractFunctionErrorCode = async (err: unknown): Promise<string> => {
     if (!err) return "";
-
     try {
       if (err instanceof FunctionsHttpError) {
         const body: any = await err.context.json().catch(() => null);
         if (body?.error && typeof body.error === "string") return body.error;
       }
-    } catch {
-      // ignore parse errors
-    }
-
+    } catch {}
     const anyErr = err as any;
-    return (
-      anyErr?.error ||
-      anyErr?.details ||
-      anyErr?.message ||
-      ""
-    );
+    return anyErr?.error || anyErr?.details || anyErr?.message || "";
   };
 
   const handlePlaceOrder = async () => {
     if (!selectedService || !orderLink || !orderQuantity) {
-      toast.error("Please fill all fields");
+      toast.error("Please fill all required fields");
       return;
     }
-
-    if (placingOrder) {
-      return; // Prevent double-tap
-    }
+    if (placingOrder) return;
 
     const quantity = parseInt(orderQuantity);
     if (quantity < selectedService.min_order || quantity > selectedService.max_order) {
@@ -337,7 +248,6 @@ const Services = () => {
       return;
     }
 
-    // Validate drip-feed interval when drip-feed is enabled
     if (dripFeedEnabled) {
       const interval = parseInt(dripFeedInterval);
       if (!dripFeedInterval || isNaN(interval) || interval < 1) {
@@ -346,28 +256,12 @@ const Services = () => {
       }
     }
 
-    // Calculate total cost based on pricing model, accounting for drip-feed runs
-    const runs = dripFeedEnabled ? parseInt(dripFeedRuns || "1") || 1 : 1;
-    const totalQuantity = quantity * runs;
-    const isPerOnePricing = selectedService.min_order === 1 && selectedService.max_order === 1;
-    const totalCost = isPerOnePricing
-      ? (totalQuantity * selectedService.markedUpRate).toFixed(2)
-      : ((totalQuantity / 1000) * selectedService.markedUpRate).toFixed(2);
-
     setPlacingOrder(true);
     toast.loading("Placing your order...", { id: "placing-order" });
 
     try {
       const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-
-      if (sessionError) {
-        toast.dismiss("placing-order");
-        toast.error("Your session has expired. Please sign in again.");
-        navigate("/auth");
-        return;
-      }
-
-      if (!session?.access_token) {
+      if (sessionError || !session?.access_token) {
         toast.dismiss("placing-order");
         toast.error("Your session has expired. Please sign in again.");
         navigate("/auth");
@@ -375,9 +269,7 @@ const Services = () => {
       }
 
       const { data, error } = await supabase.functions.invoke("place-order", {
-        headers: {
-          Authorization: `Bearer ${session.access_token}`,
-        },
+        headers: { Authorization: `Bearer ${session.access_token}` },
         body: {
           service_id: selectedService.id,
           link: orderLink,
@@ -390,26 +282,12 @@ const Services = () => {
 
       toast.dismiss("placing-order");
 
-      // Check for error in data response first (edge function returns { error: "message" })
-      if (data?.error) {
-        toast.error(getFriendlyErrorMessage(data.error));
-        return;
-      }
+      if (data?.error) { toast.error(getFriendlyErrorMessage(data.error)); return; }
+      if (error) { toast.error(getFriendlyErrorMessage(await extractFunctionErrorCode(error))); return; }
 
-      if (error) {
-        const errorCode = await extractFunctionErrorCode(error);
-        toast.error(getFriendlyErrorMessage(errorCode));
-        return;
-      }
-
-      toast.success(`Order placed! Total cost: ${formatPrice(parseFloat(totalCost))}`);
-      
-      // Refresh user balance
-      if (user?.id) {
-        fetchUserBalance(user.id);
-      }
-      
-      setOrderDialogOpen(false);
+      toast.success(`Order placed! Total cost: ${formatPrice(charge)}`);
+      if (user?.id) fetchUserBalance(user.id);
+      setSelectedService(null);
       setOrderLink("");
       setOrderQuantity("");
       setCustomComments("");
@@ -419,8 +297,7 @@ const Services = () => {
       navigate("/dashboard");
     } catch (error: any) {
       toast.dismiss("placing-order");
-      const rawMessage = error?.message || error?.error || "";
-      toast.error(getFriendlyErrorMessage(rawMessage));
+      toast.error(getFriendlyErrorMessage(error?.message || ""));
     } finally {
       setPlacingOrder(false);
     }
@@ -436,329 +313,257 @@ const Services = () => {
     );
   }
 
-  const filteredCategories = getFilteredCategories();
-  const platformKeywords = ['Instagram', 'TikTok', 'Twitter', 'YouTube', 'Facebook', 'Telegram', 'Spotify', 'Audiomack', 'Boomplay', 'SoundCloud', 'Discord', 'WhatsApp', 'Snapchat', 'LinkedIn', 'Threads'];
-
   return (
-    <div className="min-h-screen flex flex-col bg-background">
+    <div className="min-h-screen flex flex-col bg-background touch-manipulation">
       <Header />
-      <main className="flex-grow container mx-auto px-3 sm:px-4 py-4 sm:py-8">
-        <div className="mb-6 sm:mb-8">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
-            <div>
-              <h1 className="text-2xl sm:text-4xl font-bold mb-1 sm:mb-2">SMM Services</h1>
-              <p className="text-muted-foreground text-sm sm:text-base">Professional social media marketing services</p>
+      <main className="flex-grow container mx-auto px-3 sm:px-4 py-4 sm:py-8 max-w-2xl">
+        <div className="mb-4 sm:mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div>
+            <h1 className="text-xl sm:text-3xl font-bold">New Order</h1>
+            <p className="text-muted-foreground text-sm">Place a new SMM service order</p>
+          </div>
+          <div className="flex items-center gap-3">
+            <div className="text-sm">
+              <span className="text-muted-foreground">Balance: </span>
+              <span className="font-bold text-primary">{formatPrice(userBalance)}</span>
             </div>
             {isAdmin && (
-              <div className="flex flex-col sm:items-end gap-2">
-                <Button 
-                  onClick={handleManualSync} 
-                  disabled={syncing}
-                  variant="outline"
-                  size="sm"
-                  className="gap-2"
-                >
-                  <RefreshCw className={`h-4 w-4 ${syncing ? 'animate-spin' : ''}`} />
-                  {syncing ? 'Syncing...' : 'Sync Now'}
-                </Button>
-                {lastSyncTime && (
-                  <p className="text-xs text-muted-foreground">
-                    Last synced: {lastSyncTime.toLocaleString()}
-                  </p>
-                )}
-              </div>
+              <Button onClick={syncAndFetchServices} disabled={syncing} variant="outline" size="sm" className="gap-1.5">
+                <RefreshCw className={`h-3.5 w-3.5 ${syncing ? 'animate-spin' : ''}`} />
+                {syncing ? 'Syncing...' : 'Sync'}
+              </Button>
             )}
           </div>
         </div>
 
-        {/* Service Notifications */}
         <ServiceNotifications />
 
-        <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mb-6 sm:mb-8">
-          <Input
-            placeholder="Search by name or service ID..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="sm:flex-1"
-          />
-          <select
-            value={selectedPlatform}
-            onChange={(e) => setSelectedPlatform(e.target.value)}
-            className="px-3 py-2 rounded-md border bg-background text-sm sm:w-64"
-          >
-            <option value="all">All Categories</option>
-            {platformKeywords.map((platform) => (
-              <option key={platform} value={platform}>{platform}</option>
-            ))}
-          </select>
-        </div>
-
-        {filteredCategories.length === 0 ? (
-          <div className="text-center py-16">
-            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-muted mb-4">
-              <span className="text-2xl">🔍</span>
-            </div>
-            <p className="text-muted-foreground text-lg mb-2">No services found</p>
-            <p className="text-sm text-muted-foreground">Try adjusting your search or filter</p>
-          </div>
-        ) : (
-          <div className="space-y-3 sm:space-y-4">
-            {filteredCategories.map((category) => (
-              <Collapsible 
-                key={category.category} 
-                open={openCategories.has(category.category)}
-                onOpenChange={() => toggleCategory(category.category)}
-                className="rounded-xl overflow-hidden border bg-card shadow-sm"
+        <Card className="shadow-sm">
+          <CardContent className="p-4 sm:p-6 space-y-4">
+            {/* Category */}
+            <div className="space-y-1.5">
+              <Label className="text-sm font-medium">Category</Label>
+              <select
+                value={selectedCategory}
+                onChange={(e) => {
+                  setSelectedCategory(e.target.value);
+                  setSelectedService(null);
+                  setServiceSearch("");
+                }}
+                className="w-full px-3 py-2.5 rounded-md border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
               >
-                <CollapsibleTrigger className="w-full">
-                  <div className="px-4 sm:px-6 py-3 sm:py-4 bg-gradient-to-r from-primary/10 to-primary/5 border-b hover:from-primary/15 hover:to-primary/10 transition-colors">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2 sm:gap-3">
-                        <ChevronDown 
-                          className={`h-4 w-4 sm:h-5 sm:w-5 text-primary transition-transform duration-200 ${
-                            openCategories.has(category.category) ? 'rotate-180' : ''
-                          }`} 
-                        />
-                        <h2 className="text-sm sm:text-lg font-semibold text-card-foreground text-left">{category.category}</h2>
-                      </div>
-                      <span className="text-xs sm:text-sm text-muted-foreground whitespace-nowrap">{category.services.length} services</span>
-                    </div>
-                  </div>
-                </CollapsibleTrigger>
-                <CollapsibleContent>
-                  <div className="p-3 sm:p-6">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
-                      {category.services.map((service) => (
-                        <Card key={service.id} className="group hover:shadow-xl hover:border-primary/50 transition-all duration-300">
-                          <CardHeader className="p-3 sm:pb-3 space-y-2">
-                            <CardTitle className="text-xs sm:text-sm leading-tight line-clamp-2 group-hover:text-primary transition-colors">
-                              <span className="text-muted-foreground font-normal">ID {getDisplayServiceId(service.id)}</span> — {service.name}
-                            </CardTitle>
-                            <CardDescription className="text-xs text-muted-foreground line-clamp-2">
-                              Order range: {service.min_order.toLocaleString()} - {service.max_order.toLocaleString()}
-                            </CardDescription>
-                            <div className="flex items-center gap-2">
-                              <span className="text-xs px-2 py-1 rounded-full bg-primary/10 text-primary font-medium">
-                                {/* Per-1 pricing when min=max=1, otherwise per-1K */}
-                                {service.min_order === 1 && service.max_order === 1
-                                  ? formatPrice(service.markedUpRate)
-                                  : formatPrice(service.markedUpRate)
-                                }
-                              </span>
-                            </div>
-                          </CardHeader>
-                          <CardContent className="p-3 pt-0 space-y-2 sm:space-y-3">
-                            <div className="space-y-1.5 sm:space-y-2 text-xs">
-                              <div className="flex justify-between items-center p-1.5 sm:p-2 rounded-md bg-muted/50">
-                                <span className="text-muted-foreground">Min:</span>
-                                <span className="font-medium">{service.min_order.toLocaleString()}</span>
-                              </div>
-                              <div className="flex justify-between items-center p-1.5 sm:p-2 rounded-md bg-muted/50">
-                                <span className="text-muted-foreground">Max:</span>
-                                <span className="font-medium">{service.max_order.toLocaleString()}</span>
-                              </div>
-                              {service.average_time && (
-                                <div className="flex justify-between items-center p-1.5 sm:p-2 rounded-md bg-muted/50">
-                                  <span className="text-muted-foreground">Avg. Time:</span>
-                                  <span className="font-medium">{service.average_time}</span>
-                                </div>
-                              )}
-                            </div>
-                            <Button
-                              onClick={() => handleOrderClick(service)}
-                              className="w-full text-xs sm:text-sm"
-                              size="sm"
-                            >
-                              Order Now
-                            </Button>
-                          </CardContent>
-                        </Card>
-                      ))}
-                    </div>
-                  </div>
-                </CollapsibleContent>
-              </Collapsible>
-            ))}
-          </div>
-        )}
-      </main>
-      <Footer />
-
-      <Dialog open={orderDialogOpen} onOpenChange={setOrderDialogOpen}>
-        <DialogContent className="max-w-[95vw] sm:max-w-lg max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="text-lg">Place Order</DialogTitle>
-            <DialogDescription className="text-xs sm:text-sm">ID {selectedService ? getDisplayServiceId(selectedService.id) : ''} — {selectedService?.name}</DialogDescription>
-          </DialogHeader>
-          
-          {/* Show user's current balance */}
-          <div className="p-3 bg-muted/50 border border-border rounded-lg">
-            <div className="flex justify-between items-center text-sm">
-              <span className="text-muted-foreground">Your Balance:</span>
-              <span className="font-bold text-primary">{formatPrice(userBalance)}</span>
+                <option value="">All Categories</option>
+                {categories.map(cat => (
+                  <option key={cat} value={cat}>{cat}</option>
+                ))}
+              </select>
             </div>
-          </div>
-          
-          {/* Show instructional description if available */}
-          {selectedService?.description && (
-            <ScrollArea className="max-h-[200px] sm:max-h-[250px]">
-              <div className="p-3 bg-muted/50 border border-border rounded-lg text-xs sm:text-sm whitespace-pre-line break-words overflow-wrap-anywhere">
-                {selectedService.description}
+
+            {/* Service selector */}
+            <div className="space-y-1.5">
+              <Label className="text-sm font-medium">Service</Label>
+              <div className="relative">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                  <Input
+                    placeholder="Search by name or service ID..."
+                    value={serviceSearch}
+                    onChange={(e) => {
+                      setServiceSearch(e.target.value);
+                      setServiceDropdownOpen(true);
+                    }}
+                    onFocus={() => setServiceDropdownOpen(true)}
+                    className="pl-9 pr-8 text-sm"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setServiceDropdownOpen(!serviceDropdownOpen)}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground"
+                  >
+                    <ChevronDown className={`h-4 w-4 transition-transform ${serviceDropdownOpen ? 'rotate-180' : ''}`} />
+                  </button>
+                </div>
+
+                {serviceDropdownOpen && (
+                  <div className="absolute z-50 mt-1 w-full bg-popover border border-border rounded-md shadow-lg max-h-[250px] overflow-y-auto">
+                    {filteredServices.length === 0 ? (
+                      <div className="p-3 text-sm text-muted-foreground text-center">No services found</div>
+                    ) : (
+                      filteredServices.map(service => (
+                        <button
+                          key={service.id}
+                          type="button"
+                          onClick={() => selectService(service)}
+                          className={`w-full text-left px-3 py-2.5 text-sm hover:bg-accent transition-colors border-b border-border/50 last:border-b-0 ${
+                            selectedService?.id === service.id ? 'bg-accent' : ''
+                          }`}
+                        >
+                          <div className="flex items-start justify-between gap-2">
+                            <span className="flex-1 leading-snug">
+                              <span className="text-muted-foreground">ID {getDisplayServiceId(service.id)}</span>
+                              {' — '}
+                              {service.name}
+                            </span>
+                            <span className="text-xs font-medium text-primary whitespace-nowrap mt-0.5">
+                              {formatPrice(service.markedUpRate)}
+                            </span>
+                          </div>
+                        </button>
+                      ))
+                    )}
+                  </div>
+                )}
               </div>
-            </ScrollArea>
-          )}
-          
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="link" className="text-sm">Link (URL)</Label>
+
+              {/* Selected service display */}
+              {selectedService && (
+                <div className="mt-2 p-3 bg-muted/50 rounded-md border text-sm">
+                  <div className="font-medium">
+                    <span className="text-muted-foreground">ID {getDisplayServiceId(selectedService.id)}</span>
+                    {' — '}
+                    {selectedService.name}
+                  </div>
+                  <div className="flex flex-wrap gap-x-4 gap-y-1 mt-1.5 text-xs text-muted-foreground">
+                    <span>Min: {selectedService.min_order.toLocaleString()}</span>
+                    <span>Max: {selectedService.max_order.toLocaleString()}</span>
+                    <span>Rate: {formatPrice(selectedService.markedUpRate)}</span>
+                    {selectedService.average_time && <span>Avg: {selectedService.average_time}</span>}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Link */}
+            <div className="space-y-1.5">
+              <Label className="text-sm font-medium">Link</Label>
               <Input
-                id="link"
                 value={orderLink}
                 onChange={(e) => setOrderLink(e.target.value)}
                 placeholder="https://..."
                 className="text-sm"
               />
             </div>
-            {/* Custom Comments field for comment services - FIRST */}
+
+            {/* Custom Comments for comment services */}
             {isCustomCommentService(selectedService) && (
-              <div>
-                <Label htmlFor="comments" className="text-sm">Custom Comments <span className="text-destructive">*</span></Label>
+              <div className="space-y-1.5">
+                <Label className="text-sm font-medium">Custom Comments <span className="text-destructive">*</span></Label>
                 <Textarea
-                  id="comments"
                   value={customComments}
                   onChange={(e) => {
                     setCustomComments(e.target.value);
-                    // Auto-set quantity based on comment lines
                     const lineCount = getCommentLineCount(e.target.value);
-                    if (lineCount > 0) {
-                      setOrderQuantity(lineCount.toString());
-                    } else {
-                      setOrderQuantity("");
-                    }
+                    setOrderQuantity(lineCount > 0 ? lineCount.toString() : "");
                   }}
                   placeholder="Enter your comments here, one per line..."
-                  className="text-sm min-h-[120px]"
-                  rows={5}
+                  className="text-sm min-h-[100px]"
+                  rows={4}
                 />
-                <p className="text-xs text-muted-foreground mt-1">
-                  Each line = 1 comment. You have <span className="font-semibold text-primary">{getCommentLineCount(customComments)}</span> comment(s).
+                <p className="text-xs text-muted-foreground">
+                  Each line = 1 comment. <span className="font-semibold text-primary">{getCommentLineCount(customComments)}</span> comment(s).
                   {selectedService && ` Min: ${selectedService.min_order}, Max: ${selectedService.max_order}`}
                 </p>
               </div>
             )}
-            {/* Regular quantity field - only for non-custom-comment services */}
+
+            {/* Quantity */}
             {!isCustomCommentService(selectedService) && (
-              <div>
-                <Label htmlFor="quantity" className="text-sm">Quantity</Label>
+              <div className="space-y-1.5">
+                <Label className="text-sm font-medium">Quantity</Label>
                 <Input
-                  id="quantity"
                   type="number"
                   value={orderQuantity}
                   onChange={(e) => setOrderQuantity(e.target.value)}
-                  placeholder={`Min: ${selectedService?.min_order}, Max: ${selectedService?.max_order}`}
+                  placeholder={selectedService ? `Min: ${selectedService.min_order} — Max: ${selectedService.max_order}` : "Select a service first"}
                   min={selectedService?.min_order}
                   max={selectedService?.max_order}
                   className="text-sm"
                 />
               </div>
             )}
-            {/* Show quantity as read-only for custom comment services */}
+
+            {/* Read-only quantity for custom comment */}
             {isCustomCommentService(selectedService) && getCommentLineCount(customComments) > 0 && (
-              <div>
-                <Label className="text-sm">Quantity (auto-calculated)</Label>
-                <Input
-                  type="number"
-                  value={orderQuantity}
-                  readOnly
-                  className="text-sm bg-muted"
-                />
+              <div className="space-y-1.5">
+                <Label className="text-sm font-medium">Quantity (auto-calculated)</Label>
+                <Input type="number" value={orderQuantity} readOnly className="text-sm bg-muted" />
               </div>
             )}
-            {/* Drip-feed option */}
+
+            {/* Drip-feed */}
             {selectedService?.dripfeed && (
-              <div className="space-y-3 p-3 border border-border rounded-lg">
+              <div className="space-y-3 p-3 border rounded-lg bg-muted/30">
                 <div className="flex items-center gap-2">
                   <Checkbox
                     id="dripfeed"
                     checked={dripFeedEnabled}
                     onCheckedChange={(checked) => setDripFeedEnabled(checked === true)}
                   />
-                  <Label htmlFor="dripfeed" className="text-sm cursor-pointer">Drip-feed</Label>
+                  <Label htmlFor="dripfeed" className="text-sm cursor-pointer font-medium">Drip-feed</Label>
                 </div>
                 {dripFeedEnabled && (
-                  <div className="space-y-3">
-                    <div>
-                      <Label htmlFor="runs" className="text-sm">Runs</Label>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <Label className="text-xs">Runs</Label>
                       <Input
-                        id="runs"
                         type="number"
                         value={dripFeedRuns}
                         onChange={(e) => setDripFeedRuns(e.target.value)}
-                        placeholder="Number of runs"
+                        placeholder="Runs"
                         min={1}
                         className="text-sm"
                       />
                     </div>
-                    <div>
-                      <Label htmlFor="interval" className="text-sm">Interval (minutes)</Label>
+                    <div className="space-y-1">
+                      <Label className="text-xs">Interval (min)</Label>
                       <Input
-                        id="interval"
                         type="number"
                         value={dripFeedInterval}
                         onChange={(e) => setDripFeedInterval(e.target.value)}
-                        placeholder="Minutes between runs"
+                        placeholder="Minutes"
                         min={1}
                         className="text-sm"
                       />
                     </div>
-                    {dripFeedRuns && orderQuantity && (
-                      <div className="text-xs text-muted-foreground">
-                        Total quantity: <span className="font-semibold">{(parseInt(orderQuantity || "0") * parseInt(dripFeedRuns || "0")).toLocaleString()}</span>
-                      </div>
-                    )}
                   </div>
                 )}
               </div>
             )}
-            {/* Average time display */}
-            {selectedService?.average_time && (
-              <div className="flex justify-between items-center p-3 bg-muted/50 border border-border rounded-lg text-sm">
-                <span className="text-muted-foreground">Average time</span>
-                <span className="font-medium">{selectedService.average_time}</span>
+
+            {/* Charge */}
+            {charge > 0 && (
+              <div className="p-3 sm:p-4 bg-primary/10 border border-primary/20 rounded-lg">
+                <div className="flex justify-between items-center text-sm sm:text-base">
+                  <span className="font-medium">Charge</span>
+                  <span className="font-bold text-lg text-primary">{formatPrice(charge)}</span>
+                </div>
               </div>
             )}
-            {orderQuantity && selectedService && (() => {
-              const qty = parseInt(orderQuantity || "0");
-              const runs = dripFeedEnabled ? parseInt(dripFeedRuns || "1") || 1 : 1;
-              const totalQty = qty * runs;
-              const isPerOne = selectedService.min_order === 1 && selectedService.max_order === 1;
-              const totalCost = isPerOne
-                ? totalQty * selectedService.markedUpRate
-                : (totalQty / 1000) * selectedService.markedUpRate;
-              return (
-                <div className="p-3 sm:p-4 bg-primary/10 border border-primary/20 rounded-lg space-y-2">
-                  <div className="flex justify-between text-xs sm:text-sm">
-                    <span className="text-muted-foreground">Rate:</span>
-                    <span className="font-medium">
-                      {formatPrice(selectedService.markedUpRate)}
-                    </span>
-                  </div>
-                  <div className="flex justify-between text-sm sm:text-lg font-bold">
-                    <span>Total Cost:</span>
-                    <span className="text-primary">
-                      {formatPrice(totalCost)}
-                    </span>
-                  </div>
-                </div>
-              );
-            })()}
-            <Button onClick={handlePlaceOrder} className="w-full" disabled={placingOrder}>
-              {placingOrder ? "Placing Order..." : "Confirm Order"}
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
 
+            {/* Description */}
+            {selectedService?.description && (
+              <div className="space-y-1.5">
+                <Label className="text-sm font-medium text-muted-foreground">Description</Label>
+                <ScrollArea className="max-h-[150px]">
+                  <div className="p-3 bg-muted/30 border rounded-md text-xs sm:text-sm whitespace-pre-line break-words">
+                    {selectedService.description}
+                  </div>
+                </ScrollArea>
+              </div>
+            )}
+
+            {/* Submit */}
+            <Button
+              onClick={handlePlaceOrder}
+              className="w-full h-11"
+              disabled={placingOrder || !selectedService || !orderLink || !orderQuantity}
+            >
+              {placingOrder ? "Placing Order..." : "Submit Order"}
+            </Button>
+          </CardContent>
+        </Card>
+      </main>
+      <Footer />
       <FloatingNotificationBell />
     </div>
   );

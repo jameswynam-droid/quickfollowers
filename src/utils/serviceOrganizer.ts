@@ -158,22 +158,9 @@ export const formatPrice = (price: number): string => {
 // Uses provider initial + numeric ID to ensure uniqueness across providers
 // e.g., "owlet-4506" → "O-4506", "smmfollows-4506" → "S-4506"
 export const getDisplayServiceId = (id: string): string => {
-  const prefixes: Record<string, string> = {
-    'owlet': 'O',
-    'smmfollows': 'S',
-    'followspanel': 'F',
-  };
-  
   const parts = id.split('-');
-  if (parts.length >= 2) {
-    const provider = parts.slice(0, -1).join('-').toLowerCase();
-    const numericPart = parts[parts.length - 1];
-    if (/^\d+$/.test(numericPart)) {
-      const prefix = prefixes[provider] || provider.charAt(0).toUpperCase();
-      return `${prefix}-${numericPart}`;
-    }
-  }
-  return id;
+  const last = parts[parts.length - 1];
+  return /^\d+$/.test(last) ? last : id;
 };
 
 export const organizeServices = (rawServices: any[]): ServiceCategory[] => {

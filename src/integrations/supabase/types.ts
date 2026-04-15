@@ -616,6 +616,16 @@ export type Database = {
         }
         Returns: boolean
       }
+      process_deposit: {
+        Args: {
+          p_amount: number
+          p_description?: string
+          p_payment_method: string
+          p_reference_id: string
+          p_user_id: string
+        }
+        Returns: Json
+      }
     }
     Enums: {
       app_role: "admin" | "user"
