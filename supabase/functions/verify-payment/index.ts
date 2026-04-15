@@ -68,51 +68,17 @@ serve(async (req) => {
     const baseAmount = transaction.metadata.base_amount || (transaction.amount / 100);
     const totalPaid = transaction.amount / 100;
 
-    // DUPLICATE PREVENTION: Check if this reference was already processed
-    const { data: existingTx } = await supabaseAdmin
-      .from('transactions')
-      .select('id')
-      .eq('reference_id', reference)
-      .eq('type', 'deposit')
-      .maybeSingle();
+    // Use atomic process_deposit to prevent duplicates
+    const { data: result, error: rpcError } = await supabaseAdmin.rpc("process_deposit", {
+      p_reference_id: reference,
+      p_user_id: userId,
+      p_amount: baseAmount,
+      p_payment_method: "paystack",
+      p_description: `Paystack deposit (Paid: ₦${totalPaid.toFixed(2)})`,
+    });
 
-    if (existingTx) {
-      console.log('Payment already processed for reference:', reference);
-      return new Response(null, {
-        status: 302,
-        headers: {
-          'Location': `${redirectUrl}/payment/success?reference=${encodeURIComponent(reference)}`,
-        },
-      });
-    }
-
-    console.log('Processing payment for user:', userId, 'Amount:', baseAmount);
-
-    const { data: profile, error: profileError } = await supabaseAdmin
-      .from('profiles')
-      .select('balance')
-      .eq('id', userId)
-      .single();
-
-    if (profileError || !profile) {
-      console.error('Profile fetch error:', profileError);
-      return new Response(null, {
-        status: 302,
-        headers: {
-          'Location': `${redirectUrl}/dashboard?payment=failed&error=profile_not_found`,
-        },
-      });
-    }
-
-    const newBalance = Number(profile.balance) + Number(baseAmount);
-
-    const { error: updateError } = await supabaseAdmin
-      .from('profiles')
-      .update({ balance: newBalance })
-      .eq('id', userId);
-
-    if (updateError) {
-      console.error('Balance update error:', updateError);
+    if (rpcError) {
+      console.error('process_deposit RPC error:', rpcError);
       return new Response(null, {
         status: 302,
         headers: {
@@ -121,26 +87,13 @@ serve(async (req) => {
       });
     }
 
-    // Create transaction record with payment method and reference
-    const { error: transactionError } = await supabaseAdmin
-      .from('transactions')
-      .insert({
-        user_id: userId,
-        type: 'deposit',
-        amount: baseAmount,
-        balance_after: newBalance,
-        description: `Paystack deposit (Paid: ₦${totalPaid.toFixed(2)})`,
-        reference_id: reference,
-        payment_method: 'paystack',
+    if (result && !result.success) {
+      console.log('Payment already processed for reference:', reference);
+    } else {
+      console.log('Payment verified and balance updated:', {
+        userId, baseAmount, totalPaid, reference,
       });
-
-    if (transactionError) {
-      console.error('Transaction record error:', transactionError);
     }
-
-    console.log('Payment verified and balance updated:', {
-      userId, baseAmount, totalPaid, newBalance, reference,
-    });
 
     return new Response(null, {
       status: 302,
