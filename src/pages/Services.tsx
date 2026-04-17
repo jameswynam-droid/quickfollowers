@@ -1,5 +1,5 @@
-import { useState, useEffect, useMemo, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
@@ -9,11 +9,10 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { RefreshCw, Search, ChevronDown } from "lucide-react";
+import { RefreshCw, Search, ChevronDown, X } from "lucide-react";
 import { toast } from "sonner";
 import { organizeServices, OrganizedService, ServiceCategory, getDisplayServiceId } from "@/utils/serviceOrganizer";
 import { useNoIndex } from "@/hooks/useNoIndex";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { FloatingNotificationBell } from "@/components/FloatingNotificationBell";
 import { Textarea } from "@/components/ui/textarea";
 import { useCurrency } from "@/hooks/useCurrency";
@@ -32,8 +31,11 @@ const Services = () => {
   const [lastSyncTime, setLastSyncTime] = useState<Date | null>(null);
 
   // SMM panel form state
+  const [globalSearch, setGlobalSearch] = useState("");
+  const [debouncedGlobalSearch, setDebouncedGlobalSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("");
-  const [serviceSearch, setServiceSearch] = useState("");
+  const [categorySearch, setCategorySearch] = useState("");
+  const [debouncedCategorySearch, setDebouncedCategorySearch] = useState("");
   const [selectedService, setSelectedService] = useState<OrganizedService | null>(null);
   const [orderLink, setOrderLink] = useState("");
   const [orderQuantity, setOrderQuantity] = useState("");
@@ -43,8 +45,20 @@ const Services = () => {
   const [dripFeedInterval, setDripFeedInterval] = useState("");
   const [placingOrder, setPlacingOrder] = useState(false);
   const [serviceDropdownOpen, setServiceDropdownOpen] = useState(false);
+  const [categoryDropdownOpen, setCategoryDropdownOpen] = useState(false);
 
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+
+  // Debounce both searches (300ms) for snappier typing/clearing
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedGlobalSearch(globalSearch), 300);
+    return () => clearTimeout(t);
+  }, [globalSearch]);
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedCategorySearch(categorySearch), 300);
+    return () => clearTimeout(t);
+  }, [categorySearch]);
 
   const isCustomCommentService = (service: OrganizedService | null) => {
     if (!service) return false;
