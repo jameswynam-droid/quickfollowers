@@ -178,30 +178,41 @@ const Services = () => {
     return organizedCategories.map(c => c.category);
   }, [organizedCategories]);
 
-  // Services in selected category, filtered by search
-  const filteredServices = useMemo(() => {
-    let services: OrganizedService[] = [];
-    if (selectedCategory) {
-      const cat = organizedCategories.find(c => c.category === selectedCategory);
-      if (cat) services = cat.services;
-    } else {
-      services = organizedCategories.flatMap(c => c.services);
-    }
+  // All services flat (for global search)
+  const allServices = useMemo(() => {
+    return organizedCategories.flatMap(c => c.services);
+  }, [organizedCategories]);
 
-    if (serviceSearch.trim()) {
-      const terms = serviceSearch.toLowerCase().trim().split(/\s+/);
-      const isIdSearch = terms.length === 1 && /^\d+$/.test(terms[0]);
-      services = services.filter(s => {
-        if (isIdSearch) {
-          const displayId = getDisplayServiceId(s.id);
-          return displayId === terms[0] || displayId.includes(terms[0]);
-        }
-        const name = s.name.toLowerCase();
-        return terms.every(t => name.includes(t));
-      });
-    }
-    return services;
-  }, [organizedCategories, selectedCategory, serviceSearch]);
+  // Global search results — across ALL services by name OR id
+  const globalSearchResults = useMemo(() => {
+    const q = debouncedGlobalSearch.trim().toLowerCase();
+    if (!q) return [] as OrganizedService[];
+    const isIdSearch = /^\d+$/.test(q);
+    return allServices.filter(s => {
+      if (isIdSearch) {
+        const displayId = getDisplayServiceId(s.id);
+        return displayId === q || displayId.includes(q);
+      }
+      const terms = q.split(/\s+/);
+      const name = s.name.toLowerCase();
+      const displayId = getDisplayServiceId(s.id).toLowerCase();
+      return terms.every(t => name.includes(t) || displayId.includes(t));
+    }).slice(0, 100);
+  }, [allServices, debouncedGlobalSearch]);
+
+  // Categories filtered by category-search input (only when dropdown is open)
+  const filteredCategories = useMemo(() => {
+    const q = debouncedCategorySearch.trim().toLowerCase();
+    if (!q) return categories;
+    return categories.filter(c => c.toLowerCase().includes(q));
+  }, [categories, debouncedCategorySearch]);
+
+  // Services in selected category (no in-list search; selection is via dropdown)
+  const categoryServices = useMemo(() => {
+    if (!selectedCategory) return [] as OrganizedService[];
+    const cat = organizedCategories.find(c => c.category === selectedCategory);
+    return cat ? cat.services : [];
+  }, [organizedCategories, selectedCategory]);
 
   const selectService = useCallback((service: OrganizedService) => {
     setSelectedService(service);
@@ -211,7 +222,11 @@ const Services = () => {
     setDripFeedEnabled(false);
     setDripFeedRuns("");
     setDripFeedInterval("");
-  }, []);
+    // If selected from global search, also align the category
+    if (service.category && service.category !== selectedCategory) {
+      setSelectedCategory(service.category);
+    }
+  }, [selectedCategory]);
 
   // Charge calculation
   const charge = useMemo(() => {
