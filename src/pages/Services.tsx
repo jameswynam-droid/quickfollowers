@@ -1,5 +1,5 @@
-import { useState, useEffect, useMemo, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
@@ -9,11 +9,10 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { RefreshCw, Search, ChevronDown } from "lucide-react";
+import { RefreshCw, Search, ChevronDown, X } from "lucide-react";
 import { toast } from "sonner";
 import { organizeServices, OrganizedService, ServiceCategory, getDisplayServiceId } from "@/utils/serviceOrganizer";
 import { useNoIndex } from "@/hooks/useNoIndex";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { FloatingNotificationBell } from "@/components/FloatingNotificationBell";
 import { Textarea } from "@/components/ui/textarea";
 import { useCurrency } from "@/hooks/useCurrency";
@@ -32,8 +31,11 @@ const Services = () => {
   const [lastSyncTime, setLastSyncTime] = useState<Date | null>(null);
 
   // SMM panel form state
+  const [globalSearch, setGlobalSearch] = useState("");
+  const [debouncedGlobalSearch, setDebouncedGlobalSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("");
-  const [serviceSearch, setServiceSearch] = useState("");
+  const [categorySearch, setCategorySearch] = useState("");
+  const [debouncedCategorySearch, setDebouncedCategorySearch] = useState("");
   const [selectedService, setSelectedService] = useState<OrganizedService | null>(null);
   const [orderLink, setOrderLink] = useState("");
   const [orderQuantity, setOrderQuantity] = useState("");
@@ -43,8 +45,20 @@ const Services = () => {
   const [dripFeedInterval, setDripFeedInterval] = useState("");
   const [placingOrder, setPlacingOrder] = useState(false);
   const [serviceDropdownOpen, setServiceDropdownOpen] = useState(false);
+  const [categoryDropdownOpen, setCategoryDropdownOpen] = useState(false);
 
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+
+  // Debounce both searches (300ms) for snappier typing/clearing
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedGlobalSearch(globalSearch), 300);
+    return () => clearTimeout(t);
+  }, [globalSearch]);
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedCategorySearch(categorySearch), 300);
+    return () => clearTimeout(t);
+  }, [categorySearch]);
 
   const isCustomCommentService = (service: OrganizedService | null) => {
     if (!service) return false;
@@ -164,30 +178,41 @@ const Services = () => {
     return organizedCategories.map(c => c.category);
   }, [organizedCategories]);
 
-  // Services in selected category, filtered by search
-  const filteredServices = useMemo(() => {
-    let services: OrganizedService[] = [];
-    if (selectedCategory) {
-      const cat = organizedCategories.find(c => c.category === selectedCategory);
-      if (cat) services = cat.services;
-    } else {
-      services = organizedCategories.flatMap(c => c.services);
-    }
+  // All services flat (for global search)
+  const allServices = useMemo(() => {
+    return organizedCategories.flatMap(c => c.services);
+  }, [organizedCategories]);
 
-    if (serviceSearch.trim()) {
-      const terms = serviceSearch.toLowerCase().trim().split(/\s+/);
-      const isIdSearch = terms.length === 1 && /^\d+$/.test(terms[0]);
-      services = services.filter(s => {
-        if (isIdSearch) {
-          const displayId = getDisplayServiceId(s.id);
-          return displayId === terms[0] || displayId.includes(terms[0]);
-        }
-        const name = s.name.toLowerCase();
-        return terms.every(t => name.includes(t));
-      });
-    }
-    return services;
-  }, [organizedCategories, selectedCategory, serviceSearch]);
+  // Global search results — across ALL services by name OR id
+  const globalSearchResults = useMemo(() => {
+    const q = debouncedGlobalSearch.trim().toLowerCase();
+    if (!q) return [] as OrganizedService[];
+    const isIdSearch = /^\d+$/.test(q);
+    return allServices.filter(s => {
+      if (isIdSearch) {
+        const displayId = getDisplayServiceId(s.id);
+        return displayId === q || displayId.includes(q);
+      }
+      const terms = q.split(/\s+/);
+      const name = s.name.toLowerCase();
+      const displayId = getDisplayServiceId(s.id).toLowerCase();
+      return terms.every(t => name.includes(t) || displayId.includes(t));
+    }).slice(0, 100);
+  }, [allServices, debouncedGlobalSearch]);
+
+  // Categories filtered by category-search input (only when dropdown is open)
+  const filteredCategories = useMemo(() => {
+    const q = debouncedCategorySearch.trim().toLowerCase();
+    if (!q) return categories;
+    return categories.filter(c => c.toLowerCase().includes(q));
+  }, [categories, debouncedCategorySearch]);
+
+  // Services in selected category (no in-list search; selection is via dropdown)
+  const categoryServices = useMemo(() => {
+    if (!selectedCategory) return [] as OrganizedService[];
+    const cat = organizedCategories.find(c => c.category === selectedCategory);
+    return cat ? cat.services : [];
+  }, [organizedCategories, selectedCategory]);
 
   const selectService = useCallback((service: OrganizedService) => {
     setSelectedService(service);
@@ -197,7 +222,28 @@ const Services = () => {
     setDripFeedEnabled(false);
     setDripFeedRuns("");
     setDripFeedInterval("");
-  }, []);
+    // If selected from global search, also align the category
+    if (service.originalCategory && service.originalCategory !== selectedCategory) {
+      setSelectedCategory(service.originalCategory);
+    }
+  }, [selectedCategory]);
+
+  // Pre-select service from query params (?serviceId=...) for re-order flow
+  useEffect(() => {
+    const sid = searchParams.get("serviceId");
+    if (!sid || allServices.length === 0 || selectedService?.id === sid) return;
+    const match = allServices.find(s => s.id === sid);
+    if (match) {
+      setSelectedService(match);
+      if (match.originalCategory) setSelectedCategory(match.originalCategory);
+      setOrderLink("");
+      setOrderQuantity("");
+      setCustomComments("");
+      setDripFeedEnabled(false);
+      setDripFeedRuns("");
+      setDripFeedInterval("");
+    }
+  }, [searchParams, allServices, selectedService]);
 
   // Charge calculation
   const charge = useMemo(() => {
@@ -340,56 +386,139 @@ const Services = () => {
 
         <Card className="shadow-sm">
           <CardContent className="p-4 sm:p-6 space-y-4">
-            {/* Category */}
+            {/* Top: Search By Service (across ALL services) */}
             <div className="space-y-1.5">
-              <Label className="text-sm font-medium">Category</Label>
-              <select
-                value={selectedCategory}
-                onChange={(e) => {
-                  setSelectedCategory(e.target.value);
-                  setSelectedService(null);
-                  setServiceSearch("");
-                }}
-                className="w-full px-3 py-2.5 rounded-md border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-              >
-                <option value="">All Categories</option>
-                {categories.map(cat => (
-                  <option key={cat} value={cat}>{cat}</option>
-                ))}
-              </select>
+              <Label className="text-sm font-medium">Search By Service</Label>
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                <Input
+                  placeholder="Search any service by name or ID (e.g. 4506)..."
+                  value={globalSearch}
+                  onChange={(e) => setGlobalSearch(e.target.value)}
+                  className="pl-9 pr-9 text-sm"
+                />
+                {globalSearch && (
+                  <button
+                    type="button"
+                    onClick={() => setGlobalSearch("")}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    aria-label="Clear search"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                )}
+              </div>
+              {debouncedGlobalSearch.trim() && (
+                <div className="border border-border rounded-md bg-popover shadow-sm max-h-[260px] overflow-y-auto">
+                  {globalSearchResults.length === 0 ? (
+                    <div className="p-3 text-sm text-muted-foreground text-center">No services found</div>
+                  ) : (
+                    globalSearchResults.map(service => (
+                      <button
+                        key={service.id}
+                        type="button"
+                        onClick={() => { selectService(service); setGlobalSearch(""); }}
+                        className="w-full text-left px-3 py-2.5 text-sm hover:bg-accent transition-colors border-b border-border/50 last:border-b-0"
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <span className="flex-1 leading-snug">
+                            <span className="text-muted-foreground">ID {getDisplayServiceId(service.id)}</span>
+                            {' — '}
+                            {service.name}
+                          </span>
+                          <span className="text-xs font-medium text-primary whitespace-nowrap mt-0.5">
+                            {formatPrice(service.markedUpRate)}
+                          </span>
+                        </div>
+                      </button>
+                    ))
+                  )}
+                </div>
+              )}
             </div>
 
-            {/* Service selector */}
+            {/* Category dropdown with category-only search inside */}
+            <div className="space-y-1.5">
+              <Label className="text-sm font-medium">Category</Label>
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setCategoryDropdownOpen(o => !o)}
+                  className="w-full flex items-center justify-between px-3 py-2.5 rounded-md border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                >
+                  <span className={selectedCategory ? "" : "text-muted-foreground"}>
+                    {selectedCategory || "Select a category"}
+                  </span>
+                  <ChevronDown className={`h-4 w-4 transition-transform ${categoryDropdownOpen ? 'rotate-180' : ''}`} />
+                </button>
+                {categoryDropdownOpen && (
+                  <div className="absolute z-50 mt-1 w-full bg-popover border border-border rounded-md shadow-lg max-h-[300px] overflow-hidden flex flex-col">
+                    <div className="p-2 border-b border-border bg-popover sticky top-0">
+                      <div className="relative">
+                        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
+                        <Input
+                          autoFocus
+                          placeholder="Search categories..."
+                          value={categorySearch}
+                          onChange={(e) => setCategorySearch(e.target.value)}
+                          className="pl-8 h-8 text-sm"
+                        />
+                      </div>
+                    </div>
+                    <div className="overflow-y-auto">
+                      {filteredCategories.length === 0 ? (
+                        <div className="p-3 text-sm text-muted-foreground text-center">No categories found</div>
+                      ) : (
+                        filteredCategories.map(cat => (
+                          <button
+                            key={cat}
+                            type="button"
+                            onClick={() => {
+                              setSelectedCategory(cat);
+                              setSelectedService(null);
+                              setCategoryDropdownOpen(false);
+                              setCategorySearch("");
+                            }}
+                            className={`w-full text-left px-3 py-2 text-sm hover:bg-accent transition-colors border-b border-border/50 last:border-b-0 ${
+                              selectedCategory === cat ? 'bg-accent font-medium' : ''
+                            }`}
+                          >
+                            {cat}
+                          </button>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Service selector (within selected category) */}
             <div className="space-y-1.5">
               <Label className="text-sm font-medium">Service</Label>
               <div className="relative">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-                  <Input
-                    placeholder="Search by name or service ID..."
-                    value={serviceSearch}
-                    onChange={(e) => {
-                      setServiceSearch(e.target.value);
-                      setServiceDropdownOpen(true);
-                    }}
-                    onFocus={() => setServiceDropdownOpen(true)}
-                    className="pl-9 pr-8 text-sm"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setServiceDropdownOpen(!serviceDropdownOpen)}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground"
-                  >
-                    <ChevronDown className={`h-4 w-4 transition-transform ${serviceDropdownOpen ? 'rotate-180' : ''}`} />
-                  </button>
-                </div>
+                <button
+                  type="button"
+                  onClick={() => selectedCategory && setServiceDropdownOpen(o => !o)}
+                  disabled={!selectedCategory}
+                  className="w-full flex items-center justify-between px-3 py-2.5 rounded-md border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-60 disabled:cursor-not-allowed"
+                >
+                  <span className={selectedService ? "" : "text-muted-foreground truncate"}>
+                    {selectedService
+                      ? `ID ${getDisplayServiceId(selectedService.id)} — ${selectedService.name}`
+                      : selectedCategory
+                        ? "Select a service"
+                        : "Select a category first"}
+                  </span>
+                  <ChevronDown className={`h-4 w-4 shrink-0 ml-2 transition-transform ${serviceDropdownOpen ? 'rotate-180' : ''}`} />
+                </button>
 
-                {serviceDropdownOpen && (
-                  <div className="absolute z-50 mt-1 w-full bg-popover border border-border rounded-md shadow-lg max-h-[250px] overflow-y-auto">
-                    {filteredServices.length === 0 ? (
-                      <div className="p-3 text-sm text-muted-foreground text-center">No services found</div>
+                {serviceDropdownOpen && selectedCategory && (
+                  <div className="absolute z-50 mt-1 w-full bg-popover border border-border rounded-md shadow-lg max-h-[300px] overflow-y-auto">
+                    {categoryServices.length === 0 ? (
+                      <div className="p-3 text-sm text-muted-foreground text-center">No services in this category</div>
                     ) : (
-                      filteredServices.map(service => (
+                      categoryServices.map(service => (
                         <button
                           key={service.id}
                           type="button"
@@ -415,7 +544,7 @@ const Services = () => {
                 )}
               </div>
 
-              {/* Selected service display */}
+              {/* Selected service info */}
               {selectedService && (
                 <div className="mt-2 p-3 bg-muted/50 rounded-md border text-sm">
                   <div className="font-medium">
@@ -527,6 +656,14 @@ const Services = () => {
                     </div>
                   </div>
                 )}
+                {dripFeedEnabled && orderQuantity && parseInt(orderQuantity) > 0 && (
+                  <div className="flex justify-between items-center pt-2 border-t border-border/60 text-sm">
+                    <span className="text-muted-foreground">Total Quantity</span>
+                    <span className="font-semibold text-foreground">
+                      {(parseInt(orderQuantity) * (parseInt(dripFeedRuns || "1") || 1)).toLocaleString()}
+                    </span>
+                  </div>
+                )}
               </div>
             )}
 
@@ -540,15 +677,13 @@ const Services = () => {
               </div>
             )}
 
-            {/* Description */}
+            {/* Description — full text, no scroll/truncation */}
             {selectedService?.description && (
               <div className="space-y-1.5">
                 <Label className="text-sm font-medium text-muted-foreground">Description</Label>
-                <ScrollArea className="max-h-[150px]">
-                  <div className="p-3 bg-muted/30 border rounded-md text-xs sm:text-sm whitespace-pre-line break-words">
-                    {selectedService.description}
-                  </div>
-                </ScrollArea>
+                <div className="p-3 bg-muted/30 border rounded-md text-xs sm:text-sm whitespace-pre-line break-words">
+                  {selectedService.description}
+                </div>
               </div>
             )}
 

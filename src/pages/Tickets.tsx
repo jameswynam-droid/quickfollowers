@@ -393,20 +393,20 @@ const Tickets = () => {
 
         {/* Ticket Messages Dialog */}
         <Dialog open={!!selectedTicket} onOpenChange={() => setSelectedTicket(null)}>
-          <DialogContent className="w-screen h-screen max-w-none max-h-none rounded-none flex flex-col p-0 sm:max-w-2xl sm:h-[90vh] sm:rounded-lg [&>button.absolute]:hidden">
-            <DialogHeader className="p-4 border-b shrink-0">
-              <div className="flex items-center gap-3">
+          <DialogContent className="w-screen h-screen max-w-none max-h-none rounded-none flex flex-col p-0 sm:max-w-4xl sm:h-[85vh] sm:rounded-lg [&>button.absolute]:hidden">
+            <DialogHeader className="p-3 sm:p-4 border-b shrink-0 space-y-2">
+              {/* Centered subject at top */}
+              <DialogTitle className="text-base sm:text-lg font-semibold leading-snug text-center px-10 line-clamp-2">
+                {selectedTicket?.subject}
+              </DialogTitle>
+              {/* Back arrow + status row */}
+              <div className="flex items-center gap-2">
                 <Button variant="ghost" size="icon" className="shrink-0 h-8 w-8" onClick={() => setSelectedTicket(null)}>
                   <ArrowLeft className="h-4 w-4" />
                 </Button>
-                <div className="min-w-0 flex-1">
-                  <DialogTitle className="text-base font-semibold leading-snug line-clamp-2">{selectedTicket?.subject}</DialogTitle>
-                  <div className="flex items-center gap-2 mt-1">
-                    <Badge variant={getStatusColor(selectedTicket?.status || "")} className="capitalize text-xs">
-                      {selectedTicket?.status?.replace('_', ' ')}
-                    </Badge>
-                  </div>
-                </div>
+                <Badge variant={getStatusColor(selectedTicket?.status || "")} className="capitalize text-xs">
+                  {selectedTicket?.status?.replace('_', ' ')}
+                </Badge>
               </div>
             </DialogHeader>
             
@@ -468,7 +468,7 @@ const Tickets = () => {
             </ScrollArea>
             
             {selectedTicket?.status !== 'closed' && (
-            <div className="p-4 pb-8 border-t shrink-0 bg-background" style={{ paddingBottom: 'max(40px, env(safe-area-inset-bottom))' }}>
+            <div className="p-4 pb-14 border-t shrink-0 bg-background" style={{ paddingBottom: 'max(56px, env(safe-area-inset-bottom))' }}>
               {attachment && (
                 <div className="mb-2 flex items-center gap-2 text-sm text-muted-foreground bg-muted p-2 rounded">
                   <Image className="h-4 w-4" />
