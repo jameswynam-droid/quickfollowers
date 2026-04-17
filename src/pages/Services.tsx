@@ -656,6 +656,14 @@ const Services = () => {
                     </div>
                   </div>
                 )}
+                {dripFeedEnabled && orderQuantity && parseInt(orderQuantity) > 0 && (
+                  <div className="flex justify-between items-center pt-2 border-t border-border/60 text-sm">
+                    <span className="text-muted-foreground">Total Quantity</span>
+                    <span className="font-semibold text-foreground">
+                      {(parseInt(orderQuantity) * (parseInt(dripFeedRuns || "1") || 1)).toLocaleString()}
+                    </span>
+                  </div>
+                )}
               </div>
             )}
 

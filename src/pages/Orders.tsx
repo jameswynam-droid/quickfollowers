@@ -94,17 +94,15 @@ const Orders = () => {
     finally { setLoading(false); }
   };
 
-  const handleReorder = async (orderId: string, e: React.MouseEvent) => {
+  const handleReorder = (orderId: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    setActionLoading(orderId);
-    try {
-      const { data, error } = await supabase.functions.invoke('reorder', { body: { order_id: orderId } });
-      if (error) throw new Error(error.message?.includes("edge function") ? "Unable to process reorder." : error.message || "Failed to reorder");
-      if (data?.error) throw new Error(data.error);
-      toast.success("Reorder placed successfully!");
-      if (user) await fetchOrders(user.id);
-    } catch (error: any) { toast.error(error.message || "Unable to process reorder."); }
-    finally { setActionLoading(null); }
+    const order = orders.find(o => o.id === orderId);
+    if (!order) {
+      toast.error("Order not found");
+      return;
+    }
+    // Navigate to New Order with the same service preselected (link/qty empty)
+    navigate(`/services?serviceId=${encodeURIComponent(order.service_id || order.services?.id || "")}`);
   };
 
   const getStatusColor = (status: string) => {
