@@ -78,7 +78,7 @@ const Index = () => {
 
         <div className="relative max-w-7xl mx-auto px-4 py-16 sm:py-32 text-center">
           <div className="inline-block mb-4 sm:mb-6 px-3 sm:px-4 py-1.5 sm:py-2 bg-white/10 backdrop-blur-sm rounded-full text-xs sm:text-sm font-semibold border border-white/20">
-            🚀 Trusted by 500K+ Content Creators
+            🌍 #1 SMM Panel in the World • Trusted by 500K+ Creators
           </div>
           
           <h1 className="text-3xl sm:text-5xl md:text-7xl font-black leading-tight mb-4 sm:mb-6">
@@ -226,6 +226,47 @@ const Index = () => {
               <p className="text-muted-foreground mt-3 sm:mt-4 leading-relaxed text-xs sm:text-base">
                 Most orders start within 30-60 seconds. Larger campaigns may take up to 12 hours to ramp up
                 gradually.
+              </p>
+            </details>
+            <details className="group bg-card/80 dark:bg-card/60 backdrop-blur-sm rounded-xl sm:rounded-2xl shadow-lg px-4 sm:px-8 py-4 sm:py-6 open:shadow-xl transition-all border border-border dark:border-border/80 hover:border-primary/50">
+              <summary className="font-bold text-sm sm:text-lg cursor-pointer list-none flex items-center justify-between text-foreground">
+                What payment methods do you accept?
+                <i className="fa-solid fa-chevron-down text-primary group-open:rotate-180 transition-transform text-xs sm:text-base"></i>
+              </summary>
+              <p className="text-muted-foreground mt-3 sm:mt-4 leading-relaxed text-xs sm:text-base">
+                We accept card payments, bank transfers, and mobile money worldwide via Flutterwave and Paystack. Local
+                Nigerian (NGN) payments are also fully supported, and your balance is credited instantly after a
+                successful payment.
+              </p>
+            </details>
+            <details className="group bg-card/80 dark:bg-card/60 backdrop-blur-sm rounded-xl sm:rounded-2xl shadow-lg px-4 sm:px-8 py-4 sm:py-6 open:shadow-xl transition-all border border-border dark:border-border/80 hover:border-primary/50">
+              <summary className="font-bold text-sm sm:text-lg cursor-pointer list-none flex items-center justify-between text-foreground">
+                Do you offer refunds?
+                <i className="fa-solid fa-chevron-down text-primary group-open:rotate-180 transition-transform text-xs sm:text-base"></i>
+              </summary>
+              <p className="text-muted-foreground mt-3 sm:mt-4 leading-relaxed text-xs sm:text-base">
+                Yes. If an order fails, is cancelled, or only partially delivered, your account is automatically
+                refunded the unused portion of your balance — no need to open a ticket.
+              </p>
+            </details>
+            <details className="group bg-card/80 dark:bg-card/60 backdrop-blur-sm rounded-xl sm:rounded-2xl shadow-lg px-4 sm:px-8 py-4 sm:py-6 open:shadow-xl transition-all border border-border dark:border-border/80 hover:border-primary/50">
+              <summary className="font-bold text-sm sm:text-lg cursor-pointer list-none flex items-center justify-between text-foreground">
+                Is my account safe?
+                <i className="fa-solid fa-chevron-down text-primary group-open:rotate-180 transition-transform text-xs sm:text-base"></i>
+              </summary>
+              <p className="text-muted-foreground mt-3 sm:mt-4 leading-relaxed text-xs sm:text-base">
+                Absolutely. We never ask for your password — we only need the public link to your post or profile to
+                deliver engagement safely. Sessions are encrypted end-to-end.
+              </p>
+            </details>
+            <details className="group bg-card/80 dark:bg-card/60 backdrop-blur-sm rounded-xl sm:rounded-2xl shadow-lg px-4 sm:px-8 py-4 sm:py-6 open:shadow-xl transition-all border border-border dark:border-border/80 hover:border-primary/50">
+              <summary className="font-bold text-sm sm:text-lg cursor-pointer list-none flex items-center justify-between text-foreground">
+                Which platforms do you support?
+                <i className="fa-solid fa-chevron-down text-primary group-open:rotate-180 transition-transform text-xs sm:text-base"></i>
+              </summary>
+              <p className="text-muted-foreground mt-3 sm:mt-4 leading-relaxed text-xs sm:text-base">
+                Instagram, TikTok, YouTube, X (Twitter), Facebook, Spotify, Telegram, Snapchat, Threads, SoundCloud,
+                Twitch and many more — followers, likes, views, subscribers, plays and shares for all of them.
               </p>
             </details>
             <details className="group bg-card/80 dark:bg-card/60 backdrop-blur-sm rounded-xl sm:rounded-2xl shadow-lg px-4 sm:px-8 py-4 sm:py-6 open:shadow-xl transition-all border border-border dark:border-border/80 hover:border-primary/50">
