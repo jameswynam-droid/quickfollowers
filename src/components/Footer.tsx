@@ -9,7 +9,7 @@ const Footer = () => {
             <img src={logoImg} alt="QuickFollowers" className="w-8 h-8 rounded-lg" width="32" height="32" loading="lazy" decoding="async" />
             QuickFollowers
           </div>
-          <p className="text-xs sm:text-sm">The fastest & cheapest SMM panel in Nigeria. Since 2023.</p>
+          <p className="text-xs sm:text-sm">The world's fastest & cheapest SMM panel. Trusted globally since 2023.</p>
         </div>
         <div>
           <h4 className="font-semibold text-white mb-2 sm:mb-3 text-sm sm:text-base">Services</h4>
