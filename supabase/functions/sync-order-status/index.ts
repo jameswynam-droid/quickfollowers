@@ -19,7 +19,7 @@ Deno.serve(async (req) => {
     const { data: pendingOrders, error: ordersError } = await supabaseClient
       .from('orders')
       .select('id, api_order_id, service_id, status, charge, user_id, quantity')
-      .in('status', ['pending', 'processing', 'partial']);
+      .in('status', ['pending', 'processing', 'in_progress', 'partial']);
 
     if (ordersError) throw ordersError;
 
@@ -165,7 +165,8 @@ function mapApiStatus(apiStatus: string): string | null {
   if (s === 'completed') return 'completed';
   if (s === 'canceled' || s === 'cancelled') return 'cancelled';
   if (s === 'partial') return 'partial';
-  if (s === 'in progress' || s === 'inprogress' || s === 'processing') return 'processing';
+  if (s === 'in progress' || s === 'inprogress' || s === 'in_progress') return 'in_progress';
+  if (s === 'processing') return 'processing';
   if (s === 'pending') return 'pending';
   if (s === 'refunded') return 'cancelled';
   if (s === 'failed' || s === 'error') return 'failed';

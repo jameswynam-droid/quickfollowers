@@ -13,6 +13,7 @@ import { useNoIndex } from "@/hooks/useNoIndex";
 import { AdminNotifications } from "@/components/AdminNotifications";
 import { AdminBellNotifications } from "@/components/AdminBellNotifications";
 import { AdminFloatingBellNotifications } from "@/components/AdminFloatingBellNotifications";
+import { AdminDailyPopups } from "@/components/AdminDailyPopups";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 const Admin = () => {
   useNoIndex(); // Prevent search engine indexing
@@ -145,11 +146,12 @@ const Admin = () => {
         </div>
 
         <Tabs defaultValue="payments" className="space-y-4">
-          <TabsList className="grid w-full grid-cols-4 max-w-xl">
+          <TabsList className="grid w-full grid-cols-5 max-w-2xl">
             <TabsTrigger value="payments">Payments</TabsTrigger>
             <TabsTrigger value="notifications">Service Alerts</TabsTrigger>
             <TabsTrigger value="bell">Header Bell</TabsTrigger>
             <TabsTrigger value="floating">Info Bell</TabsTrigger>
+            <TabsTrigger value="popups">Pop-ups</TabsTrigger>
           </TabsList>
 
           <TabsContent value="payments">
@@ -230,6 +232,10 @@ const Admin = () => {
 
           <TabsContent value="floating">
             <AdminFloatingBellNotifications />
+          </TabsContent>
+
+          <TabsContent value="popups">
+            <AdminDailyPopups />
           </TabsContent>
         </Tabs>
       </main>

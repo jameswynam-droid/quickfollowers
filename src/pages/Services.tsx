@@ -394,7 +394,11 @@ const Services = () => {
                 <Input
                   placeholder="Search any service by name or ID (e.g. 4506)..."
                   value={globalSearch}
-                  onChange={(e) => setGlobalSearch(e.target.value)}
+                  onChange={(e) => {
+                    setGlobalSearch(e.target.value);
+                    if (e.target.value) setCategoryDropdownOpen(false);
+                  }}
+                  onFocus={() => setCategoryDropdownOpen(false)}
                   className="pl-9 pr-9 text-sm"
                 />
                 {globalSearch && (
@@ -407,34 +411,34 @@ const Services = () => {
                     <X className="h-4 w-4" />
                   </button>
                 )}
+                {debouncedGlobalSearch.trim() && !categoryDropdownOpen && (
+                  <div className="absolute z-50 left-0 right-0 mt-1 border border-border rounded-md bg-popover shadow-lg max-h-[300px] overflow-y-auto">
+                    {globalSearchResults.length === 0 ? (
+                      <div className="p-3 text-sm text-muted-foreground text-center">No services found</div>
+                    ) : (
+                      globalSearchResults.map(service => (
+                        <button
+                          key={service.id}
+                          type="button"
+                          onClick={() => { selectService(service); setGlobalSearch(""); }}
+                          className="w-full text-left px-3 py-2.5 text-sm hover:bg-accent transition-colors border-b border-border/50 last:border-b-0"
+                        >
+                          <div className="flex items-start justify-between gap-2">
+                            <span className="flex-1 leading-snug">
+                              <span className="text-muted-foreground">ID {getDisplayServiceId(service.id)}</span>
+                              {' — '}
+                              {service.name}
+                            </span>
+                            <span className="text-xs font-medium text-primary whitespace-nowrap mt-0.5">
+                              {formatPrice(service.markedUpRate)}
+                            </span>
+                          </div>
+                        </button>
+                      ))
+                    )}
+                  </div>
+                )}
               </div>
-              {debouncedGlobalSearch.trim() && (
-                <div className="border border-border rounded-md bg-popover shadow-sm max-h-[260px] overflow-y-auto">
-                  {globalSearchResults.length === 0 ? (
-                    <div className="p-3 text-sm text-muted-foreground text-center">No services found</div>
-                  ) : (
-                    globalSearchResults.map(service => (
-                      <button
-                        key={service.id}
-                        type="button"
-                        onClick={() => { selectService(service); setGlobalSearch(""); }}
-                        className="w-full text-left px-3 py-2.5 text-sm hover:bg-accent transition-colors border-b border-border/50 last:border-b-0"
-                      >
-                        <div className="flex items-start justify-between gap-2">
-                          <span className="flex-1 leading-snug">
-                            <span className="text-muted-foreground">ID {getDisplayServiceId(service.id)}</span>
-                            {' — '}
-                            {service.name}
-                          </span>
-                          <span className="text-xs font-medium text-primary whitespace-nowrap mt-0.5">
-                            {formatPrice(service.markedUpRate)}
-                          </span>
-                        </div>
-                      </button>
-                    ))
-                  )}
-                </div>
-              )}
             </div>
 
             {/* Category dropdown with category-only search inside */}
@@ -443,7 +447,13 @@ const Services = () => {
               <div className="relative">
                 <button
                   type="button"
-                  onClick={() => setCategoryDropdownOpen(o => !o)}
+                  onClick={() => {
+                    setCategoryDropdownOpen(o => {
+                      const next = !o;
+                      if (next) setGlobalSearch("");
+                      return next;
+                    });
+                  }}
                   className="w-full flex items-center justify-between px-3 py-2.5 rounded-md border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
                 >
                   <span className={selectedCategory ? "" : "text-muted-foreground"}>

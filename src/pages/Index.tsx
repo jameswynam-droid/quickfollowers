@@ -5,6 +5,7 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import ServiceCard from "@/components/ServiceCard";
 import { Button } from "@/components/ui/button";
+import DailyPopupModal from "@/components/DailyPopupModal";
 
 
 const Index = () => {
@@ -313,6 +314,7 @@ const Index = () => {
       </section>
 
       <Footer />
+      <DailyPopupModal />
     </div>
   );
 };

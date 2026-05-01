@@ -47,6 +47,54 @@ export type Database = {
         }
         Relationships: []
       }
+      daily_popups: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          is_active: boolean
+          message: string
+          primary_button_color: string | null
+          primary_button_label: string | null
+          primary_button_url: string | null
+          secondary_button_color: string | null
+          secondary_button_label: string | null
+          secondary_button_url: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          message: string
+          primary_button_color?: string | null
+          primary_button_label?: string | null
+          primary_button_url?: string | null
+          secondary_button_color?: string | null
+          secondary_button_label?: string | null
+          secondary_button_url?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          message?: string
+          primary_button_color?: string | null
+          primary_button_label?: string | null
+          primary_button_url?: string | null
+          secondary_button_color?: string | null
+          secondary_button_label?: string | null
+          secondary_button_url?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       floating_bell_notifications: {
         Row: {
           content: string
@@ -636,6 +684,7 @@ export type Database = {
         | "cancelled"
         | "failed"
         | "partial"
+        | "in_progress"
       payment_status: "pending" | "approved" | "rejected"
     }
     CompositeTypes: {
@@ -772,6 +821,7 @@ export const Constants = {
         "cancelled",
         "failed",
         "partial",
+        "in_progress",
       ],
       payment_status: ["pending", "approved", "rejected"],
     },

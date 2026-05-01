@@ -15,9 +15,11 @@ import { toast } from "sonner";
 import { Wallet, ShoppingCart, Clock, Plus, ArrowRight, TrendingUp } from "lucide-react";
 import { useNoIndex } from "@/hooks/useNoIndex";
 import { useCurrency } from "@/hooks/useCurrency";
+import DailyPopupModal from "@/components/DailyPopupModal";
 
 const statusColors: Record<string, string> = {
   pending: "bg-yellow-500/15 text-yellow-700 dark:text-yellow-400 border-yellow-500/20",
+  in_progress: "bg-blue-500/15 text-blue-700 dark:text-blue-400 border-blue-500/20",
   processing: "bg-primary/15 text-primary border-primary/20",
   completed: "bg-green-500/15 text-green-700 dark:text-green-400 border-green-500/20",
   cancelled: "bg-destructive/15 text-destructive border-destructive/20",
@@ -249,7 +251,7 @@ const Dashboard = () => {
                         <TableCell className="text-xs sm:text-sm font-medium">{formatPrice(o.charge)}</TableCell>
                         <TableCell>
                           <Badge variant="outline" className={`text-[11px] capitalize border ${statusColors[o.status] || ''}`}>
-                            {o.status}
+                            {o.status?.replace('_',' ')}
                           </Badge>
                         </TableCell>
                       </TableRow>
@@ -262,6 +264,7 @@ const Dashboard = () => {
         </Card>
       </main>
       <Footer />
+      <DailyPopupModal />
       
       <Dialog open={paymentDialogOpen} onOpenChange={setPaymentDialogOpen}>
         <DialogContent>

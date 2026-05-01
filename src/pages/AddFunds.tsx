@@ -289,19 +289,22 @@ export default function AddFunds() {
                 </div>
 
                 {/* Quick amount buttons */}
-                <div className="flex flex-wrap gap-2 mt-4">
-                  {[500, 1000, 2000, 5000, 10000].map((quickAmount) => (
-                    <Button
-                      key={quickAmount}
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setAmount(quickAmount.toString())}
-                      disabled={loading}
-                    >
-                      {currencySymbol}{quickAmount.toLocaleString()}
-                    </Button>
-                  ))}
+                <div className="grid grid-cols-3 sm:grid-cols-5 gap-2 mt-4">
+                  {[500, 1000, 2000, 5000, 10000].map((quickAmount) => {
+                    const selected = amount === quickAmount.toString();
+                    return (
+                      <Button
+                        key={quickAmount}
+                        type="button"
+                        variant={selected ? "default" : "outline"}
+                        onClick={() => setAmount(quickAmount.toString())}
+                        disabled={loading}
+                        className={`h-12 rounded-xl font-semibold ${selected ? 'bg-gradient-to-br from-primary to-secondary text-white border-0 shadow-md' : 'hover:border-primary'}`}
+                      >
+                        {currencySymbol}{quickAmount.toLocaleString()}
+                      </Button>
+                    );
+                  })}
                 </div>
               </CardContent>
             </Card>
