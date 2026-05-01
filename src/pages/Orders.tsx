@@ -109,6 +109,7 @@ const Orders = () => {
     switch (status?.toLowerCase()) {
       case "completed": return "default";
       case "processing": return "secondary";
+      case "in_progress": return "secondary";
       case "pending": return "outline";
       case "partial": return "secondary";
       case "cancelled": case "failed": return "destructive";
@@ -169,6 +170,7 @@ const Orders = () => {
               <SelectContent>
                 <SelectItem value="all">All Status</SelectItem>
                 <SelectItem value="pending">Pending</SelectItem>
+                <SelectItem value="in_progress">In Progress</SelectItem>
                 <SelectItem value="processing">Processing</SelectItem>
                 <SelectItem value="completed">Completed</SelectItem>
                 <SelectItem value="partial">Partial</SelectItem>
