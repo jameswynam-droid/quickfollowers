@@ -244,7 +244,7 @@ const Orders = () => {
                             </TableCell>
                             <TableCell className="text-right whitespace-nowrap font-semibold text-xs sm:text-sm">{formatPrice(order.charge)}</TableCell>
                             <TableCell className="whitespace-nowrap">
-                              <Badge variant={getStatusColor(order.status)} className="capitalize text-xs">{order.status}</Badge>
+                              <Badge variant={getStatusColor(order.status)} className="capitalize text-xs">{order.status?.replace('_',' ')}</Badge>
                             </TableCell>
                             <TableCell className="whitespace-nowrap">
                               {(order.status === 'completed' || order.status === 'cancelled') && (
@@ -284,7 +284,7 @@ const Orders = () => {
                   </div>
                   <div>
                     <p className="text-sm text-muted-foreground">Status</p>
-                    <Badge variant={getStatusColor(selectedOrder.status)} className="capitalize mt-1">{selectedOrder.status}</Badge>
+                    <Badge variant={getStatusColor(selectedOrder.status)} className="capitalize mt-1">{selectedOrder.status?.replace('_',' ')}</Badge>
                   </div>
                   <div>
                     <p className="text-sm text-muted-foreground">Quantity</p>
