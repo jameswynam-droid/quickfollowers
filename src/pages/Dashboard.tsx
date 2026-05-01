@@ -15,6 +15,7 @@ import { toast } from "sonner";
 import { Wallet, ShoppingCart, Clock, Plus, ArrowRight, TrendingUp } from "lucide-react";
 import { useNoIndex } from "@/hooks/useNoIndex";
 import { useCurrency } from "@/hooks/useCurrency";
+import DailyPopupModal from "@/components/DailyPopupModal";
 
 const statusColors: Record<string, string> = {
   pending: "bg-yellow-500/15 text-yellow-700 dark:text-yellow-400 border-yellow-500/20",
@@ -263,6 +264,7 @@ const Dashboard = () => {
         </Card>
       </main>
       <Footer />
+      <DailyPopupModal />
       
       <Dialog open={paymentDialogOpen} onOpenChange={setPaymentDialogOpen}>
         <DialogContent>
