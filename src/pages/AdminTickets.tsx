@@ -336,28 +336,18 @@ const AdminTickets = () => {
         <Dialog open={!!selectedTicket} onOpenChange={() => setSelectedTicket(null)}>
           <DialogContent className="w-screen h-screen max-w-none max-h-none rounded-none flex flex-col p-0 sm:max-w-4xl sm:h-[85vh] sm:rounded-lg [&>button.absolute]:hidden">
             <DialogHeader className="p-3 sm:p-4 border-b shrink-0 space-y-2">
-              {/* Centered subject at top */}
-              <DialogTitle className="text-base sm:text-lg font-semibold leading-snug text-center px-10 line-clamp-2">
-                {selectedTicket?.subject}
-              </DialogTitle>
-              {selectedTicket?.user_name || selectedTicket?.user_email ? (
-                <p className="text-xs text-muted-foreground text-center">
-                  {selectedTicket?.user_name || selectedTicket?.user_email}
-                </p>
-              ) : null}
-              {/* Back arrow + status + change status row (left aligned) */}
-              <div className="flex items-center gap-2 flex-wrap">
-                <Button variant="ghost" size="icon" className="shrink-0 h-8 w-8" onClick={() => setSelectedTicket(null)}>
-                  <ArrowLeft className="h-4 w-4" />
+              <div className="flex items-center gap-2 sm:gap-3">
+                <Button variant="ghost" size="icon" className="shrink-0 h-9 w-9" onClick={() => setSelectedTicket(null)}>
+                  <ArrowLeft className="h-5 w-5" />
                 </Button>
-                <Badge variant={getStatusColor(selectedTicket?.status || "")} className="capitalize text-xs">
-                  {selectedTicket?.status?.replace('_', ' ')}
-                </Badge>
+                <DialogTitle className="flex-1 min-w-0 text-base sm:text-xl font-bold text-primary truncate">
+                  {selectedTicket?.subject}
+                </DialogTitle>
                 <Select
                   value={selectedTicket?.status}
                   onValueChange={(value) => selectedTicket && updateTicketStatus(selectedTicket.id, value)}
                 >
-                  <SelectTrigger className="h-7 text-xs w-auto">
+                  <SelectTrigger className="h-8 text-xs w-auto shrink-0">
                     <span>Change Status</span>
                   </SelectTrigger>
                   <SelectContent>
@@ -367,6 +357,16 @@ const AdminTickets = () => {
                     <SelectItem value="closed">Closed</SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+              <div className="flex items-center gap-2 flex-wrap pl-11">
+                <Badge variant={getStatusColor(selectedTicket?.status || "")} className="capitalize text-xs">
+                  {selectedTicket?.status?.replace('_', ' ')}
+                </Badge>
+                {(selectedTicket?.user_name || selectedTicket?.user_email) && (
+                  <span className="text-xs text-muted-foreground truncate">
+                    {selectedTicket?.user_name || selectedTicket?.user_email}
+                  </span>
+                )}
               </div>
             </DialogHeader>
             

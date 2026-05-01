@@ -394,17 +394,15 @@ const Tickets = () => {
         {/* Ticket Messages Dialog */}
         <Dialog open={!!selectedTicket} onOpenChange={() => setSelectedTicket(null)}>
           <DialogContent className="w-screen h-screen max-w-none max-h-none rounded-none flex flex-col p-0 sm:max-w-4xl sm:h-[85vh] sm:rounded-lg [&>button.absolute]:hidden">
-            <DialogHeader className="p-3 sm:p-4 border-b shrink-0 space-y-2">
-              {/* Centered subject at top */}
-              <DialogTitle className="text-base sm:text-lg font-semibold leading-snug text-center px-10 line-clamp-2">
-                {selectedTicket?.subject}
-              </DialogTitle>
-              {/* Back arrow + status row */}
-              <div className="flex items-center gap-2">
-                <Button variant="ghost" size="icon" className="shrink-0 h-8 w-8" onClick={() => setSelectedTicket(null)}>
-                  <ArrowLeft className="h-4 w-4" />
+            <DialogHeader className="p-3 sm:p-4 border-b shrink-0 space-y-0">
+              <div className="flex items-center gap-2 sm:gap-3">
+                <Button variant="ghost" size="icon" className="shrink-0 h-9 w-9" onClick={() => setSelectedTicket(null)}>
+                  <ArrowLeft className="h-5 w-5" />
                 </Button>
-                <Badge variant={getStatusColor(selectedTicket?.status || "")} className="capitalize text-xs">
+                <DialogTitle className="flex-1 min-w-0 text-base sm:text-xl font-bold text-primary truncate">
+                  {selectedTicket?.subject}
+                </DialogTitle>
+                <Badge variant={getStatusColor(selectedTicket?.status || "")} className="capitalize text-xs shrink-0">
                   {selectedTicket?.status?.replace('_', ' ')}
                 </Badge>
               </div>
