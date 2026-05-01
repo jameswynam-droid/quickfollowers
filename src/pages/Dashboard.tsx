@@ -250,7 +250,7 @@ const Dashboard = () => {
                         <TableCell className="text-xs sm:text-sm font-medium">{formatPrice(o.charge)}</TableCell>
                         <TableCell>
                           <Badge variant="outline" className={`text-[11px] capitalize border ${statusColors[o.status] || ''}`}>
-                            {o.status}
+                            {o.status?.replace('_',' ')}
                           </Badge>
                         </TableCell>
                       </TableRow>
