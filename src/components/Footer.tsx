@@ -6,8 +6,8 @@ const Footer = () => {
       <div className="max-w-7xl mx-auto px-4 grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-8">
         <div className="col-span-2 md:col-span-1">
           <div className="flex items-center gap-2 text-white font-bold text-lg sm:text-xl mb-3 sm:mb-4">
-            <img src={logoImg} alt="QuickFollowers" className="w-8 h-8 rounded-lg" width="32" height="32" loading="lazy" decoding="async" />
-            QuickFollowers
+            <img src={logoImg} alt="QuickFollowers" className="w-9 h-9 rounded-lg object-contain bg-white p-0.5 shrink-0" width="36" height="36" loading="lazy" decoding="async" />
+            <span>QuickFollowers</span>
           </div>
           <p className="text-xs sm:text-sm">The world's fastest & cheapest SMM panel. Trusted globally since 2023.</p>
         </div>
