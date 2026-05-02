@@ -336,18 +336,24 @@ const AdminTickets = () => {
         <Dialog open={!!selectedTicket} onOpenChange={() => setSelectedTicket(null)}>
           <DialogContent className="w-screen h-screen max-w-none max-h-none rounded-none flex flex-col p-0 sm:max-w-4xl sm:h-[85vh] sm:rounded-lg [&>button.absolute]:hidden">
             <DialogHeader className="p-3 sm:p-4 border-b shrink-0 space-y-2">
-              <div className="flex items-center gap-2 sm:gap-3">
+              <div className="relative flex items-center gap-2">
                 <Button variant="ghost" size="icon" className="shrink-0 h-9 w-9" onClick={() => setSelectedTicket(null)}>
                   <ArrowLeft className="h-5 w-5" />
                 </Button>
-                <DialogTitle className="flex-1 min-w-0 text-base sm:text-xl font-bold text-primary truncate">
+                <DialogTitle className="flex-1 text-center text-lg sm:text-2xl font-bold text-primary truncate px-2">
                   {selectedTicket?.subject}
                 </DialogTitle>
+                <span className="w-9 shrink-0" />
+              </div>
+              <div className="pl-11 flex items-center gap-2 flex-wrap">
+                <Badge variant={getStatusColor(selectedTicket?.status || "")} className="capitalize text-xs">
+                  {selectedTicket?.status?.replace('_', ' ')}
+                </Badge>
                 <Select
                   value={selectedTicket?.status}
                   onValueChange={(value) => selectedTicket && updateTicketStatus(selectedTicket.id, value)}
                 >
-                  <SelectTrigger className="h-8 text-xs w-auto shrink-0">
+                  <SelectTrigger className="h-7 text-xs w-auto">
                     <span>Change Status</span>
                   </SelectTrigger>
                   <SelectContent>
@@ -357,11 +363,6 @@ const AdminTickets = () => {
                     <SelectItem value="closed">Closed</SelectItem>
                   </SelectContent>
                 </Select>
-              </div>
-              <div className="flex items-center gap-2 flex-wrap pl-11">
-                <Badge variant={getStatusColor(selectedTicket?.status || "")} className="capitalize text-xs">
-                  {selectedTicket?.status?.replace('_', ' ')}
-                </Badge>
                 {(selectedTicket?.user_name || selectedTicket?.user_email) && (
                   <span className="text-xs text-muted-foreground truncate">
                     {selectedTicket?.user_name || selectedTicket?.user_email}
