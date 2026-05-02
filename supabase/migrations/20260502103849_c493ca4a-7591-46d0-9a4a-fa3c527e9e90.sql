@@ -1,0 +1,1 @@
+ALTER TABLE public.daily_popups ADD COLUMN IF NOT EXISTS image_url TEXT;
