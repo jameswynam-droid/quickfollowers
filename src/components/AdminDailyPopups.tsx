@@ -161,7 +161,7 @@ export function AdminDailyPopups() {
               <Label>Active</Label>
             </div>
             <div className="flex gap-2">
-              <Button onClick={create}>Create</Button>
+              <Button onClick={create} disabled={uploading}>{uploading ? "Uploading..." : "Create"}</Button>
               <Button variant="outline" onClick={reset}>Cancel</Button>
             </div>
           </div>
