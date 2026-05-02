@@ -346,7 +346,7 @@ export default function AddFunds() {
                               loading && "opacity-50 cursor-not-allowed"
                             )}
                           >
-                            <div className="flex items-center justify-center w-12 h-12 rounded-lg overflow-hidden">
+                            <div className="flex items-center justify-center w-12 h-12 rounded-lg overflow-hidden bg-white p-1.5 shadow-sm shrink-0">
                               {method.icon}
                             </div>
                             <div className="flex-1">
