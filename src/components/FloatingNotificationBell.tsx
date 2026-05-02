@@ -160,7 +160,7 @@ export const FloatingNotificationBell = () => {
       </button>
 
       <Dialog open={open} onOpenChange={handleOpen}>
-        <DialogContent className="w-[95vw] sm:max-w-2xl max-h-[90vh] rounded-2xl">
+        <DialogContent className="w-[95vw] sm:max-w-2xl h-[95vh] sm:h-[90vh] max-h-[95vh] rounded-2xl flex flex-col">
           {!activeInfo ? (
             <>
               <DialogHeader>
