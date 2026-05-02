@@ -110,6 +110,10 @@ export function AdminDailyPopups() {
               <Label>Message</Label>
               <Textarea rows={4} value={message} onChange={(e) => setMessage(e.target.value)} />
             </div>
+            <div className="space-y-1.5">
+              <Label>Image URL (optional)</Label>
+              <Input placeholder="https://..." value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} />
+            </div>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 items-end">
               <div className="space-y-1.5"><Label>Primary button</Label><Input placeholder="Label" value={pLabel} onChange={(e) => setPLabel(e.target.value)} /></div>
               <div className="space-y-1.5"><Label>URL</Label><Input placeholder="https:// or /path" value={pUrl} onChange={(e) => setPUrl(e.target.value)} /></div>
