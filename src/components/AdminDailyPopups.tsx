@@ -13,6 +13,7 @@ interface DailyPopup {
   id: string;
   title: string;
   message: string;
+  image_url: string | null;
   primary_button_label: string | null;
   primary_button_url: string | null;
   primary_button_color: string | null;
@@ -28,6 +29,7 @@ export function AdminDailyPopups() {
   const [showForm, setShowForm] = useState(false);
   const [title, setTitle] = useState("");
   const [message, setMessage] = useState("");
+  const [imageUrl, setImageUrl] = useState("");
   const [pLabel, setPLabel] = useState("");
   const [pUrl, setPUrl] = useState("");
   const [pColor, setPColor] = useState("#3b82f6");
@@ -44,7 +46,7 @@ export function AdminDailyPopups() {
   useEffect(() => { fetchPopups(); }, []);
 
   const reset = () => {
-    setTitle(""); setMessage("");
+    setTitle(""); setMessage(""); setImageUrl("");
     setPLabel(""); setPUrl(""); setPColor("#3b82f6");
     setSLabel(""); setSUrl(""); setSColor("#7e22ce");
     setIsActive(true);
@@ -60,6 +62,7 @@ export function AdminDailyPopups() {
     const { error } = await supabase.from("daily_popups").insert({
       title: title.trim(),
       message: message.trim(),
+      image_url: imageUrl.trim() || null,
       primary_button_label: pLabel.trim() || null,
       primary_button_url: pUrl.trim() || null,
       primary_button_color: pLabel.trim() ? pColor : null,
