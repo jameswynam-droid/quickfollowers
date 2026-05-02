@@ -396,9 +396,15 @@ const Services = () => {
                   value={globalSearch}
                   onChange={(e) => {
                     setGlobalSearch(e.target.value);
-                    if (e.target.value) setCategoryDropdownOpen(false);
+                    if (e.target.value) {
+                      setCategoryDropdownOpen(false);
+                      setServiceDropdownOpen(false);
+                    }
                   }}
-                  onFocus={() => setCategoryDropdownOpen(false)}
+                  onFocus={() => {
+                    setCategoryDropdownOpen(false);
+                    setServiceDropdownOpen(false);
+                  }}
                   className="pl-9 pr-9 text-sm"
                 />
                 {globalSearch && (
@@ -411,7 +417,7 @@ const Services = () => {
                     <X className="h-4 w-4" />
                   </button>
                 )}
-                {debouncedGlobalSearch.trim() && !categoryDropdownOpen && (
+                {debouncedGlobalSearch.trim() && !categoryDropdownOpen && !serviceDropdownOpen && (
                   <div className="absolute z-50 left-0 right-0 mt-1 border border-border rounded-md bg-popover shadow-lg max-h-[300px] overflow-y-auto">
                     {globalSearchResults.length === 0 ? (
                       <div className="p-3 text-sm text-muted-foreground text-center">No services found</div>
@@ -450,7 +456,10 @@ const Services = () => {
                   onClick={() => {
                     setCategoryDropdownOpen(o => {
                       const next = !o;
-                      if (next) setGlobalSearch("");
+                      if (next) {
+                        setGlobalSearch("");
+                        setServiceDropdownOpen(false);
+                      }
                       return next;
                     });
                   }}
@@ -509,7 +518,17 @@ const Services = () => {
               <div className="relative">
                 <button
                   type="button"
-                  onClick={() => selectedCategory && setServiceDropdownOpen(o => !o)}
+                  onClick={() => {
+                    if (!selectedCategory) return;
+                    setServiceDropdownOpen(o => {
+                      const next = !o;
+                      if (next) {
+                        setGlobalSearch("");
+                        setCategoryDropdownOpen(false);
+                      }
+                      return next;
+                    });
+                  }}
                   disabled={!selectedCategory}
                   className="w-full flex items-center justify-between px-3 py-2.5 rounded-md border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-60 disabled:cursor-not-allowed"
                 >

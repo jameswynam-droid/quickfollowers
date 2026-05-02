@@ -7,6 +7,7 @@ interface DailyPopup {
   id: string;
   title: string;
   message: string;
+  image_url: string | null;
   primary_button_label: string | null;
   primary_button_url: string | null;
   primary_button_color: string | null;
@@ -65,13 +66,21 @@ const DailyPopupModal = () => {
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && close()}>
-      <DialogContent className="max-w-md rounded-2xl">
+      <DialogContent className="w-[92vw] max-w-sm rounded-2xl p-5">
         <DialogHeader>
-          <DialogTitle className="text-xl">{popup.title}</DialogTitle>
-          <DialogDescription className="text-base text-foreground whitespace-pre-wrap pt-2">
-            {popup.message}
-          </DialogDescription>
+          <DialogTitle className="text-lg">{popup.title}</DialogTitle>
         </DialogHeader>
+        {popup.image_url && (
+          <img
+            src={popup.image_url}
+            alt={popup.title}
+            className="w-full max-h-48 object-cover rounded-lg"
+            loading="lazy"
+          />
+        )}
+        <DialogDescription className="text-sm text-foreground whitespace-pre-wrap">
+          {popup.message}
+        </DialogDescription>
         <div className="flex flex-col sm:flex-row gap-2 pt-2">
           {popup.primary_button_label && (
             <Button

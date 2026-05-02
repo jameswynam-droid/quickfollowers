@@ -13,6 +13,7 @@ interface DailyPopup {
   id: string;
   title: string;
   message: string;
+  image_url: string | null;
   primary_button_label: string | null;
   primary_button_url: string | null;
   primary_button_color: string | null;
@@ -28,6 +29,7 @@ export function AdminDailyPopups() {
   const [showForm, setShowForm] = useState(false);
   const [title, setTitle] = useState("");
   const [message, setMessage] = useState("");
+  const [imageUrl, setImageUrl] = useState("");
   const [pLabel, setPLabel] = useState("");
   const [pUrl, setPUrl] = useState("");
   const [pColor, setPColor] = useState("#3b82f6");
@@ -44,7 +46,7 @@ export function AdminDailyPopups() {
   useEffect(() => { fetchPopups(); }, []);
 
   const reset = () => {
-    setTitle(""); setMessage("");
+    setTitle(""); setMessage(""); setImageUrl("");
     setPLabel(""); setPUrl(""); setPColor("#3b82f6");
     setSLabel(""); setSUrl(""); setSColor("#7e22ce");
     setIsActive(true);
@@ -60,6 +62,7 @@ export function AdminDailyPopups() {
     const { error } = await supabase.from("daily_popups").insert({
       title: title.trim(),
       message: message.trim(),
+      image_url: imageUrl.trim() || null,
       primary_button_label: pLabel.trim() || null,
       primary_button_url: pUrl.trim() || null,
       primary_button_color: pLabel.trim() ? pColor : null,
@@ -106,6 +109,10 @@ export function AdminDailyPopups() {
             <div className="space-y-1.5">
               <Label>Message</Label>
               <Textarea rows={4} value={message} onChange={(e) => setMessage(e.target.value)} />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Image URL (optional)</Label>
+              <Input placeholder="https://..." value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} />
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 items-end">
               <div className="space-y-1.5"><Label>Primary button</Label><Input placeholder="Label" value={pLabel} onChange={(e) => setPLabel(e.target.value)} /></div>
