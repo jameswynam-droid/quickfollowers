@@ -29,7 +29,8 @@ export function AdminDailyPopups() {
   const [showForm, setShowForm] = useState(false);
   const [title, setTitle] = useState("");
   const [message, setMessage] = useState("");
-  const [imageUrl, setImageUrl] = useState("");
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
   const [pLabel, setPLabel] = useState("");
   const [pUrl, setPUrl] = useState("");
   const [pColor, setPColor] = useState("#3b82f6");
@@ -46,11 +47,20 @@ export function AdminDailyPopups() {
   useEffect(() => { fetchPopups(); }, []);
 
   const reset = () => {
-    setTitle(""); setMessage(""); setImageUrl("");
+    setTitle(""); setMessage(""); setImageFile(null);
     setPLabel(""); setPUrl(""); setPColor("#3b82f6");
     setSLabel(""); setSUrl(""); setSColor("#7e22ce");
     setIsActive(true);
     setShowForm(false);
+  };
+
+  const uploadImage = async (file: File): Promise<string | null> => {
+    const ext = file.name.split('.').pop();
+    const filename = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+    const { error } = await supabase.storage.from('popup-images').upload(filename, file, { upsert: false });
+    if (error) { toast.error("Image upload failed"); return null; }
+    const { data: { publicUrl } } = supabase.storage.from('popup-images').getPublicUrl(filename);
+    return publicUrl;
   };
 
   const create = async () => {
@@ -58,24 +68,34 @@ export function AdminDailyPopups() {
       toast.error("Title and message are required");
       return;
     }
-    const { data: { user } } = await supabase.auth.getUser();
-    const { error } = await supabase.from("daily_popups").insert({
-      title: title.trim(),
-      message: message.trim(),
-      image_url: imageUrl.trim() || null,
-      primary_button_label: pLabel.trim() || null,
-      primary_button_url: pUrl.trim() || null,
-      primary_button_color: pLabel.trim() ? pColor : null,
-      secondary_button_label: sLabel.trim() || null,
-      secondary_button_url: sUrl.trim() || null,
-      secondary_button_color: sLabel.trim() ? sColor : null,
-      is_active: isActive,
-      created_by: user?.id,
-    });
-    if (error) { toast.error("Could not create pop-up"); return; }
-    toast.success("Pop-up created");
-    reset();
-    fetchPopups();
+    setUploading(true);
+    try {
+      let uploadedUrl: string | null = null;
+      if (imageFile) {
+        uploadedUrl = await uploadImage(imageFile);
+        if (!uploadedUrl) return;
+      }
+      const { data: { user } } = await supabase.auth.getUser();
+      const { error } = await supabase.from("daily_popups").insert({
+        title: title.trim(),
+        message: message.trim(),
+        image_url: uploadedUrl,
+        primary_button_label: pLabel.trim() || null,
+        primary_button_url: pUrl.trim() || null,
+        primary_button_color: pLabel.trim() ? pColor : null,
+        secondary_button_label: sLabel.trim() || null,
+        secondary_button_url: sUrl.trim() || null,
+        secondary_button_color: sLabel.trim() ? sColor : null,
+        is_active: isActive,
+        created_by: user?.id,
+      });
+      if (error) { toast.error("Could not create pop-up"); return; }
+      toast.success("Pop-up created");
+      reset();
+      fetchPopups();
+    } finally {
+      setUploading(false);
+    }
   };
 
   const toggle = async (id: string, value: boolean) => {
@@ -111,8 +131,20 @@ export function AdminDailyPopups() {
               <Textarea rows={4} value={message} onChange={(e) => setMessage(e.target.value)} />
             </div>
             <div className="space-y-1.5">
-              <Label>Image URL (optional)</Label>
-              <Input placeholder="https://..." value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} />
+              <Label>Image (optional)</Label>
+              <Input
+                type="file"
+                accept="image/*"
+                onChange={(e) => setImageFile(e.target.files?.[0] || null)}
+              />
+              {imageFile && (
+                <div className="flex items-center justify-between text-xs text-muted-foreground bg-muted rounded p-2">
+                  <span className="truncate">{imageFile.name}</span>
+                  <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => setImageFile(null)}>
+                    <X className="h-3 w-3" />
+                  </Button>
+                </div>
+              )}
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 items-end">
               <div className="space-y-1.5"><Label>Primary button</Label><Input placeholder="Label" value={pLabel} onChange={(e) => setPLabel(e.target.value)} /></div>
@@ -129,7 +161,7 @@ export function AdminDailyPopups() {
               <Label>Active</Label>
             </div>
             <div className="flex gap-2">
-              <Button onClick={create}>Create</Button>
+              <Button onClick={create} disabled={uploading}>{uploading ? "Uploading..." : "Create"}</Button>
               <Button variant="outline" onClick={reset}>Cancel</Button>
             </div>
           </div>

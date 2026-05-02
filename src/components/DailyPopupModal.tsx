@@ -66,17 +66,19 @@ const DailyPopupModal = () => {
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && close()}>
-      <DialogContent className="w-[92vw] max-w-sm rounded-2xl p-5">
+      <DialogContent className="w-[88vw] max-w-xs rounded-2xl p-4 overflow-hidden">
         <DialogHeader>
-          <DialogTitle className="text-lg">{popup.title}</DialogTitle>
+          <DialogTitle className="text-base">{popup.title}</DialogTitle>
         </DialogHeader>
         {popup.image_url && (
-          <img
-            src={popup.image_url}
-            alt={popup.title}
-            className="w-full max-h-48 object-cover rounded-lg"
-            loading="lazy"
-          />
+          <div className="w-full overflow-hidden rounded-lg">
+            <img
+              src={popup.image_url}
+              alt={popup.title}
+              className="w-full max-h-40 object-contain"
+              loading="lazy"
+            />
+          </div>
         )}
         <DialogDescription className="text-sm text-foreground whitespace-pre-wrap">
           {popup.message}

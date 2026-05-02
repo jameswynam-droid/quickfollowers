@@ -145,82 +145,13 @@ const Admin = () => {
           </div>
         </div>
 
-        <Tabs defaultValue="payments" className="space-y-4">
-          <TabsList className="grid w-full grid-cols-5 max-w-2xl">
-            <TabsTrigger value="payments">Payments</TabsTrigger>
+        <Tabs defaultValue="notifications" className="space-y-4">
+          <TabsList className="grid w-full grid-cols-4 max-w-2xl">
             <TabsTrigger value="notifications">Service Alerts</TabsTrigger>
             <TabsTrigger value="bell">Header Bell</TabsTrigger>
             <TabsTrigger value="floating">Info Bell</TabsTrigger>
             <TabsTrigger value="popups">Pop-ups</TabsTrigger>
           </TabsList>
-
-          <TabsContent value="payments">
-            <Card>
-              <CardHeader className="p-3 sm:p-6">
-                <CardTitle className="text-base sm:text-lg">Pending Payments</CardTitle>
-                <CardDescription className="text-xs sm:text-sm">Review and approve bank transfer requests</CardDescription>
-              </CardHeader>
-              <CardContent className="p-0 sm:p-6 sm:pt-0">
-                {payments.length === 0 ? (
-                  <p className="text-center text-muted-foreground py-8 text-sm">No pending payments</p>
-                ) : (
-                  <div className="overflow-x-auto">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead className="text-xs sm:text-sm">User</TableHead>
-                          <TableHead className="text-xs sm:text-sm">Amount</TableHead>
-                          <TableHead className="text-xs sm:text-sm hidden md:table-cell">Bank</TableHead>
-                          <TableHead className="text-xs sm:text-sm hidden lg:table-cell">Notes</TableHead>
-                          <TableHead className="text-xs sm:text-sm hidden sm:table-cell">Date</TableHead>
-                          <TableHead className="text-xs sm:text-sm">Actions</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {payments.map((payment) => (
-                          <TableRow key={payment.id}>
-                            <TableCell className="text-xs sm:text-sm">
-                              <div>
-                                <div className="font-medium truncate max-w-[100px] sm:max-w-none">{payment.profiles.full_name || "N/A"}</div>
-                                <div className="text-xs text-muted-foreground truncate max-w-[100px] sm:max-w-none">{payment.profiles.email}</div>
-                              </div>
-                            </TableCell>
-                            <TableCell className="text-xs sm:text-sm font-medium whitespace-nowrap">₦{payment.amount}</TableCell>
-                            <TableCell className="text-xs sm:text-sm hidden md:table-cell max-w-[150px] truncate">{payment.bank_details || "N/A"}</TableCell>
-                            <TableCell className="text-xs sm:text-sm hidden lg:table-cell max-w-[150px] truncate">{payment.notes || "N/A"}</TableCell>
-                            <TableCell className="text-xs text-muted-foreground hidden sm:table-cell">
-                              {new Date(payment.created_at).toLocaleDateString()}
-                            </TableCell>
-                            <TableCell>
-                              <div className="flex gap-1 sm:gap-2">
-                                <Button
-                                  size="sm"
-                                  className="text-xs px-2 sm:px-3"
-                                  onClick={() => handleApprove(payment.id, true)}
-                                >
-                                  <span className="hidden sm:inline">Approve</span>
-                                  <span className="sm:hidden">✓</span>
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="destructive"
-                                  className="text-xs px-2 sm:px-3"
-                                  onClick={() => handleApprove(payment.id, false)}
-                                >
-                                  <span className="hidden sm:inline">Reject</span>
-                                  <span className="sm:hidden">✗</span>
-                                </Button>
-                              </div>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
 
           <TabsContent value="notifications">
             <AdminNotifications userId={user?.id} />
