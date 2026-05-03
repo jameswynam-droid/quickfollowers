@@ -395,7 +395,10 @@ const Tickets = () => {
         <Dialog open={!!selectedTicket} onOpenChange={() => setSelectedTicket(null)}>
           <DialogContent className="w-screen h-screen max-w-none max-h-none rounded-none flex flex-col p-0 sm:max-w-4xl sm:h-[85vh] sm:rounded-lg [&>button.absolute]:hidden">
             <DialogHeader className="p-3 sm:p-4 border-b shrink-0 space-y-2">
-              <div className="flex items-center justify-between gap-2">
+              <DialogTitle className="text-center text-base sm:text-2xl font-bold text-primary px-2 break-words">
+                {selectedTicket?.subject}
+              </DialogTitle>
+              <div className="flex items-center justify-between gap-2 pt-1">
                 <Button variant="ghost" size="icon" className="shrink-0 h-9 w-9 -ml-2" onClick={() => setSelectedTicket(null)}>
                   <ArrowLeft className="h-5 w-5" />
                 </Button>
@@ -403,9 +406,6 @@ const Tickets = () => {
                   {selectedTicket?.status?.replace('_', ' ')}
                 </Badge>
               </div>
-              <DialogTitle className="text-center text-base sm:text-2xl font-bold text-primary px-2 break-words">
-                {selectedTicket?.subject}
-              </DialogTitle>
             </DialogHeader>
             
             <ScrollArea className="flex-1 p-4">

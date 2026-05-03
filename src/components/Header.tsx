@@ -80,7 +80,7 @@ const Header = ({ onAuthClick }: HeaderProps) => {
     <header className="sticky top-0 z-50 glass-effect shadow-lg border-b">
       <div className="max-w-7xl mx-auto px-3 sm:px-4 py-3 sm:py-5 flex items-center justify-between">
         <Link to="/" className="flex items-center gap-2 sm:gap-3 group">
-          <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl overflow-hidden shadow-lg group-hover:scale-110 transition-transform bg-white p-1 flex items-center justify-center">
+          <div className="w-10 h-10 sm:w-12 sm:h-12 group-hover:scale-110 transition-transform flex items-center justify-center">
             <img 
               src={logoImg} 
               alt="QuickFollowers" 
@@ -88,8 +88,8 @@ const Header = ({ onAuthClick }: HeaderProps) => {
               loading="eager"
               fetchPriority="high"
               decoding="sync"
-              width="40"
-              height="40"
+              width="48"
+              height="48"
             />
           </div>
           <span className="text-lg sm:text-2xl font-black bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">QuickFollowers</span>
