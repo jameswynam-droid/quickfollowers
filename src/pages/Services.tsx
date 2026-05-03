@@ -281,9 +281,26 @@ const Services = () => {
     return anyErr?.error || anyErr?.details || anyErr?.message || "";
   };
 
+  const isValidServiceLink = (link: string): boolean => {
+    const trimmed = link.trim();
+    if (!trimmed) return false;
+    // Accept full URLs
+    try {
+      const u = new URL(trimmed.startsWith('http') ? trimmed : `https://${trimmed}`);
+      if (u.hostname.includes('.')) return true;
+    } catch {}
+    // Accept usernames (alphanumeric, dot, underscore, dash, @) for username-based services
+    if (/^@?[a-zA-Z0-9._-]{2,}$/.test(trimmed)) return true;
+    return false;
+  };
+
   const handlePlaceOrder = async () => {
     if (!selectedService || !orderLink || !orderQuantity) {
       toast.error("Please fill all required fields");
+      return;
+    }
+    if (!isValidServiceLink(orderLink)) {
+      toast.error("Please enter a valid link or username");
       return;
     }
     if (placingOrder) return;
@@ -724,6 +741,11 @@ const Services = () => {
             >
               {placingOrder ? "Placing Order..." : "Submit Order"}
             </Button>
+
+            {/* Important info notice */}
+            <div className="mt-2 p-3 rounded-md border border-primary/30 bg-primary/5 text-foreground text-xs sm:text-sm leading-relaxed">
+              <span className="font-semibold text-primary">Important:</span> Read the service name and description carefully. Cheap services may drop more. Stable services usually cost more but perform better.
+            </div>
           </CardContent>
         </Card>
       </main>
