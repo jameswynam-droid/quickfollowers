@@ -741,6 +741,11 @@ const Services = () => {
             >
               {placingOrder ? "Placing Order..." : "Submit Order"}
             </Button>
+
+            {/* Important info notice */}
+            <div className="mt-2 p-3 rounded-md border border-primary/30 bg-primary/5 text-foreground text-xs sm:text-sm leading-relaxed">
+              <span className="font-semibold text-primary">Important:</span> Read the service name and description carefully. Cheap services may drop more. Stable services usually cost more but perform better.
+            </div>
           </CardContent>
         </Card>
       </main>
