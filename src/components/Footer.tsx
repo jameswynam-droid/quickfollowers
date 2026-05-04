@@ -1,12 +1,14 @@
 import logoImg from "@/assets/logo.png";
 
 const Footer = () => {
+  const currentYear = new Date().getFullYear();
+
   return (
     <footer id="contact" className="bg-gray-900 text-gray-300 py-8 sm:py-12">
       <div className="max-w-7xl mx-auto px-4 grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-8">
         <div className="col-span-2 md:col-span-1">
           <div className="flex items-center gap-2 text-white font-bold text-lg sm:text-xl mb-3 sm:mb-4">
-            <img src={logoImg} alt="QuickFollowers" className="w-12 h-12 object-contain shrink-0" width="48" height="48" loading="lazy" decoding="async" />
+            <img src={logoImg} alt="QuickFollowers" className="w-11 h-11 object-contain shrink-0" width="44" height="44" loading="lazy" decoding="async" />
             <span>QuickFollowers</span>
           </div>
           <p className="text-xs sm:text-sm">The world's fastest & cheapest SMM panel. Trusted globally since 2023.</p>
@@ -79,7 +81,7 @@ const Footer = () => {
         </div>
       </div>
       <div className="border-t border-gray-800 mt-6 sm:mt-10 pt-4 sm:pt-6 text-center text-xs">
-        © 2025 QuickFollowers. All rights reserved.
+        © {currentYear} QuickFollowers. All rights reserved.
       </div>
     </footer>
   );
