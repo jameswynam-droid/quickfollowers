@@ -52,6 +52,56 @@ const Tickets = () => {
   const [newTicketAttachment, setNewTicketAttachment] = useState<File | null>(null);
   const [creating, setCreating] = useState(false);
   const navigate = useNavigate();
+  const scrollViewportRef = useRef<HTMLDivElement | null>(null);
+  const bottomAnchorRef = useRef<HTMLDivElement | null>(null);
+  const isAtBottomRef = useRef(true);
+
+  const setScrollViewport = useCallback((node: HTMLDivElement | null) => {
+    if (!node) return;
+    const viewport = node.querySelector('[data-radix-scroll-area-viewport]') as HTMLDivElement | null;
+    scrollViewportRef.current = viewport;
+    if (!viewport) return;
+    const onScroll = () => {
+      const threshold = 80;
+      isAtBottomRef.current =
+        viewport.scrollHeight - viewport.scrollTop - viewport.clientHeight < threshold;
+    };
+    viewport.addEventListener('scroll', onScroll, { passive: true });
+  }, []);
+
+  const scrollToBottom = useCallback((force = false) => {
+    const v = scrollViewportRef.current;
+    if (!v) return;
+    if (force || isAtBottomRef.current) {
+      requestAnimationFrame(() => {
+        v.scrollTop = v.scrollHeight;
+      });
+    }
+  }, []);
+
+  // Auto-scroll on message changes (only if user is already at bottom)
+  useEffect(() => {
+    if (messages.length > 0) scrollToBottom();
+  }, [messages, scrollToBottom]);
+
+  // Realtime: live updates for the open ticket's messages
+  useEffect(() => {
+    if (!selectedTicket) return;
+    const channel = supabase
+      .channel(`ticket-${selectedTicket.id}`)
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'ticket_messages', filter: `ticket_id=eq.${selectedTicket.id}` },
+        (payload) => {
+          setMessages((prev) => {
+            if (prev.some((m) => m.id === (payload.new as any).id)) return prev;
+            return [...prev, payload.new as TicketMessage];
+          });
+        }
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [selectedTicket?.id]);
 
   useEffect(() => {
     checkAuth();
