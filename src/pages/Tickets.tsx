@@ -462,14 +462,18 @@ const Tickets = () => {
               </div>
             </DialogHeader>
             
-            <ScrollArea className="flex-1 min-h-0 p-4">
+            <ScrollArea ref={setScrollViewport} className="flex-1 min-h-0 p-4">
               {loadingMessages ? (
                 <div className="text-center py-8 text-muted-foreground">Loading messages...</div>
               ) : messages.length === 0 ? (
                 <div className="text-center py-8 text-muted-foreground">No messages yet</div>
               ) : (
                 <div className="space-y-4">
-                  {messages.map((msg) => (
+                  {messages.map((msg) => {
+                    const url = msg.attachment_url || '';
+                    const isImage = /\.(jpg|jpeg|png|gif|webp)(\?|$)/i.test(url);
+                    const isPdf = /\.pdf(\?|$)/i.test(url);
+                    return (
                     <div 
                       key={msg.id} 
                       className={`flex ${msg.is_admin_reply ? 'justify-start' : 'justify-end'}`}
@@ -484,14 +488,40 @@ const Tickets = () => {
                         <p className="text-sm whitespace-pre-wrap break-words">{msg.message}</p>
                         {msg.attachment_url && (
                           <div className="mt-2">
-                            {msg.attachment_url.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
+                            {isImage ? (
                               <a href={msg.attachment_url} target="_blank" rel="noopener noreferrer">
                                 <img 
                                   src={msg.attachment_url} 
                                   alt="Attachment" 
-                                  className="max-w-full rounded max-h-48 object-contain"
+                                  loading="lazy"
+                                  onLoad={() => scrollToBottom()}
+                                  className="max-w-full rounded max-h-64 object-contain bg-background"
                                 />
                               </a>
+                            ) : isPdf ? (
+                              <div className="space-y-1">
+                                <object
+                                  data={msg.attachment_url}
+                                  type="application/pdf"
+                                  className="w-full h-64 rounded border bg-background"
+                                  aria-label={msg.attachment_name || 'PDF attachment'}
+                                >
+                                  <a href={msg.attachment_url} target="_blank" rel="noopener noreferrer" className="underline">
+                                    Open PDF
+                                  </a>
+                                </object>
+                                <a 
+                                  href={msg.attachment_url} 
+                                  target="_blank" 
+                                  rel="noopener noreferrer"
+                                  className={`flex items-center gap-2 text-xs underline ${
+                                    msg.is_admin_reply ? 'text-primary' : 'text-primary-foreground'
+                                  }`}
+                                >
+                                  <Paperclip className="h-3 w-3" />
+                                  {msg.attachment_name || 'Open PDF'}
+                                </a>
+                              </div>
                             ) : (
                               <a 
                                 href={msg.attachment_url} 
@@ -514,7 +544,9 @@ const Tickets = () => {
                         </p>
                       </div>
                     </div>
-                  ))}
+                    );
+                  })}
+                  <div ref={bottomAnchorRef} />
                 </div>
               )}
             </ScrollArea>
