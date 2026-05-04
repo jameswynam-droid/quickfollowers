@@ -280,7 +280,9 @@ const AdminTickets = () => {
 
   const openTicket = async (ticket: Ticket) => {
     setSelectedTicket(ticket);
+    isAtBottomRef.current = true;
     await fetchMessages(ticket.id);
+    setTimeout(() => scrollToBottom(true), 50);
   };
 
   const getStatusColor = (status: string) => {
