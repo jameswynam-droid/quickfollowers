@@ -247,8 +247,10 @@ const AdminTickets = () => {
 
       setNewMessage("");
       setAttachment(null);
+      isAtBottomRef.current = true;
       await fetchMessages(selectedTicket.id);
       await fetchTickets();
+      setTimeout(() => scrollToBottom(true), 50);
     } catch (error: any) {
       console.error("Error sending message:", error);
       toast.error(error.message || "Failed to send message");
