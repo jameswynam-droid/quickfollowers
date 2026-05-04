@@ -393,7 +393,7 @@ const Tickets = () => {
 
         {/* Ticket Messages Dialog */}
         <Dialog open={!!selectedTicket} onOpenChange={() => setSelectedTicket(null)}>
-          <DialogContent className="w-screen h-screen max-w-none max-h-none rounded-none flex flex-col p-0 sm:max-w-4xl sm:h-[85vh] sm:rounded-lg [&>button.absolute]:hidden">
+          <DialogContent className="w-screen max-w-none rounded-none flex flex-col p-0 sm:max-w-4xl sm:rounded-lg [&>button.absolute]:hidden" style={{ height: '100dvh', maxHeight: '100dvh' }}>
             <DialogHeader className="p-3 sm:p-4 border-b shrink-0" style={{ paddingTop: 'max(0.75rem, env(safe-area-inset-top))' }}>
               <div className="grid grid-cols-[auto_1fr_auto] items-center gap-2 min-h-10">
                 <Button variant="ghost" size="icon" className="shrink-0 h-9 w-9 -ml-2" onClick={() => setSelectedTicket(null)} aria-label="Back to tickets">
