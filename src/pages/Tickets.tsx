@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import Header from "@/components/Header";
@@ -52,6 +52,56 @@ const Tickets = () => {
   const [newTicketAttachment, setNewTicketAttachment] = useState<File | null>(null);
   const [creating, setCreating] = useState(false);
   const navigate = useNavigate();
+  const scrollViewportRef = useRef<HTMLDivElement | null>(null);
+  const bottomAnchorRef = useRef<HTMLDivElement | null>(null);
+  const isAtBottomRef = useRef(true);
+
+  const setScrollViewport = useCallback((node: HTMLDivElement | null) => {
+    if (!node) return;
+    const viewport = node.querySelector('[data-radix-scroll-area-viewport]') as HTMLDivElement | null;
+    scrollViewportRef.current = viewport;
+    if (!viewport) return;
+    const onScroll = () => {
+      const threshold = 80;
+      isAtBottomRef.current =
+        viewport.scrollHeight - viewport.scrollTop - viewport.clientHeight < threshold;
+    };
+    viewport.addEventListener('scroll', onScroll, { passive: true });
+  }, []);
+
+  const scrollToBottom = useCallback((force = false) => {
+    const v = scrollViewportRef.current;
+    if (!v) return;
+    if (force || isAtBottomRef.current) {
+      requestAnimationFrame(() => {
+        v.scrollTop = v.scrollHeight;
+      });
+    }
+  }, []);
+
+  // Auto-scroll on message changes (only if user is already at bottom)
+  useEffect(() => {
+    if (messages.length > 0) scrollToBottom();
+  }, [messages, scrollToBottom]);
+
+  // Realtime: live updates for the open ticket's messages
+  useEffect(() => {
+    if (!selectedTicket) return;
+    const channel = supabase
+      .channel(`ticket-${selectedTicket.id}`)
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'ticket_messages', filter: `ticket_id=eq.${selectedTicket.id}` },
+        (payload) => {
+          setMessages((prev) => {
+            if (prev.some((m) => m.id === (payload.new as any).id)) return prev;
+            return [...prev, payload.new as TicketMessage];
+          });
+        }
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [selectedTicket?.id]);
 
   useEffect(() => {
     checkAuth();
@@ -218,9 +268,11 @@ const Tickets = () => {
 
       setNewMessage("");
       setAttachment(null);
+      isAtBottomRef.current = true;
       await fetchMessages(selectedTicket.id);
       await markTicketAsRead(selectedTicket.id);
       await fetchTickets(user.id);
+      setTimeout(() => scrollToBottom(true), 50);
     } catch (error: any) {
       console.error("Error sending message:", error);
       toast.error(error.message || "Failed to send message");
@@ -245,8 +297,10 @@ const Tickets = () => {
 
   const openTicket = async (ticket: Ticket) => {
     setSelectedTicket(ticket);
+    isAtBottomRef.current = true;
     await fetchMessages(ticket.id);
     await markTicketAsRead(ticket.id);
+    setTimeout(() => scrollToBottom(true), 50);
   };
 
   const getStatusColor = (status: string) => {
@@ -408,14 +462,18 @@ const Tickets = () => {
               </div>
             </DialogHeader>
             
-            <ScrollArea className="flex-1 min-h-0 p-4">
+            <ScrollArea ref={setScrollViewport} className="flex-1 min-h-0 p-4">
               {loadingMessages ? (
                 <div className="text-center py-8 text-muted-foreground">Loading messages...</div>
               ) : messages.length === 0 ? (
                 <div className="text-center py-8 text-muted-foreground">No messages yet</div>
               ) : (
                 <div className="space-y-4">
-                  {messages.map((msg) => (
+                  {messages.map((msg) => {
+                    const url = msg.attachment_url || '';
+                    const isImage = /\.(jpg|jpeg|png|gif|webp)(\?|$)/i.test(url);
+                    const isPdf = /\.pdf(\?|$)/i.test(url);
+                    return (
                     <div 
                       key={msg.id} 
                       className={`flex ${msg.is_admin_reply ? 'justify-start' : 'justify-end'}`}
@@ -430,14 +488,40 @@ const Tickets = () => {
                         <p className="text-sm whitespace-pre-wrap break-words">{msg.message}</p>
                         {msg.attachment_url && (
                           <div className="mt-2">
-                            {msg.attachment_url.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
+                            {isImage ? (
                               <a href={msg.attachment_url} target="_blank" rel="noopener noreferrer">
                                 <img 
                                   src={msg.attachment_url} 
                                   alt="Attachment" 
-                                  className="max-w-full rounded max-h-48 object-contain"
+                                  loading="lazy"
+                                  onLoad={() => scrollToBottom()}
+                                  className="max-w-full rounded max-h-64 object-contain bg-background"
                                 />
                               </a>
+                            ) : isPdf ? (
+                              <div className="space-y-1">
+                                <object
+                                  data={msg.attachment_url}
+                                  type="application/pdf"
+                                  className="w-full h-64 rounded border bg-background"
+                                  aria-label={msg.attachment_name || 'PDF attachment'}
+                                >
+                                  <a href={msg.attachment_url} target="_blank" rel="noopener noreferrer" className="underline">
+                                    Open PDF
+                                  </a>
+                                </object>
+                                <a 
+                                  href={msg.attachment_url} 
+                                  target="_blank" 
+                                  rel="noopener noreferrer"
+                                  className={`flex items-center gap-2 text-xs underline ${
+                                    msg.is_admin_reply ? 'text-primary' : 'text-primary-foreground'
+                                  }`}
+                                >
+                                  <Paperclip className="h-3 w-3" />
+                                  {msg.attachment_name || 'Open PDF'}
+                                </a>
+                              </div>
                             ) : (
                               <a 
                                 href={msg.attachment_url} 
@@ -460,7 +544,9 @@ const Tickets = () => {
                         </p>
                       </div>
                     </div>
-                  ))}
+                    );
+                  })}
+                  <div ref={bottomAnchorRef} />
                 </div>
               )}
             </ScrollArea>
