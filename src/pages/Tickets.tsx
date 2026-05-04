@@ -408,7 +408,7 @@ const Tickets = () => {
               </div>
             </DialogHeader>
             
-            <ScrollArea className="flex-1 p-4">
+            <ScrollArea className="flex-1 min-h-0 p-4">
               {loadingMessages ? (
                 <div className="text-center py-8 text-muted-foreground">Loading messages...</div>
               ) : messages.length === 0 ? (
