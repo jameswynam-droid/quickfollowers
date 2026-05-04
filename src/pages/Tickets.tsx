@@ -466,7 +466,7 @@ const Tickets = () => {
             </ScrollArea>
             
             {selectedTicket?.status !== 'closed' && (
-            <div className="p-4 pb-14 border-t shrink-0 bg-background" style={{ paddingBottom: 'max(56px, env(safe-area-inset-bottom))' }}>
+            <div className="p-4 border-t shrink-0 bg-background" style={{ paddingBottom: 'max(1rem, env(safe-area-inset-bottom))' }}>
               {attachment && (
                 <div className="mb-2 flex items-center gap-2 text-sm text-muted-foreground bg-muted p-2 rounded">
                   <Image className="h-4 w-4" />
