@@ -268,9 +268,11 @@ const Tickets = () => {
 
       setNewMessage("");
       setAttachment(null);
+      isAtBottomRef.current = true;
       await fetchMessages(selectedTicket.id);
       await markTicketAsRead(selectedTicket.id);
       await fetchTickets(user.id);
+      setTimeout(() => scrollToBottom(true), 50);
     } catch (error: any) {
       console.error("Error sending message:", error);
       toast.error(error.message || "Failed to send message");
