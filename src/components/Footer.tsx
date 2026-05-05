@@ -51,6 +51,16 @@ const Footer = () => {
                 Contact Us
               </a>
             </li>
+            <li>
+              <a href="/terms" className="hover:text-primary transition">
+                Terms of Service
+              </a>
+            </li>
+            <li>
+              <a href="/privacy" className="hover:text-primary transition">
+                Privacy Policy
+              </a>
+            </li>
           </ul>
         </div>
         <div className="col-span-2 md:col-span-1">
