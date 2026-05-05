@@ -44,7 +44,7 @@ const Privacy = () => {
 
             <section>
               <h2 className="text-xl font-semibold">3. Sharing</h2>
-              <p>We share only the minimum data required with: payment processors (Flutterwave, Paystack), email delivery (Resend), and our upstream service suppliers (only the public link/username and quantity needed to fulfill your order). We never share your email or password with suppliers.</p>
+              <p>We share only the minimum data required with: payment processors (Flutterwave, Paystack), our email delivery provider, and our upstream service suppliers (only the public link/username and quantity needed to fulfill your order). We never share your email or password with suppliers.</p>
             </section>
 
             <section>
