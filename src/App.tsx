@@ -55,6 +55,8 @@ const App = () => (
                 <Route path="/auth" element={<Auth />} />
                 <Route path="/confirm-email-change" element={<ConfirmEmailChange />} />
                 <Route path="/seo-diagnostics" element={<SeoDiagnostics />} />
+                <Route path="/terms" element={<Terms />} />
+                <Route path="/privacy" element={<Privacy />} />
 
                 <Route path="/add-funds" element={<AddFunds />} />
                 <Route path="/payment/success" element={<PaymentSuccess />} />
