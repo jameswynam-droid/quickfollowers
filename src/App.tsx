@@ -10,6 +10,8 @@ import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import ConfirmEmailChange from "./pages/ConfirmEmailChange";
 import SeoDiagnostics from "./pages/SeoDiagnostics";
+import Terms from "./pages/Terms";
+import Privacy from "./pages/Privacy";
 
 import Dashboard from "./pages/Dashboard";
 import Services from "./pages/Services";
