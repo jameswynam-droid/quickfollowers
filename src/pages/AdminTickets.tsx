@@ -417,9 +417,11 @@ const AdminTickets = () => {
               ) : (
                 <div className="space-y-4">
                   {messages.map((msg) => {
-                    const url = msg.attachment_url || '';
-                    const isImage = /\.(jpg|jpeg|png|gif|webp)(\?|$)/i.test(url);
-                    const isPdf = /\.pdf(\?|$)/i.test(url);
+                    const stored = msg.attachment_url || '';
+                    const viewUrl = msg.attachment_view_url || (stored.startsWith('http') ? stored : '');
+                    const nameOrPath = msg.attachment_name || stored;
+                    const isImage = /\.(jpg|jpeg|png|gif|webp)$/i.test(nameOrPath) || /\.(jpg|jpeg|png|gif|webp)(\?|$)/i.test(stored);
+                    const isPdf = /\.pdf$/i.test(nameOrPath) || /\.pdf(\?|$)/i.test(stored);
                     return (
                     <div 
                       key={msg.id} 
