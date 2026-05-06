@@ -482,9 +482,9 @@ const Tickets = () => {
                         {msg.attachment_url && (
                           <div className="mt-2">
                             {isImage ? (
-                              <a href={msg.attachment_url} target="_blank" rel="noopener noreferrer">
+                              <a href={viewUrl} target="_blank" rel="noopener noreferrer">
                                 <img 
-                                  src={msg.attachment_url} 
+                                  src={viewUrl} 
                                   alt="Attachment" 
                                   loading="lazy"
                                   onLoad={() => scrollToBottom()}
@@ -494,17 +494,17 @@ const Tickets = () => {
                             ) : isPdf ? (
                               <div className="space-y-1">
                                 <object
-                                  data={msg.attachment_url}
+                                  data={viewUrl}
                                   type="application/pdf"
                                   className="w-full h-64 rounded border bg-background"
                                   aria-label={msg.attachment_name || 'PDF attachment'}
                                 >
-                                  <a href={msg.attachment_url} target="_blank" rel="noopener noreferrer" className="underline">
+                                  <a href={viewUrl} target="_blank" rel="noopener noreferrer" className="underline">
                                     Open PDF
                                   </a>
                                 </object>
                                 <a 
-                                  href={msg.attachment_url} 
+                                  href={viewUrl} 
                                   target="_blank" 
                                   rel="noopener noreferrer"
                                   className={`flex items-center gap-2 text-xs underline ${
@@ -517,7 +517,7 @@ const Tickets = () => {
                               </div>
                             ) : (
                               <a 
-                                href={msg.attachment_url} 
+                                href={viewUrl} 
                                 target="_blank" 
                                 rel="noopener noreferrer"
                                 className={`flex items-center gap-2 text-sm underline ${
