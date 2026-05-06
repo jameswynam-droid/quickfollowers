@@ -15,6 +15,7 @@ import { toast } from "sonner";
 import { useNoIndex } from "@/hooks/useNoIndex";
 import { Textarea } from "@/components/ui/textarea";
 import { MessageSquare, Paperclip, Send, X, Image, ArrowLeft } from "lucide-react";
+import { resolveAttachmentUrl, uploadTicketAttachment } from "@/lib/ticketAttachments";
 
 interface Ticket {
   id: string;
@@ -32,6 +33,7 @@ interface TicketMessage {
   id: string;
   message: string;
   attachment_url: string | null;
+  attachment_view_url?: string | null;
   attachment_name: string | null;
   is_admin_reply: boolean;
   created_at: string;
@@ -175,7 +177,14 @@ const AdminTickets = () => {
         .order("created_at", { ascending: true });
 
       if (error) throw error;
-      setMessages(data || []);
+      const rows = data || [];
+      const resolved = await Promise.all(
+        rows.map(async (m: any) => ({
+          ...m,
+          attachment_view_url: m.attachment_url ? await resolveAttachmentUrl(m.attachment_url) : null,
+        }))
+      );
+      setMessages(resolved);
     } catch (error) {
       console.error("Error fetching messages:", error);
       toast.error("Failed to load messages");
@@ -184,26 +193,7 @@ const AdminTickets = () => {
     }
   };
 
-  const uploadAttachment = async (file: File): Promise<string | null> => {
-    const fileExt = file.name.split('.').pop();
-    const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
-    const filePath = `admin/${fileName}`;
-
-    const { error: uploadError } = await supabase.storage
-      .from('ticket-attachments')
-      .upload(filePath, file);
-
-    if (uploadError) {
-      console.error("Upload error:", uploadError);
-      return null;
-    }
-
-    const { data: { publicUrl } } = supabase.storage
-      .from('ticket-attachments')
-      .getPublicUrl(filePath);
-
-    return publicUrl;
-  };
+  const uploadAttachment = (file: File) => uploadTicketAttachment(file, 'admin');
 
   const handleSendMessage = async () => {
     if (!newMessage.trim() && !attachment) {
