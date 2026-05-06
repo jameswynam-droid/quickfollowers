@@ -15,6 +15,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "sonner";
 import { useNoIndex } from "@/hooks/useNoIndex";
 import { Plus, MessageSquare, Paperclip, Send, X, Image, ArrowLeft } from "lucide-react";
+import { resolveAttachmentUrl, uploadTicketAttachment } from "@/lib/ticketAttachments";
 
 interface Ticket {
   id: string;
