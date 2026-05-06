@@ -15,6 +15,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "sonner";
 import { useNoIndex } from "@/hooks/useNoIndex";
 import { Plus, MessageSquare, Paperclip, Send, X, Image, ArrowLeft } from "lucide-react";
+import { resolveAttachmentUrl, uploadTicketAttachment } from "@/lib/ticketAttachments";
 
 interface Ticket {
   id: string;
@@ -29,6 +30,7 @@ interface TicketMessage {
   id: string;
   message: string;
   attachment_url: string | null;
+  attachment_view_url?: string | null;
   attachment_name: string | null;
   is_admin_reply: boolean;
   created_at: string;
@@ -150,7 +152,15 @@ const Tickets = () => {
         .order("created_at", { ascending: true });
 
       if (error) throw error;
-      setMessages(data || []);
+      const rows = data || [];
+      // Resolve signed URLs for attachments in parallel
+      const resolved = await Promise.all(
+        rows.map(async (m: any) => ({
+          ...m,
+          attachment_view_url: m.attachment_url ? await resolveAttachmentUrl(m.attachment_url) : null,
+        }))
+      );
+      setMessages(resolved);
     } catch (error) {
       console.error("Error fetching messages:", error);
       toast.error("Failed to load messages");
@@ -159,26 +169,7 @@ const Tickets = () => {
     }
   };
 
-  const uploadAttachment = async (file: File): Promise<string | null> => {
-    const fileExt = file.name.split('.').pop();
-    const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
-    const filePath = `${user.id}/${fileName}`;
-
-    const { error: uploadError } = await supabase.storage
-      .from('ticket-attachments')
-      .upload(filePath, file);
-
-    if (uploadError) {
-      console.error("Upload error:", uploadError);
-      return null;
-    }
-
-    const { data: { publicUrl } } = supabase.storage
-      .from('ticket-attachments')
-      .getPublicUrl(filePath);
-
-    return publicUrl;
-  };
+  const uploadAttachment = (file: File) => uploadTicketAttachment(file, user.id);
 
   const handleCreateTicket = async () => {
     if (!newTicketSubject.trim() || !newTicketMessage.trim()) {
@@ -470,9 +461,11 @@ const Tickets = () => {
               ) : (
                 <div className="space-y-4">
                   {messages.map((msg) => {
-                    const url = msg.attachment_url || '';
-                    const isImage = /\.(jpg|jpeg|png|gif|webp)(\?|$)/i.test(url);
-                    const isPdf = /\.pdf(\?|$)/i.test(url);
+                    const stored = msg.attachment_url || '';
+                    const viewUrl = msg.attachment_view_url || (stored.startsWith('http') ? stored : '');
+                    const nameOrPath = msg.attachment_name || stored;
+                    const isImage = /\.(jpg|jpeg|png|gif|webp)$/i.test(nameOrPath) || /\.(jpg|jpeg|png|gif|webp)(\?|$)/i.test(stored);
+                    const isPdf = /\.pdf$/i.test(nameOrPath) || /\.pdf(\?|$)/i.test(stored);
                     return (
                     <div 
                       key={msg.id} 
@@ -489,9 +482,9 @@ const Tickets = () => {
                         {msg.attachment_url && (
                           <div className="mt-2">
                             {isImage ? (
-                              <a href={msg.attachment_url} target="_blank" rel="noopener noreferrer">
+                              <a href={viewUrl} target="_blank" rel="noopener noreferrer">
                                 <img 
-                                  src={msg.attachment_url} 
+                                  src={viewUrl} 
                                   alt="Attachment" 
                                   loading="lazy"
                                   onLoad={() => scrollToBottom()}
@@ -501,17 +494,17 @@ const Tickets = () => {
                             ) : isPdf ? (
                               <div className="space-y-1">
                                 <object
-                                  data={msg.attachment_url}
+                                  data={viewUrl}
                                   type="application/pdf"
                                   className="w-full h-64 rounded border bg-background"
                                   aria-label={msg.attachment_name || 'PDF attachment'}
                                 >
-                                  <a href={msg.attachment_url} target="_blank" rel="noopener noreferrer" className="underline">
+                                  <a href={viewUrl} target="_blank" rel="noopener noreferrer" className="underline">
                                     Open PDF
                                   </a>
                                 </object>
                                 <a 
-                                  href={msg.attachment_url} 
+                                  href={viewUrl} 
                                   target="_blank" 
                                   rel="noopener noreferrer"
                                   className={`flex items-center gap-2 text-xs underline ${
@@ -524,7 +517,7 @@ const Tickets = () => {
                               </div>
                             ) : (
                               <a 
-                                href={msg.attachment_url} 
+                                href={viewUrl} 
                                 target="_blank" 
                                 rel="noopener noreferrer"
                                 className={`flex items-center gap-2 text-sm underline ${

@@ -12,6 +12,7 @@ import ConfirmEmailChange from "./pages/ConfirmEmailChange";
 import SeoDiagnostics from "./pages/SeoDiagnostics";
 import Terms from "./pages/Terms";
 import Privacy from "./pages/Privacy";
+import PlatformLanding from "./pages/PlatformLanding";
 
 import Dashboard from "./pages/Dashboard";
 import Services from "./pages/Services";
@@ -57,6 +58,7 @@ const App = () => (
                 <Route path="/seo-diagnostics" element={<SeoDiagnostics />} />
                 <Route path="/terms" element={<Terms />} />
                 <Route path="/privacy" element={<Privacy />} />
+                <Route path="/buy/:platform" element={<PlatformLanding />} />
 
                 <Route path="/add-funds" element={<AddFunds />} />
                 <Route path="/payment/success" element={<PaymentSuccess />} />
