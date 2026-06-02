@@ -8,9 +8,9 @@ const corsHeaders = {
 const TABLES_TO_SYNC = [
   'profiles', 'services', 'user_roles',
   'orders', 'transactions', 'payments',
-  'tickets', 'ticket_messages', 'ticket_reads',
+  'tickets', 'ticket_reads',
   'notifications', 'bell_notifications', 'floating_bell_notifications',
-  'pending_email_changes', 'otp_codes', 'otp_rate_limits',
+  'pending_email_changes',
 ] as const;
 const BATCH_SIZE = 500;
 const EXTERNAL_TIMEOUT_MS = 8000; // 8s timeout for external calls
@@ -23,14 +23,11 @@ const TABLE_COLUMNS: Record<string, string> = {
   transactions: 'id, user_id, type, amount, balance_after, description, reference_id, payment_method, short_id, created_at',
   payments: 'id, user_id, amount, status, approved_by, approved_at, proof_url, bank_details, notes, created_at, updated_at',
   tickets: 'id, user_id, subject, status, priority, created_at, updated_at',
-  ticket_messages: 'id, ticket_id, sender_id, is_admin_reply, message, attachment_url, attachment_name, created_at',
   ticket_reads: 'id, user_id, ticket_id, last_read_at',
   notifications: 'id, title, message, type, is_active, created_by, expires_at, created_at, updated_at',
   bell_notifications: 'id, title, message, type, is_active, created_by, created_at, updated_at',
   floating_bell_notifications: 'id, title, summary, content, is_active, created_by, created_at, updated_at',
   pending_email_changes: 'id, user_id, old_email, new_email, confirmation_token, old_email_confirmed, new_email_verified, expires_at, completed_at, created_at',
-  otp_codes: 'id, email, code, type, used, expires_at, created_at',
-  otp_rate_limits: 'id, email, request_count, window_start, created_at',
 };
 
 // Quick health check - verify external project is reachable before doing work

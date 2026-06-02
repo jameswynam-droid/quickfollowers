@@ -232,8 +232,17 @@ const Auth = () => {
         setAuthMode('login');
         setPassword(""); setConfirmPassword(""); setOtp("");
       } else if (authMode === 'login') {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
-        if (error) throw error;
+        const { error } = await supabase.auth.signInWithPassword({ email: email.toLowerCase().trim(), password });
+        if (error) {
+          const m = (error.message || "").toLowerCase();
+          if (m.includes("invalid login") || m.includes("invalid_credentials") || m.includes("credentials")) {
+            throw new Error("Incorrect email or password.");
+          }
+          if (m.includes("email not confirmed")) {
+            throw new Error("Please verify your email before signing in.");
+          }
+          throw new Error(error.message || "Sign-in failed. Please try again.");
+        }
         // Store session metadata
         localStorage.setItem('session_start', Date.now().toString());
         localStorage.setItem('remember_me', rememberMe ? 'true' : 'false');
