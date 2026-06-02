@@ -94,10 +94,12 @@ const Tickets = () => {
       .on(
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'ticket_messages', filter: `ticket_id=eq.${selectedTicket.id}` },
-        (payload) => {
+        async (payload) => {
+          const m = payload.new as TicketMessage;
+          const view = m.attachment_url ? await resolveAttachmentUrl(m.attachment_url) : null;
           setMessages((prev) => {
-            if (prev.some((m) => m.id === (payload.new as any).id)) return prev;
-            return [...prev, payload.new as TicketMessage];
+            if (prev.some((p) => p.id === m.id)) return prev;
+            return [...prev, { ...m, attachment_view_url: view }];
           });
         }
       )
