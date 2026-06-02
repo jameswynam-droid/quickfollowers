@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import { PasswordInput } from "@/components/PasswordInput";
 import { supabase } from "@/integrations/supabase/client";
+import { FunctionsHttpError } from "@supabase/supabase-js";
 import { toast } from "sonner";
 import { Check, X, Loader2, ArrowLeft, Shield, Zap, Users } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -89,9 +90,28 @@ const Auth = () => {
 
   const [rateLimitMessage, setRateLimitMessage] = useState("");
 
+  // Read an edge function HTTP error body so we surface the specific server message.
+  const extractFnErrorMessage = async (err: unknown, fallback: string): Promise<string> => {
+    try {
+      if (err instanceof FunctionsHttpError) {
+        const body: any = await err.context.json().catch(() => null);
+        if (body?.error && typeof body.error === "string") return body.error;
+      }
+    } catch {}
+    const m = (err as any)?.message || "";
+    if (typeof m === "string" && m && !m.toLowerCase().includes("non-2xx")) return m;
+    return fallback;
+  };
+
   const sendOTP = async (emailAddress: string, type: string = 'password_reset') => {
     const response = await supabase.functions.invoke('send-otp', { body: { email: emailAddress, type } });
-    if (response.error) throw new Error(response.error.message || "Failed to send OTP");
+    if (response.error) {
+      const msg = await extractFnErrorMessage(response.error, "We couldn't send your verification code. Please try again.");
+      if (msg.toLowerCase().includes("already exists")) {
+        throw new Error("An account with this email already exists. Please sign in instead.");
+      }
+      throw new Error(msg);
+    }
     if (response.data?.rateLimited) {
       setRateLimitMessage("You've reached your OTP verification limit for today. Please try again tomorrow.");
       throw new Error("Rate limit exceeded");
@@ -103,9 +123,11 @@ const Auth = () => {
   const verifyOTP = async (emailAddress: string, code: string, type: string = 'password_reset') => {
     const response = await supabase.functions.invoke('verify-otp', { body: { email: emailAddress, code, type } });
     if (response.error) {
-      const errorBody = response.error.message;
-      if (errorBody?.includes("Invalid or expired OTP")) throw new Error("Invalid or expired verification code. Please try again.");
-      throw new Error("Failed to verify code. Please try again.");
+      const msg = await extractFnErrorMessage(response.error, "We couldn't verify your code. Please try again.");
+      if (msg.toLowerCase().includes("invalid") || msg.toLowerCase().includes("expired")) {
+        throw new Error("Invalid or expired verification code. Please try again.");
+      }
+      throw new Error(msg);
     }
     if (response.data?.error) {
       if (response.data.error.includes("Invalid or expired")) throw new Error("Invalid or expired verification code. Please try again.");
@@ -142,33 +164,53 @@ const Auth = () => {
     setLoading(true);
     try {
       if (authMode === 'signup') {
-        if (!username || !isUsernameFormatValid) throw new Error("Username must be 4-20 characters, using only letters, numbers, and underscores");
+        const normalizedUsername = username.toLowerCase().trim();
+        const normalizedEmail = email.toLowerCase().trim();
+        if (!normalizedUsername || !isUsernameFormatValid) throw new Error("Username must be 4-20 characters, using only letters, numbers, and underscores");
         if (isUsernameReserved) throw new Error("This username is reserved. Please choose another.");
         if (usernameStatus === 'taken') throw new Error("Username already exists. Please use another username.");
         if (!isPasswordValid) throw new Error("Password must be at least 8 characters with uppercase, lowercase, and a number");
         if (password !== confirmPassword) throw new Error("Passwords do not match");
-        const { data: existingUsers } = await supabase.from('profiles').select('email').eq('email', email.toLowerCase()).single();
+        const { data: existingUsers } = await supabase.from('profiles').select('email').eq('email', normalizedEmail).maybeSingle();
         if (existingUsers) throw new Error("An account with this email already exists. Please sign in instead.");
-        const { data: usernameAvailable } = await supabase.rpc('check_username_available', { requested_username: username });
+        const { data: usernameAvailable } = await supabase.rpc('check_username_available', { requested_username: normalizedUsername });
         if (!usernameAvailable) throw new Error("Username already exists. Please use another username.");
-        await sendOTP(email, 'email_verification');
+        setUsername(normalizedUsername);
+        setEmail(normalizedEmail);
+        await sendOTP(normalizedEmail, 'email_verification');
         toast.success("Verification code sent to your email!");
         setAuthMode('signup-verify-otp');
         setResendCooldown(60);
       } else if (authMode === 'signup-verify-otp') {
         if (otp.length !== 6) throw new Error("Please enter a valid 6-digit OTP code");
-        await verifyOTP(email, otp, 'email_verification');
+        const normalizedEmail = email.toLowerCase().trim();
+        const normalizedUsername = username.toLowerCase().trim();
+        await verifyOTP(normalizedEmail, otp, 'email_verification');
         const { data, error } = await supabase.auth.signUp({
-          email, password,
-          options: { data: { full_name: fullName, username, email_verified: true } },
+          email: normalizedEmail,
+          password,
+          options: { data: { full_name: fullName, username: normalizedUsername, email_verified: true } },
         });
-        if (error) throw error;
-        if (data.user && data.user.identities && data.user.identities.length === 0) throw new Error("An account with this email already exists. Please sign in instead.");
-        // Sign out so user must log in manually
-        await supabase.auth.signOut();
-        toast.success("Account created successfully! Please sign in.");
-        setAuthMode('login');
-        setPassword(""); setConfirmPassword(""); setOtp(""); setUsername("");
+        if (error) {
+          const m = error.message || "";
+          if (/already|registered|exists/i.test(m)) throw new Error("An account with this email already exists. Please sign in instead.");
+          throw error;
+        }
+        if (data.user && data.user.identities && data.user.identities.length === 0) {
+          throw new Error("An account with this email already exists. Please sign in instead.");
+        }
+        // Sign the user in immediately and redirect to dashboard
+        const { error: signInError } = await supabase.auth.signInWithPassword({ email: normalizedEmail, password });
+        if (signInError) {
+          // Account exists but sign-in failed (rare) — fall back to login screen with message
+          toast.success("Account created. Please sign in.");
+          setAuthMode('login');
+          setPassword(""); setConfirmPassword(""); setOtp("");
+          return;
+        }
+        localStorage.setItem('session_start', Date.now().toString());
+        toast.success("Welcome to QuickFollowers!");
+        navigate('/dashboard');
         return;
       } else if (authMode === 'forgot-password') {
         await sendOTP(email);
@@ -190,8 +232,17 @@ const Auth = () => {
         setAuthMode('login');
         setPassword(""); setConfirmPassword(""); setOtp("");
       } else if (authMode === 'login') {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
-        if (error) throw error;
+        const { error } = await supabase.auth.signInWithPassword({ email: email.toLowerCase().trim(), password });
+        if (error) {
+          const m = (error.message || "").toLowerCase();
+          if (m.includes("invalid login") || m.includes("invalid_credentials") || m.includes("credentials")) {
+            throw new Error("Incorrect email or password.");
+          }
+          if (m.includes("email not confirmed")) {
+            throw new Error("Please verify your email before signing in.");
+          }
+          throw new Error(error.message || "Sign-in failed. Please try again.");
+        }
         // Store session metadata
         localStorage.setItem('session_start', Date.now().toString());
         localStorage.setItem('remember_me', rememberMe ? 'true' : 'false');
@@ -373,7 +424,7 @@ const Auth = () => {
               {authMode === 'signup' && (
                 <div className="space-y-2">
                   <Label htmlFor="username">Username</Label>
-                  <Input id="username" type="text" value={username} onChange={(e) => setUsername(e.target.value.replace(/[^a-zA-Z0-9_]/g, ''))} placeholder="your_username" maxLength={20} required />
+                  <Input id="username" type="text" value={username} onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ''))} placeholder="your_username" maxLength={20} required />
                   <div className="mt-1">{getUsernameStatusUI()}</div>
                 </div>
               )}

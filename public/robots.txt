@@ -1,9 +1,5 @@
 User-agent: *
 Allow: /
-Disallow: /admin
-Disallow: /api/
 
 # Sitemap location
 Sitemap: https://quickfollowers.online/sitemap.xml
-Sitemap: https://www.quickfollowers.online/sitemap.xml
-

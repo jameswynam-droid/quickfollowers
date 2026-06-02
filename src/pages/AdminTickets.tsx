@@ -89,10 +89,12 @@ const AdminTickets = () => {
       .on(
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'ticket_messages', filter: `ticket_id=eq.${selectedTicket.id}` },
-        (payload) => {
+        async (payload) => {
+          const m = payload.new as TicketMessage;
+          const view = m.attachment_url ? await resolveAttachmentUrl(m.attachment_url) : null;
           setMessages((prev) => {
-            if (prev.some((m) => m.id === (payload.new as any).id)) return prev;
-            return [...prev, payload.new as TicketMessage];
+            if (prev.some((p) => p.id === m.id)) return prev;
+            return [...prev, { ...m, attachment_view_url: view }];
           });
         }
       )
@@ -435,12 +437,12 @@ const AdminTickets = () => {
                         }`}
                       >
                         <p className="text-sm whitespace-pre-wrap break-words">{msg.message}</p>
-                        {msg.attachment_url && (
+                        {msg.attachment_url && viewUrl && (
                           <div className="mt-2">
                             {isImage ? (
-                              <a href={msg.attachment_url} target="_blank" rel="noopener noreferrer">
+                              <a href={viewUrl} target="_blank" rel="noopener noreferrer">
                                 <img 
-                                  src={msg.attachment_url} 
+                                  src={viewUrl} 
                                   alt="Attachment" 
                                   loading="lazy"
                                   onLoad={() => scrollToBottom()}
@@ -450,17 +452,17 @@ const AdminTickets = () => {
                             ) : isPdf ? (
                               <div className="space-y-1">
                                 <object
-                                  data={msg.attachment_url}
+                                  data={viewUrl}
                                   type="application/pdf"
                                   className="w-full h-64 rounded border bg-background"
                                   aria-label={msg.attachment_name || 'PDF attachment'}
                                 >
-                                  <a href={msg.attachment_url} target="_blank" rel="noopener noreferrer" className="underline">
+                                  <a href={viewUrl} target="_blank" rel="noopener noreferrer" className="underline">
                                     Open PDF
                                   </a>
                                 </object>
                                 <a 
-                                  href={msg.attachment_url} 
+                                  href={viewUrl} 
                                   target="_blank" 
                                   rel="noopener noreferrer"
                                   className={`flex items-center gap-2 text-xs underline ${
@@ -473,7 +475,7 @@ const AdminTickets = () => {
                               </div>
                             ) : (
                               <a 
-                                href={msg.attachment_url} 
+                                href={viewUrl} 
                                 target="_blank" 
                                 rel="noopener noreferrer"
                                 className={`flex items-center gap-2 text-sm underline ${
