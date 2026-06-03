@@ -43,6 +43,16 @@ const Services = () => {
   const [dripFeedEnabled, setDripFeedEnabled] = useState(false);
   const [dripFeedRuns, setDripFeedRuns] = useState("");
   const [dripFeedInterval, setDripFeedInterval] = useState("");
+  // Auto-service (subscriptions) fields
+  const [autoUsername, setAutoUsername] = useState("");
+  const [autoMin, setAutoMin] = useState("");
+  const [autoMax, setAutoMax] = useState("");
+  const [autoPosts, setAutoPosts] = useState("");
+  const [autoOldPosts, setAutoOldPosts] = useState("");
+  const [autoDelay, setAutoDelay] = useState("");
+  const [autoExpiry, setAutoExpiry] = useState("");
+  // Website traffic with keywords
+  const [trafficKeywords, setTrafficKeywords] = useState("");
   const [placingOrder, setPlacingOrder] = useState(false);
   const [serviceDropdownOpen, setServiceDropdownOpen] = useState(false);
   const [categoryDropdownOpen, setCategoryDropdownOpen] = useState(false);
