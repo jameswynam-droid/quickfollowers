@@ -344,27 +344,76 @@ const Services = () => {
   };
 
   const handlePlaceOrder = async () => {
-    if (!selectedService || !orderLink || !orderQuantity) {
-      toast.error("Please fill all required fields");
-      return;
-    }
-    if (!isValidServiceLink(orderLink)) {
-      toast.error("Please enter a valid link or username");
+    if (!selectedService) {
+      toast.error("Please select a service");
       return;
     }
     if (placingOrder) return;
 
-    const quantity = parseInt(orderQuantity);
-    if (quantity < selectedService.min_order || quantity > selectedService.max_order) {
-      toast.error(`Quantity must be between ${selectedService.min_order} and ${selectedService.max_order}`);
-      return;
-    }
+    const isAuto = isAutoService(selectedService);
+    const isTrafficKw = isTrafficKeywordsService(selectedService);
+    const isIgAuto = isInstagramAutoService(selectedService);
 
-    if (dripFeedEnabled) {
-      const interval = parseInt(dripFeedInterval);
-      if (!dripFeedInterval || isNaN(interval) || interval < 1) {
-        toast.error("Incorrect interval");
-        return;
+    const body: Record<string, any> = { service_id: selectedService.id };
+
+    if (isAuto) {
+      const username = autoUsername.trim();
+      const min = parseInt(autoMin);
+      const max = parseInt(autoMax);
+      const posts = parseInt(autoPosts);
+      const oldPosts = isIgAuto ? parseInt(autoOldPosts || "0") : 0;
+      const delay = parseInt(autoDelay);
+
+      if (!username || !/^@?[a-zA-Z0-9._-]{2,}$/.test(username)) {
+        toast.error("Please enter a valid username"); return;
+      }
+      if (!Number.isInteger(min) || min < selectedService.min_order) {
+        toast.error(`Min must be at least ${selectedService.min_order}`); return;
+      }
+      if (!Number.isInteger(max) || max > selectedService.max_order || max < min) {
+        toast.error(`Max must be between ${min || selectedService.min_order} and ${selectedService.max_order}`); return;
+      }
+      if (!Number.isInteger(posts) || posts < 0) { toast.error("Enter a valid number of new posts"); return; }
+      if (isIgAuto && (!Number.isInteger(oldPosts) || oldPosts < 0)) { toast.error("Enter a valid number of old posts"); return; }
+      if ((posts + oldPosts) <= 0) { toast.error("Enter at least one post (new or old)"); return; }
+      if (!Number.isInteger(delay) || delay < 0 || delay > 1440) { toast.error("Delay must be 0–1440 minutes"); return; }
+
+      body.username = username.replace(/^@/, '');
+      body.min = min;
+      body.max = max;
+      body.posts = posts;
+      if (isIgAuto) body.old_posts = oldPosts;
+      body.delay = delay;
+      if (autoExpiry) body.expiry = autoExpiry;
+    } else if (isTrafficKw) {
+      if (!orderLink || !isValidServiceLink(orderLink)) { toast.error("Please enter a valid link"); return; }
+      const kws = trafficKeywords.split('\n').map(k => k.trim()).filter(Boolean);
+      if (kws.length === 0) { toast.error("Enter at least one keyword"); return; }
+      if (!orderQuantity) { toast.error("Please enter a quantity"); return; }
+      const quantity = parseInt(orderQuantity);
+      if (quantity < selectedService.min_order || quantity > selectedService.max_order) {
+        toast.error(`Quantity must be between ${selectedService.min_order} and ${selectedService.max_order}`); return;
+      }
+      body.link = orderLink;
+      body.quantity = quantity;
+      body.keywords = kws.join(',');
+    } else {
+      if (!orderLink || !orderQuantity) { toast.error("Please fill all required fields"); return; }
+      if (!isValidServiceLink(orderLink)) { toast.error("Please enter a valid link or username"); return; }
+      const quantity = parseInt(orderQuantity);
+      if (quantity < selectedService.min_order || quantity > selectedService.max_order) {
+        toast.error(`Quantity must be between ${selectedService.min_order} and ${selectedService.max_order}`); return;
+      }
+      if (dripFeedEnabled) {
+        const interval = parseInt(dripFeedInterval);
+        if (!dripFeedInterval || isNaN(interval) || interval < 1) { toast.error("Incorrect interval"); return; }
+      }
+      body.link = orderLink;
+      body.quantity = quantity;
+      if (customComments) body.comments = customComments;
+      if (dripFeedEnabled) {
+        body.runs = parseInt(dripFeedRuns) || undefined;
+        body.interval = parseInt(dripFeedInterval) || undefined;
       }
     }
 
@@ -382,14 +431,7 @@ const Services = () => {
 
       const { data, error } = await supabase.functions.invoke("place-order", {
         headers: { Authorization: `Bearer ${session.access_token}` },
-        body: {
-          service_id: selectedService.id,
-          link: orderLink,
-          quantity,
-          comments: customComments || undefined,
-          runs: dripFeedEnabled ? parseInt(dripFeedRuns) || undefined : undefined,
-          interval: dripFeedEnabled ? parseInt(dripFeedInterval) || undefined : undefined,
-        },
+        body,
       });
 
       toast.dismiss("placing-order");
@@ -401,11 +443,7 @@ const Services = () => {
       if (user?.id) fetchUserBalance(user.id);
       setSelectedService(null);
       setOrderLink("");
-      setOrderQuantity("");
-      setCustomComments("");
-      setDripFeedEnabled(false);
-      setDripFeedRuns("");
-      setDripFeedInterval("");
+      resetOrderFields();
       navigate("/dashboard");
     } catch (error: any) {
       toast.dismiss("placing-order");
