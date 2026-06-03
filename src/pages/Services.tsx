@@ -899,7 +899,12 @@ const Services = () => {
             <Button
               onClick={handlePlaceOrder}
               className="w-full h-11"
-              disabled={placingOrder || !selectedService || !orderLink || !orderQuantity}
+              disabled={
+                placingOrder || !selectedService ||
+                (isAutoService(selectedService)
+                  ? (!autoUsername || !autoMin || !autoMax || !autoPosts)
+                  : (!orderLink || !orderQuantity))
+              }
             >
               {placingOrder ? "Placing Order..." : "Submit Order"}
             </Button>
