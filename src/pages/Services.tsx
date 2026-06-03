@@ -242,15 +242,26 @@ const Services = () => {
     return cat ? cat.services : [];
   }, [organizedCategories, selectedCategory]);
 
-  const selectService = useCallback((service: OrganizedService) => {
-    setSelectedService(service);
-    setServiceDropdownOpen(false);
+  const resetOrderFields = () => {
     setOrderQuantity("");
     setCustomComments("");
     setDripFeedEnabled(false);
     setDripFeedRuns("");
     setDripFeedInterval("");
-    // If selected from global search, also align the category
+    setAutoUsername("");
+    setAutoMin("");
+    setAutoMax("");
+    setAutoPosts("");
+    setAutoOldPosts("");
+    setAutoDelay("");
+    setAutoExpiry("");
+    setTrafficKeywords("");
+  };
+
+  const selectService = useCallback((service: OrganizedService) => {
+    setSelectedService(service);
+    setServiceDropdownOpen(false);
+    resetOrderFields();
     if (service.originalCategory && service.originalCategory !== selectedCategory) {
       setSelectedCategory(service.originalCategory);
     }
@@ -265,23 +276,33 @@ const Services = () => {
       setSelectedService(match);
       if (match.originalCategory) setSelectedCategory(match.originalCategory);
       setOrderLink("");
-      setOrderQuantity("");
-      setCustomComments("");
-      setDripFeedEnabled(false);
-      setDripFeedRuns("");
-      setDripFeedInterval("");
+      resetOrderFields();
     }
   }, [searchParams, allServices, selectedService]);
 
-  // Charge calculation
+  // Charge calculation — handles Auto-services (avg(min,max) * posts) and standard
   const charge = useMemo(() => {
-    if (!selectedService || !orderQuantity) return 0;
+    if (!selectedService) return 0;
+    const rate = selectedService.markedUpRate;
+    const isPerOne = selectedService.min_order === 1 && selectedService.max_order === 1;
+
+    if (isAutoService(selectedService)) {
+      const min = parseInt(autoMin) || 0;
+      const max = parseInt(autoMax) || 0;
+      const posts = parseInt(autoPosts) || 0;
+      const oldPosts = isInstagramAutoService(selectedService) ? (parseInt(autoOldPosts) || 0) : 0;
+      if (min <= 0 || max <= 0 || max < min || (posts + oldPosts) <= 0) return 0;
+      const avg = (min + max) / 2;
+      const totalUnits = avg * (posts + oldPosts);
+      return isPerOne ? totalUnits * rate : (totalUnits / 1000) * rate;
+    }
+
+    if (!orderQuantity) return 0;
     const qty = parseInt(orderQuantity) || 0;
     const runs = dripFeedEnabled ? parseInt(dripFeedRuns || "1") || 1 : 1;
     const totalQty = qty * runs;
-    const isPerOne = selectedService.min_order === 1 && selectedService.max_order === 1;
-    return isPerOne ? totalQty * selectedService.markedUpRate : (totalQty / 1000) * selectedService.markedUpRate;
-  }, [selectedService, orderQuantity, dripFeedEnabled, dripFeedRuns]);
+    return isPerOne ? totalQty * rate : (totalQty / 1000) * rate;
+  }, [selectedService, orderQuantity, dripFeedEnabled, dripFeedRuns, autoMin, autoMax, autoPosts, autoOldPosts]);
 
   const getFriendlyErrorMessage = (error: string): string => {
     if (error === 'USER_INSUFFICIENT_BALANCE') return "Insufficient balance. Please add funds.";
