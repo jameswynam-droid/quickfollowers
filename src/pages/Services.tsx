@@ -828,7 +828,7 @@ const Services = () => {
             )}
 
             {/* Drip-feed */}
-            {selectedService?.dripfeed && (
+            {selectedService?.dripfeed && !isAutoService(selectedService) && (
               <div className="space-y-3 p-3 border rounded-lg bg-muted/30">
                 <div className="flex items-center gap-2">
                   <Checkbox
