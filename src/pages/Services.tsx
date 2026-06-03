@@ -695,61 +695,136 @@ const Services = () => {
               )}
             </div>
 
-            {/* Link */}
-            <div className="space-y-1.5">
-              <Label className="text-sm font-medium">Link</Label>
-              <Input
-                value={orderLink}
-                onChange={(e) => setOrderLink(e.target.value)}
-                placeholder="https://..."
-                className="text-sm"
-              />
-            </div>
+            {/* === AUTO-SERVICE FORM (subscriptions: TikTok Auto, Instagram Auto, etc.) === */}
+            {isAutoService(selectedService) ? (
+              <>
+                <div className="space-y-1.5">
+                  <Label className="text-sm font-medium">Username <span className="text-destructive">*</span></Label>
+                  <Input
+                    value={autoUsername}
+                    onChange={(e) => setAutoUsername(e.target.value)}
+                    placeholder="username (no @, no full URL)"
+                    className="text-sm"
+                  />
+                  <p className="text-xs text-muted-foreground">Profile username only. Account must be public.</p>
+                </div>
 
-            {/* Custom Comments for comment services */}
-            {isCustomCommentService(selectedService) && (
-              <div className="space-y-1.5">
-                <Label className="text-sm font-medium">Custom Comments <span className="text-destructive">*</span></Label>
-                <Textarea
-                  value={customComments}
-                  onChange={(e) => {
-                    setCustomComments(e.target.value);
-                    const lineCount = getCommentLineCount(e.target.value);
-                    setOrderQuantity(lineCount > 0 ? lineCount.toString() : "");
-                  }}
-                  placeholder="Enter your comments here, one per line..."
-                  className="text-sm min-h-[100px]"
-                  rows={4}
-                />
-                <p className="text-xs text-muted-foreground">
-                  Each line = 1 comment. <span className="font-semibold text-primary">{getCommentLineCount(customComments)}</span> comment(s).
-                  {selectedService && ` Min: ${selectedService.min_order}, Max: ${selectedService.max_order}`}
-                </p>
-              </div>
-            )}
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <Label className="text-sm font-medium">Min per post <span className="text-destructive">*</span></Label>
+                    <Input type="number" value={autoMin} onChange={(e) => setAutoMin(e.target.value)}
+                      placeholder={`Min ${selectedService!.min_order}`} className="text-sm" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-sm font-medium">Max per post <span className="text-destructive">*</span></Label>
+                    <Input type="number" value={autoMax} onChange={(e) => setAutoMax(e.target.value)}
+                      placeholder={`Max ${selectedService!.max_order}`} className="text-sm" />
+                  </div>
+                </div>
 
-            {/* Quantity */}
-            {!isCustomCommentService(selectedService) && (
-              <div className="space-y-1.5">
-                <Label className="text-sm font-medium">Quantity</Label>
-                <Input
-                  type="number"
-                  value={orderQuantity}
-                  onChange={(e) => setOrderQuantity(e.target.value)}
-                  placeholder={selectedService ? `Min: ${selectedService.min_order} — Max: ${selectedService.max_order}` : "Select a service first"}
-                  min={selectedService?.min_order}
-                  max={selectedService?.max_order}
-                  className="text-sm"
-                />
-              </div>
-            )}
+                <div className={`grid ${isInstagramAutoService(selectedService) ? 'grid-cols-2' : 'grid-cols-1'} gap-3`}>
+                  <div className="space-y-1.5">
+                    <Label className="text-sm font-medium">New posts <span className="text-destructive">*</span></Label>
+                    <Input type="number" value={autoPosts} onChange={(e) => setAutoPosts(e.target.value)}
+                      placeholder="Future posts to cover" min={0} className="text-sm" />
+                  </div>
+                  {isInstagramAutoService(selectedService) && (
+                    <div className="space-y-1.5">
+                      <Label className="text-sm font-medium">Old posts</Label>
+                      <Input type="number" value={autoOldPosts} onChange={(e) => setAutoOldPosts(e.target.value)}
+                        placeholder="Past posts to include" min={0} className="text-sm" />
+                      <p className="text-xs text-muted-foreground">Applies to posts already on the profile.</p>
+                    </div>
+                  )}
+                </div>
 
-            {/* Read-only quantity for custom comment */}
-            {isCustomCommentService(selectedService) && getCommentLineCount(customComments) > 0 && (
-              <div className="space-y-1.5">
-                <Label className="text-sm font-medium">Quantity (auto-calculated)</Label>
-                <Input type="number" value={orderQuantity} readOnly className="text-sm bg-muted" />
-              </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <Label className="text-sm font-medium">Delay (min)</Label>
+                    <Input type="number" value={autoDelay} onChange={(e) => setAutoDelay(e.target.value)}
+                      placeholder="0" min={0} max={1440} className="text-sm" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-sm font-medium">Expiry (optional)</Label>
+                    <Input type="date" value={autoExpiry} onChange={(e) => setAutoExpiry(e.target.value)}
+                      className="text-sm" />
+                  </div>
+                </div>
+              </>
+            ) : (
+              <>
+                {/* Link */}
+                <div className="space-y-1.5">
+                  <Label className="text-sm font-medium">Link</Label>
+                  <Input
+                    value={orderLink}
+                    onChange={(e) => setOrderLink(e.target.value)}
+                    placeholder="https://..."
+                    className="text-sm"
+                  />
+                </div>
+
+                {/* Custom Comments for comment services */}
+                {isCustomCommentService(selectedService) && (
+                  <div className="space-y-1.5">
+                    <Label className="text-sm font-medium">Custom Comments <span className="text-destructive">*</span></Label>
+                    <Textarea
+                      value={customComments}
+                      onChange={(e) => {
+                        setCustomComments(e.target.value);
+                        const lineCount = getCommentLineCount(e.target.value);
+                        setOrderQuantity(lineCount > 0 ? lineCount.toString() : "");
+                      }}
+                      placeholder="Enter your comments here, one per line..."
+                      className="text-sm min-h-[100px]"
+                      rows={4}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Each line = 1 comment. <span className="font-semibold text-primary">{getCommentLineCount(customComments)}</span> comment(s).
+                      {selectedService && ` Min: ${selectedService.min_order}, Max: ${selectedService.max_order}`}
+                    </p>
+                  </div>
+                )}
+
+                {/* Keywords for Website Traffic services */}
+                {isTrafficKeywordsService(selectedService) && (
+                  <div className="space-y-1.5">
+                    <Label className="text-sm font-medium">Keywords <span className="text-destructive">*</span></Label>
+                    <Textarea
+                      value={trafficKeywords}
+                      onChange={(e) => setTrafficKeywords(e.target.value)}
+                      placeholder={`Enter keywords, one per line\nexample keyword 1\nexample keyword 2`}
+                      className="text-sm min-h-[90px]"
+                      rows={4}
+                    />
+                    <p className="text-xs text-muted-foreground">One keyword/phrase per line — visitors arrive via these search terms.</p>
+                  </div>
+                )}
+
+                {/* Quantity */}
+                {!isCustomCommentService(selectedService) && (
+                  <div className="space-y-1.5">
+                    <Label className="text-sm font-medium">Quantity</Label>
+                    <Input
+                      type="number"
+                      value={orderQuantity}
+                      onChange={(e) => setOrderQuantity(e.target.value)}
+                      placeholder={selectedService ? `Min: ${selectedService.min_order} — Max: ${selectedService.max_order}` : "Select a service first"}
+                      min={selectedService?.min_order}
+                      max={selectedService?.max_order}
+                      className="text-sm"
+                    />
+                  </div>
+                )}
+
+                {/* Read-only quantity for custom comment */}
+                {isCustomCommentService(selectedService) && getCommentLineCount(customComments) > 0 && (
+                  <div className="space-y-1.5">
+                    <Label className="text-sm font-medium">Quantity (auto-calculated)</Label>
+                    <Input type="number" value={orderQuantity} readOnly className="text-sm bg-muted" />
+                  </div>
+                )}
+              </>
             )}
 
             {/* Drip-feed */}
