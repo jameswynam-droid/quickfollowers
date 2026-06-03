@@ -82,6 +82,24 @@ const Services = () => {
     return comments.split('\n').filter(line => line.trim()).length;
   };
 
+  // Auto-service detection (subscription / "auto" services use username + posts + min/max)
+  const isAutoService = (service: OrganizedService | null): boolean => {
+    if (!service) return false;
+    const t = (service.type || '').toLowerCase();
+    const n = service.name.toLowerCase();
+    return t.includes('subscription') || /\bauto\b/i.test(n);
+  };
+  const isInstagramAutoService = (service: OrganizedService | null): boolean => {
+    if (!isAutoService(service)) return false;
+    const txt = `${service!.name} ${service!.originalCategory}`.toLowerCase();
+    return txt.includes('instagram');
+  };
+  const isTrafficKeywordsService = (service: OrganizedService | null): boolean => {
+    if (!service) return false;
+    const blob = `${service.name} ${service.originalCategory} ${service.description || ''}`.toLowerCase();
+    return /traffic/.test(blob) && /(keyword|hashtag)/.test(blob);
+  };
+
   const fetchUserBalance = async (userId: string) => {
     const { data: profile } = await supabase
       .from("profiles")
