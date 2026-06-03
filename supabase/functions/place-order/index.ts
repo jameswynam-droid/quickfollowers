@@ -7,333 +7,249 @@ const corsHeaders = {
 
 interface OrderRequest {
   service_id: string;
-  link: string;
-  quantity: number;
+  // Standard
+  link?: string;
+  quantity?: number;
   comments?: string;
   runs?: number;
   interval?: number;
+  // Website traffic keywords
+  keywords?: string;
+  // Auto-service (subscriptions)
+  username?: string;
+  min?: number;
+  max?: number;
+  posts?: number;
+  old_posts?: number;
+  delay?: number;
+  expiry?: string; // YYYY-MM-DD
 }
 
-// Markup calculation - must match frontend serviceOrganizer.ts
-const MARKUP_RATES = {
-  standard: 0.10, // 10%
-  premium: 0.15, // 15%
-};
+const MARKUP_RATES = { standard: 0.10, premium: 0.15 };
 
 const isPremiumService = (name: string, category: string): boolean => {
   const premiumKeywords = [
     'nigerian', 'nigeria', '🇳🇬',
-    'share', 'shares',
-    'save', 'saves',
+    'share', 'shares', 'save', 'saves',
     'recovery', 'disabled',
     'premium', 'verified', 'bluetick',
-    'boost', 'no drop', 'non drop'
+    'boost', 'no drop', 'non drop',
   ];
-  
   const text = `${name} ${category}`.toLowerCase();
-  return premiumKeywords.some(keyword => text.includes(keyword));
+  return premiumKeywords.some(k => text.includes(k));
 };
 
-const calculateMarkup = (rate: number, isPremium: boolean): number => {
-  const markup = isPremium ? MARKUP_RATES.premium : MARKUP_RATES.standard;
-  return rate * (1 + markup);
+const calculateMarkup = (rate: number, isPremium: boolean): number =>
+  rate * (1 + (isPremium ? MARKUP_RATES.premium : MARKUP_RATES.standard));
+
+const detectAutoService = (service: any): boolean => {
+  const t = (service.type || '').toLowerCase();
+  const n = (service.name || '').toLowerCase();
+  return t.includes('subscription') || /\bauto\b/.test(n);
+};
+
+const detectInstagramAuto = (service: any): boolean => {
+  if (!detectAutoService(service)) return false;
+  const blob = `${service.name} ${service.category}`.toLowerCase();
+  return blob.includes('instagram');
+};
+
+const detectTrafficKeywords = (service: any): boolean => {
+  const blob = `${service.name} ${service.category} ${service.description || ''}`.toLowerCase();
+  return blob.includes('traffic') && /(keyword|hashtag)/.test(blob);
 };
 
 Deno.serve(async (req) => {
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
-  }
+  if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
 
   try {
     const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      throw new Error('No authorization header');
-    }
-
-    // In edge functions there is no browser storage/session.
-    // Always pass the JWT explicitly to auth.getUser(jwt) instead of relying on an in-memory session.
+    if (!authHeader) throw new Error('No authorization header');
     const jwt = authHeader.replace(/^Bearer\s+/i, '').trim();
-    if (!jwt) {
-      throw new Error('Missing JWT');
-    }
+    if (!jwt) throw new Error('Missing JWT');
 
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_ANON_KEY') ?? '',
       { global: { headers: { Authorization: `Bearer ${jwt}` } } }
     );
-
-    // Service role client for privileged operations (inserts with non-pending status, balance updates)
     const supabaseAdmin = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    // Get the authenticated user
     const { data: { user }, error: userError } = await supabaseClient.auth.getUser(jwt);
+    if (userError || !user) throw new Error('Not authenticated');
 
-    if (userError || !user) {
-      console.error('Auth error:', userError);
-      throw new Error('Not authenticated');
-    }
+    const body: OrderRequest = await req.json();
+    const {
+      service_id, link, quantity, comments, runs, interval,
+      keywords, username, min, max, posts, old_posts, delay, expiry,
+    } = body;
 
-    console.log('Authenticated user:', user.id);
+    if (!service_id) throw new Error('Missing required fields');
+    if (typeof service_id !== 'string' || service_id.length > 100) throw new Error('Invalid service ID');
 
-    const { service_id, link, quantity, comments, runs, interval }: OrderRequest = await req.json();
-
-    // Validate input - presence
-    if (!service_id || !link || !quantity) {
-      throw new Error('Missing required fields');
-    }
-
-    // Validate quantity is a positive integer
-    if (!Number.isInteger(quantity) || quantity < 1) {
-      throw new Error('Invalid quantity: must be a positive integer');
-    }
-
-    // Validate link format
-    const linkPattern = /^https?:\/\/.+/;
-    if (typeof link !== 'string' || !linkPattern.test(link) || link.length > 500) {
-      throw new Error('Invalid link format');
-    }
-
-    // Validate service_id format
-    if (typeof service_id !== 'string' || service_id.length > 100) {
-      throw new Error('Invalid service ID');
-    }
-
-    // Validate optional drip-feed params
-    if (runs !== undefined && (!Number.isInteger(runs) || runs < 1 || runs > 100)) {
-      throw new Error('Invalid runs value');
-    }
-    if (interval !== undefined && (!Number.isInteger(interval) || interval < 1 || interval > 1440)) {
-      throw new Error('Invalid interval value');
-    }
-
-    // Get service details including provider
     const { data: service, error: serviceError } = await supabaseClient
       .from('services')
       .select('*')
       .eq('id', service_id)
       .single();
+    if (serviceError || !service) throw new Error('Service not found');
 
-    if (serviceError || !service) {
-      console.error('Service error:', serviceError);
-      throw new Error('Service not found');
-    }
-
-    // Extract provider and actual service ID from composite ID
     const provider = service.provider;
     const actualServiceId = service_id.split('-')[1];
-
-    // Apply markup to calculate the user charge (same as frontend)
     const isPremium = isPremiumService(service.name, service.category);
-    const markedUpRate = calculateMarkup(service.rate, isPremium);
-    
-    // Calculate charge with markup, accounting for drip-feed runs
-    const totalQuantity = (runs && runs > 1) ? quantity * runs : quantity;
-    const isPerOnePricing = service.min_order === 1 && service.max_order === 1;
-    const charge = isPerOnePricing
-      ? parseFloat((markedUpRate * totalQuantity).toFixed(2))
-      : parseFloat(((markedUpRate * totalQuantity) / 1000).toFixed(2));
+    const markedUpRate = calculateMarkup(Number(service.rate), isPremium);
+    const isPerOne = service.min_order === 1 && service.max_order === 1;
 
-    console.log(`Service: ${service.name}, Original rate: ${service.rate}, Marked up rate: ${markedUpRate}, Quantity: ${quantity}, Charge: ${charge}`);
+    const isAuto = detectAutoService(service);
+    const isIgAuto = detectInstagramAuto(service);
+    const isTraffic = detectTrafficKeywords(service);
 
-    // Check user balance - explicitly filter by user ID
-    const { data: profile, error: profileError } = await supabaseClient
-      .from('profiles')
-      .select('id, balance')
-      .eq('id', user.id)
-      .single();
-
-    if (profileError || !profile) {
-      console.error('Profile error:', profileError);
-      throw new Error('Profile not found');
-    }
-
-    if (profile.balance < charge) {
-      // Create a failed order record so the bot can see the reason
-      await supabaseAdmin.from('orders').insert({
-        user_id: profile.id,
-        service_id: service_id,
-        link: link,
-        quantity: quantity,
-        charge: 0,
-        status: 'failed',
-        failure_reason: 'Insufficient balance',
-      });
-
-      return new Response(
-        JSON.stringify({ error: 'USER_INSUFFICIENT_BALANCE' }),
-        { 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 400,
-        },
-      );
-    }
-
-    // Determine API endpoint and key based on provider
-    let apiUrl: string;
-    let apiKey: string | undefined;
-
-    if (provider === 'owlet') {
-      apiUrl = 'https://therealowlet.com/api/v2';
-      apiKey = Deno.env.get('OWLET_API_KEY');
-    } else if (provider === 'smmfollows') {
-      apiUrl = 'https://smmfollows.com/api/v2';
-      apiKey = Deno.env.get('SMMFOLLOWS_API_KEY');
-    } else {
-      throw new Error(`Unknown provider: ${provider}`);
-    }
-
-    if (!apiKey) {
-      throw new Error(`API key not configured for provider: ${provider}`);
-    }
-
-    console.log(`Placing order with ${provider} API...`);
-    
-    // Build the order payload
-    // For drip-feed orders, send the base quantity + runs/interval to the provider
-    // The provider will handle creating sub-orders for each run
+    // ---- Validate per service type & compute charge + provider payload ----
+    let charge = 0;
+    let recordedQuantity = 0;
     const orderPayload: Record<string, any> = {
-      key: apiKey,
-      action: 'add',
+      key: '', // filled below
       service: parseInt(actualServiceId),
-      link: link,
-      quantity: quantity,
     };
 
-    // Add drip-feed parameters so the provider handles scheduling
-    if (runs && runs > 1 && interval) {
-      orderPayload.runs = runs;
-      orderPayload.interval = interval;
+    if (isAuto) {
+      if (!username || typeof username !== 'string' || !/^@?[a-zA-Z0-9._-]{2,}$/.test(username)) {
+        throw new Error('Invalid username');
+      }
+      if (!Number.isInteger(min) || !Number.isInteger(max) || (min as number) < service.min_order || (max as number) > service.max_order || (max as number) < (min as number)) {
+        throw new Error('Invalid min/max range');
+      }
+      if (!Number.isInteger(posts) || (posts as number) < 0) throw new Error('Invalid posts');
+      const op = isIgAuto && Number.isInteger(old_posts) ? (old_posts as number) : 0;
+      if (op < 0) throw new Error('Invalid old_posts');
+      if (((posts as number) + op) <= 0) throw new Error('At least one post required');
+      if (delay !== undefined && (!Number.isInteger(delay) || (delay as number) < 0 || (delay as number) > 1440)) {
+        throw new Error('Invalid delay');
+      }
+      if (expiry && !/^\d{4}-\d{2}-\d{2}$/.test(expiry)) throw new Error('Invalid expiry');
+
+      const avg = ((min as number) + (max as number)) / 2;
+      const totalUnits = avg * ((posts as number) + op);
+      charge = parseFloat((isPerOne ? totalUnits * markedUpRate : (totalUnits * markedUpRate) / 1000).toFixed(2));
+      recordedQuantity = Math.round(totalUnits);
+
+      orderPayload.action = 'subscriptions';
+      orderPayload.username = (username as string).replace(/^@/, '');
+      orderPayload.min = min;
+      orderPayload.max = max;
+      orderPayload.posts = posts;
+      if (isIgAuto) orderPayload.old_posts = op;
+      if (delay !== undefined) orderPayload.delay = delay;
+      if (expiry) orderPayload.expiry = expiry;
+    } else if (isTraffic) {
+      if (!link || typeof link !== 'string' || !/^https?:\/\/.+/.test(link) || link.length > 500) throw new Error('Invalid link');
+      if (!Number.isInteger(quantity) || (quantity as number) < 1) throw new Error('Invalid quantity');
+      if ((quantity as number) < service.min_order || (quantity as number) > service.max_order) throw new Error('Quantity out of range');
+      if (!keywords || typeof keywords !== 'string' || !keywords.trim()) throw new Error('Keywords required');
+
+      charge = parseFloat((isPerOne ? (quantity as number) * markedUpRate : ((quantity as number) * markedUpRate) / 1000).toFixed(2));
+      recordedQuantity = quantity as number;
+
+      orderPayload.action = 'add';
+      orderPayload.link = link;
+      orderPayload.quantity = quantity;
+      orderPayload.keywords = keywords;
+    } else {
+      if (!link || typeof link !== 'string' || !/^https?:\/\/.+/.test(link) || link.length > 500) throw new Error('Invalid link');
+      if (!Number.isInteger(quantity) || (quantity as number) < 1) throw new Error('Invalid quantity');
+      if ((quantity as number) < service.min_order || (quantity as number) > service.max_order) throw new Error('Quantity out of range');
+      if (runs !== undefined && (!Number.isInteger(runs) || runs < 1 || runs > 100)) throw new Error('Invalid runs');
+      if (interval !== undefined && (!Number.isInteger(interval) || interval < 1 || interval > 1440)) throw new Error('Invalid interval');
+
+      const totalQuantity = (runs && runs > 1) ? (quantity as number) * runs : (quantity as number);
+      charge = parseFloat((isPerOne ? totalQuantity * markedUpRate : (totalQuantity * markedUpRate) / 1000).toFixed(2));
+      recordedQuantity = totalQuantity;
+
+      orderPayload.action = 'add';
+      orderPayload.link = link;
+      orderPayload.quantity = quantity;
+      if (runs && runs > 1 && interval) {
+        orderPayload.runs = runs;
+        orderPayload.interval = interval;
+      }
+      if (comments) orderPayload.comments = comments;
     }
 
-    // Add comments for custom comment services
-    if (comments) {
-      orderPayload.comments = comments;
+    // Balance check
+    const { data: profile, error: profileError } = await supabaseClient
+      .from('profiles').select('id, balance').eq('id', user.id).single();
+    if (profileError || !profile) throw new Error('Profile not found');
+
+    if (Number(profile.balance) < charge) {
+      await supabaseAdmin.from('orders').insert({
+        user_id: profile.id, service_id, link: link || username || '', quantity: recordedQuantity,
+        charge: 0, status: 'failed', failure_reason: 'Insufficient balance',
+      });
+      return new Response(JSON.stringify({ error: 'USER_INSUFFICIENT_BALANCE' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 });
     }
+
+    // Provider keys
+    let apiUrl: string;
+    let apiKey: string | undefined;
+    if (provider === 'owlet') { apiUrl = 'https://therealowlet.com/api/v2'; apiKey = Deno.env.get('OWLET_API_KEY'); }
+    else if (provider === 'smmfollows') { apiUrl = 'https://smmfollows.com/api/v2'; apiKey = Deno.env.get('SMMFOLLOWS_API_KEY'); }
+    else if (provider === 'followspanel') { apiUrl = 'https://followspanel.com/api/v2'; apiKey = Deno.env.get('FOLLOWSPANEL_API_KEY'); }
+    else throw new Error(`Unknown provider: ${provider}`);
+    if (!apiKey) throw new Error(`API key not configured for provider: ${provider}`);
+    orderPayload.key = apiKey;
 
     const apiResponse = await fetch(apiUrl, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(orderPayload),
     });
-
     const apiResult = await apiResponse.json();
-    
+
     if (!apiResponse.ok || !apiResult.order) {
       const apiError = (apiResult.error || '').toLowerCase();
       const failureReason = apiResult.error || 'Unknown API error';
-      
-      // Check for provider-side insufficient funds errors
-      if (apiError.includes('insufficient') || apiError.includes('balance') || apiError.includes('funds')) {
-        console.error('Provider API balance error:', apiResult.error);
-        
-        // Store the failed order with reason
-        await supabaseAdmin.from('orders').insert({
-          user_id: profile.id,
-          service_id: service_id,
-          link: link,
-          quantity: quantity,
-          charge: 0,
-          status: 'failed',
-          failure_reason: failureReason,
-        });
-        
-        return new Response(
-          JSON.stringify({ error: 'PROVIDER_ERROR' }),
-          { 
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            status: 400,
-          },
-        );
-      }
-      
-      // Store any other failed order with reason
       await supabaseAdmin.from('orders').insert({
-        user_id: profile.id,
-        service_id: service_id,
-        link: link,
-        quantity: quantity,
-        charge: 0,
-        status: 'failed',
-        failure_reason: failureReason,
+        user_id: profile.id, service_id, link: link || username || '', quantity: recordedQuantity,
+        charge: 0, status: 'failed', failure_reason: failureReason,
       });
-      
+      if (apiError.includes('insufficient') || apiError.includes('balance') || apiError.includes('funds')) {
+        return new Response(JSON.stringify({ error: 'PROVIDER_ERROR' }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 });
+      }
       throw new Error(failureReason);
     }
 
-    console.log(`Order placed successfully with ${provider} API:`, apiResult.order);
-
-    // Create order record with marked up charge
     const { data: order, error: orderError } = await supabaseAdmin
       .from('orders')
       .insert({
-        user_id: profile.id,
-        service_id: service_id,
-        link: link,
-        quantity: totalQuantity,
-        charge: charge,
-        status: 'processing',
-        api_order_id: apiResult.order.toString(),
+        user_id: profile.id, service_id,
+        link: link || `@${(username || '').replace(/^@/, '')}`,
+        quantity: recordedQuantity, charge,
+        status: 'processing', api_order_id: apiResult.order.toString(),
       })
-      .select()
-      .single();
+      .select().single();
+    if (orderError) throw orderError;
 
-    if (orderError) {
-      throw orderError;
-    }
-
-    // Deduct balance
-    const newBalance = parseFloat(profile.balance) - charge;
+    const newBalance = parseFloat(profile.balance as any) - charge;
     const { error: updateError } = await supabaseAdmin
-      .from('profiles')
-      .update({ balance: newBalance })
-      .eq('id', profile.id);
+      .from('profiles').update({ balance: newBalance }).eq('id', profile.id);
+    if (updateError) throw updateError;
 
-    if (updateError) {
-      throw updateError;
-    }
+    await supabaseAdmin.from('transactions').insert({
+      user_id: profile.id, amount: -charge, type: 'order',
+      reference_id: order.id, description: `Order: ${service.name}`,
+      balance_after: newBalance,
+    });
 
-    // Create transaction record
-    const { error: txError } = await supabaseAdmin
-      .from('transactions')
-      .insert({
-        user_id: profile.id,
-        amount: -charge,
-        type: 'order',
-        reference_id: order.id,
-        description: `Order: ${service.name}`,
-        balance_after: newBalance,
-      });
-
-    if (txError) {
-      console.error('Error creating transaction:', txError);
-    }
-
-    return new Response(
-      JSON.stringify({ 
-        success: true, 
-        order,
-        message: 'Order placed successfully'
-      }),
-      { 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 200,
-      },
-    );
+    return new Response(JSON.stringify({ success: true, order, message: 'Order placed successfully' }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 });
   } catch (error) {
-    console.error('Error placing order:', error);
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    return new Response(
-      JSON.stringify({ error: errorMessage }),
-      { 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 400,
-      },
-    );
+    return new Response(JSON.stringify({ error: errorMessage }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 });
   }
 });

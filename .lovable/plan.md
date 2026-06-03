@@ -1,80 +1,54 @@
-## Plan to fix the current issues
+All required secrets (R2_*, TURNSTILE_*) are saved. Execution will run in 7 waves so each is testable.
 
-### 1. Auto-service order form support
-- Add special handling on the New Order page for:
-  - TikTok Auto services: show `Username`, `New posts`, `Min`, `Max`, `Delay`, `Expiry`, and charge.
-  - Instagram Auto services: show `Username`, `New posts`, `Old posts`, `Min`, `Max`, `Delay`, `Expiry`, and charge.
-  - Owlet Website Traffic services that require hashtags: show a `Hashtags / Keywords` field and explain what to enter.
-- Update the order payload sent to the provider so these extra fields are forwarded using the provider’s expected SMM panel parameters.
-- Update frontend and backend validation so username-based auto services are accepted instead of being rejected for not being a full link.
-- Add clear inline help text explaining:
-  - `New posts`: how many future posts the subscription should affect.
-  - `Old posts`: how many existing Instagram posts should also receive engagement.
-  - `Min/Max`: random amount delivered per post between those two values.
-  - `Delay`: wait time before delivery after a new post is detected.
-  - `Expiry`: date when the auto subscription should stop.
-- Calculate and display the final charge before submit. For auto services, I’ll use the standard SMM panel subscription pricing pattern: estimate total delivered quantity from min/max per post and post count, then apply the marked-up per-1000 rate. Backend will re-calculate the charge so users cannot manipulate it.
+## Wave 1 — Auto-service order form (in-flight bug fix)
+- Detect Auto services (`type` contains `subscription` or name contains `auto`) and Website Traffic with keywords (name/description contains `keyword`/`hashtag`).
+- Replace **Link** input with **Username** for Auto services; hide Quantity, show: New Posts, Old Posts (Instagram only), Min, Max, Delay (minutes), Expiry (date).
+- Show **Keywords** textarea (one per line) for Website Traffic.
+- Live charge preview: `((min+max)/2) × posts × markedUpRate / 1000` for Auto; standard formula for traffic.
+- Extend `place-order` edge function to accept `username, min, max, posts, old_posts, delay, expiry, keywords`. Switch provider `action` to `subscriptions` for Auto, keep `add` with `keywords` for traffic. Re-validate server-side.
 
-### 2. Twitch and confusing service descriptions
-- Add fallback descriptions for Twitch services where the provider description is blank or generic, especially Twitch chat bot/custom chat services.
-- Add service-specific warnings for services likely to confuse users, including auto subscriptions, drip-feed, custom comments, Twitch bots, website traffic, and hashtag/keyword traffic.
-- After implementation, I’ll report any service categories that still have weak/generic descriptions and should be improved manually or via a description refresh.
+## Wave 2 — Cloudflare R2 storage + URL hiding
+- Edge functions: `r2-upload` (signed PUT, size/type validation: images 10MB, videos 50MB, ticket attachments 5MB), `r2-view` (5-min signed GET), `r2-delete`.
+- Same-origin proxy route `r2-proxy` serving images so browsers see `quickfollowers.online/api/r2/<token>` instead of `*.r2.cloudflarestorage.com`.
+- New table `r2_assets(id, key, bucket_prefix, owner_id, kind, size, content_type, created_at, expires_at)` with strict RLS (owner-only) + GRANTs + service_role policy.
+- Daily `pg_cron` + `pg_net` job deletes ticket-kind assets older than 7 days from R2 and DB (scoped exception to the "no auto-cleanup" rule).
+- Frontend helper `src/lib/r2.ts` (upload + resolve-via-proxy).
+- Image protection on attachments in `Tickets.tsx` and `AdminTickets.tsx`: `onContextMenu={e => e.preventDefault()}`, `draggable={false}`, `user-select:none; -webkit-touch-callout:none`, served only through the proxy URL.
+- Migrate popup uploads, service icons, and new ticket attachments to flow through `r2-upload`. Existing Supabase `ticket-attachments` bucket kept read-only as legacy for 7 days, then retired.
 
-### 3. Signup, OTP, username, and error messages
-- Stop default verification-link emails by keeping built-in email confirmations disabled and using only the custom OTP flow.
-- After a user enters the correct signup OTP, create the account, sign them in immediately, and redirect to `/dashboard`.
-- Replace generic auth errors like `Edge Function returned a non-2xx status code` with specific messages such as:
-  - `An account with this email already exists. Please sign in instead.`
-  - `Invalid or expired verification code.`
-  - `Too many OTP requests. Please try again later.`
-- Normalize usernames to lowercase before checking and saving. Existing capital-letter usernames are not dangerous, but mixed-case usernames can confuse search/login display, so I’ll enforce lowercase going forward and check existing usernames for conflicts before migration.
+## Wave 3 — Blog / Help Center (20 articles, 4 categories)
+- Tables: `blog_categories`, `blog_articles`, `blog_article_images` (RLS: public read where `status='published'`; admin write; GRANTs for anon SELECT on published rows + authenticated/service_role).
+- Frontend routes `/help`, `/help/:category`, `/help/:category/:slug` with client-side fuse.js search, TOC, related articles, JSON-LD `Article` + `BreadcrumbList`.
+- Admin CMS at `/admin/blog` (create/edit, draft/publish, R2 image upload).
+- Seed 20 articles across **Getting Started**, **Platform Guides** (Instagram / TikTok / YouTube / Facebook / X / Telegram / Spotify), **Payments & Wallet**, **Troubleshooting & FAQs**. Hero + 3-6 inline images per article, generated with `imagegen` premium tier (ultra-realistic device mockups showing "where to find your Instagram profile link", "copy TikTok video URL", etc.).
+- Sitemap updated with `/help` and every published article.
 
-### 4. Payment balance reliability
-- Review both Paystack and Flutterwave verification flows.
-- Keep the existing idempotency protection, but harden it so a successful payment cannot show as successful unless the wallet update succeeds.
-- Add safer payment status messaging on the success page: if the balance update is delayed/failed, show a specific support-friendly message instead of saying the wallet was funded.
-- Add a recovery path/admin audit query for successful payment references that did not create a deposit transaction or did not update balance.
+## Wave 4 — Category landing pages
+- New file `src/data/categoryLandingData.ts` mapping each platform to followers/likes/views/comments/shares.
+- Routes `/services/:platform/:category` rendered by extending `PlatformLanding.tsx`.
+- JSON-LD `Service` + `BreadcrumbList`, OG image per category, all entries appended to sitemap.
 
-### 5. Ticket attachments and hidden storage URLs
-- Fix the broken attachment previews that currently show `Bucket not found`.
-- Stop placing direct backend storage URLs in ticket messages.
-- Replace direct signed links with a small authenticated backend file-view function, so opening an attachment uses a QuickFollowers-controlled route/function instead of exposing the storage provider URL in the UI.
-- Update both user and admin ticket views to use the resolved preview URL consistently; the admin ticket screen currently still uses the raw `attachment_url` in some places.
-- Keep the bucket private and only allow the ticket owner or admin to access the file.
+## Wave 5 — Cloudflare Turnstile CAPTCHA
+- Frontend `<Turnstile>` widget (sitekey from `TURNSTILE_SITE_KEY` as `VITE_TURNSTILE_SITE_KEY` constant) on Auth (signup + login), OTP request form, password reset request.
+- New shared helper `verify-turnstile` (deno) calls `https://challenges.cloudflare.com/turnstile/v0/siteverify`.
+- Wire into `send-otp`, `reset-password`, and a new `verify-signup-captcha` guard called before `auth.signUp`. Reject with friendly error if invalid/expired.
 
-### 6. Ticket message privacy
-- Important limitation: a support chat must store messages somewhere to show chat history. We cannot have persistent tickets while storing nothing.
-- To meet your privacy goal, I’ll remove ticket messages from the external sync workflow and stop copying them to any secondary database/bot sync.
-- If you want unreadable database contents too, I’ll add application-level encryption for ticket message bodies and attachment paths so the database stores encrypted text instead of readable customer/admin messages. The app will decrypt only for the correct user/admin session.
+## Wave 6 — Admin TOTP 2FA (mandatory, 7-day grace + recovery codes)
+- Supabase native MFA (`auth.mfa.enroll/challenge/verify` TOTP).
+- Table `admin_2fa_status(user_id, enrolled_at, grace_started_at, recovery_codes_hashed[])` (RLS: admin self-read/write).
+- `RequireAdmin` guard: redirects to `/admin/setup-2fa` if not enrolled, blocks `/admin` past 7-day grace.
+- Setup page: QR code, 6-digit verify, downloadable 10 backup codes (one-use, bcrypt-hashed).
+- Login flow: after password, if admin + enrolled, prompt for TOTP before granting `/admin`.
 
-### 7. Database access and security tightening
-- Review all public/unauthenticated access and restrict anything that does not need public access.
-- Keep public read only where it is genuinely needed, such as public homepage/SEO content and active popups if intended.
-- Lock OTP tables so users cannot read OTP codes or rate-limit records directly.
-- Enable leaked-password protection.
-- Remove sensitive tables from external sync, especially OTP tables and ticket messages.
-- Re-run the security scan after fixes and mark resolved findings.
+## Wave 7 — Security scan + verification
+- Run Supabase linter, fix all warnings tied to new tables/functions.
+- Update `mem://` with: R2 storage, ticket 7-day auto-cleanup exception, blog/help-center, admin 2FA policy, Turnstile placements.
 
-### 8. Cloaking backend/provider identity
-- Full database cloaking is not 100% possible in a client-side web app because the browser must call backend APIs.
-- What I can do:
-  - Remove direct storage URLs from attachment previews/downloads.
-  - Avoid showing backend provider URLs in user-visible links and errors.
-  - Keep provider names out of logs/errors/UI.
-  - Tighten CSP/connect rules after the attachment proxy is in place.
-- What I cannot honestly promise: making all network requests completely hide the underlying managed backend from a determined technical user without adding a separate custom backend/proxy layer.
+## Technical notes
+- All new public-schema tables include GRANTs in the same migration (per Lovable Cloud rule).
+- `R2_PUBLIC_HOSTNAME` is optional; if blank, fall back to signed-only proxy URLs.
+- Edge functions deploy automatically; new ones default to `verify_jwt = false` and validate JWTs in code where needed.
+- Frontend needs `VITE_TURNSTILE_SITE_KEY` constant (publishable) — will read from `import.meta.env` if exposed, otherwise hardcode the value the user pasted into the secret.
 
-### 9. SEO diagnostics and robots cleanup
-- Remove the `/seo-diagnostics` route and page import.
-- Update sitemap to remove `/auth` if we do not want it indexed, and keep only public SEO routes such as homepage, terms/privacy, and landing pages.
-- Review `robots.txt` to avoid listing sensitive paths like `/admin`; instead rely on route-level `noindex` and authentication for private pages.
-
-### 10. Verification after implementation
-- Test signup with:
-  - new email + OTP → dashboard
-  - existing email → specific existing-email error
-  - invalid OTP → specific OTP error
-- Test payment success flow and balance update behavior.
-- Test user/admin ticket attachments with image and PDF previews.
-- Test auto-service forms for TikTok, Instagram, and website traffic hashtag services.
-- Run a security scan and summarize remaining risks/limitations.
+## Order
+1 → 2 → 3 → 4 → 5 → 6 → 7. Each wave is a separate batch of edits so you can review/test between them.

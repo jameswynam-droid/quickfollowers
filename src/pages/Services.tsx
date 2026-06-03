@@ -43,6 +43,16 @@ const Services = () => {
   const [dripFeedEnabled, setDripFeedEnabled] = useState(false);
   const [dripFeedRuns, setDripFeedRuns] = useState("");
   const [dripFeedInterval, setDripFeedInterval] = useState("");
+  // Auto-service (subscriptions) fields
+  const [autoUsername, setAutoUsername] = useState("");
+  const [autoMin, setAutoMin] = useState("");
+  const [autoMax, setAutoMax] = useState("");
+  const [autoPosts, setAutoPosts] = useState("");
+  const [autoOldPosts, setAutoOldPosts] = useState("");
+  const [autoDelay, setAutoDelay] = useState("");
+  const [autoExpiry, setAutoExpiry] = useState("");
+  // Website traffic with keywords
+  const [trafficKeywords, setTrafficKeywords] = useState("");
   const [placingOrder, setPlacingOrder] = useState(false);
   const [serviceDropdownOpen, setServiceDropdownOpen] = useState(false);
   const [categoryDropdownOpen, setCategoryDropdownOpen] = useState(false);
@@ -70,6 +80,24 @@ const Services = () => {
   const getCommentLineCount = (comments: string) => {
     if (!comments.trim()) return 0;
     return comments.split('\n').filter(line => line.trim()).length;
+  };
+
+  // Auto-service detection (subscription / "auto" services use username + posts + min/max)
+  const isAutoService = (service: OrganizedService | null): boolean => {
+    if (!service) return false;
+    const t = (service.type || '').toLowerCase();
+    const n = service.name.toLowerCase();
+    return t.includes('subscription') || /\bauto\b/i.test(n);
+  };
+  const isInstagramAutoService = (service: OrganizedService | null): boolean => {
+    if (!isAutoService(service)) return false;
+    const txt = `${service!.name} ${service!.originalCategory}`.toLowerCase();
+    return txt.includes('instagram');
+  };
+  const isTrafficKeywordsService = (service: OrganizedService | null): boolean => {
+    if (!service) return false;
+    const blob = `${service.name} ${service.originalCategory} ${service.description || ''}`.toLowerCase();
+    return /traffic/.test(blob) && /(keyword|hashtag)/.test(blob);
   };
 
   const fetchUserBalance = async (userId: string) => {
@@ -214,15 +242,26 @@ const Services = () => {
     return cat ? cat.services : [];
   }, [organizedCategories, selectedCategory]);
 
-  const selectService = useCallback((service: OrganizedService) => {
-    setSelectedService(service);
-    setServiceDropdownOpen(false);
+  const resetOrderFields = () => {
     setOrderQuantity("");
     setCustomComments("");
     setDripFeedEnabled(false);
     setDripFeedRuns("");
     setDripFeedInterval("");
-    // If selected from global search, also align the category
+    setAutoUsername("");
+    setAutoMin("");
+    setAutoMax("");
+    setAutoPosts("");
+    setAutoOldPosts("");
+    setAutoDelay("");
+    setAutoExpiry("");
+    setTrafficKeywords("");
+  };
+
+  const selectService = useCallback((service: OrganizedService) => {
+    setSelectedService(service);
+    setServiceDropdownOpen(false);
+    resetOrderFields();
     if (service.originalCategory && service.originalCategory !== selectedCategory) {
       setSelectedCategory(service.originalCategory);
     }
@@ -237,23 +276,33 @@ const Services = () => {
       setSelectedService(match);
       if (match.originalCategory) setSelectedCategory(match.originalCategory);
       setOrderLink("");
-      setOrderQuantity("");
-      setCustomComments("");
-      setDripFeedEnabled(false);
-      setDripFeedRuns("");
-      setDripFeedInterval("");
+      resetOrderFields();
     }
   }, [searchParams, allServices, selectedService]);
 
-  // Charge calculation
+  // Charge calculation — handles Auto-services (avg(min,max) * posts) and standard
   const charge = useMemo(() => {
-    if (!selectedService || !orderQuantity) return 0;
+    if (!selectedService) return 0;
+    const rate = selectedService.markedUpRate;
+    const isPerOne = selectedService.min_order === 1 && selectedService.max_order === 1;
+
+    if (isAutoService(selectedService)) {
+      const min = parseInt(autoMin) || 0;
+      const max = parseInt(autoMax) || 0;
+      const posts = parseInt(autoPosts) || 0;
+      const oldPosts = isInstagramAutoService(selectedService) ? (parseInt(autoOldPosts) || 0) : 0;
+      if (min <= 0 || max <= 0 || max < min || (posts + oldPosts) <= 0) return 0;
+      const avg = (min + max) / 2;
+      const totalUnits = avg * (posts + oldPosts);
+      return isPerOne ? totalUnits * rate : (totalUnits / 1000) * rate;
+    }
+
+    if (!orderQuantity) return 0;
     const qty = parseInt(orderQuantity) || 0;
     const runs = dripFeedEnabled ? parseInt(dripFeedRuns || "1") || 1 : 1;
     const totalQty = qty * runs;
-    const isPerOne = selectedService.min_order === 1 && selectedService.max_order === 1;
-    return isPerOne ? totalQty * selectedService.markedUpRate : (totalQty / 1000) * selectedService.markedUpRate;
-  }, [selectedService, orderQuantity, dripFeedEnabled, dripFeedRuns]);
+    return isPerOne ? totalQty * rate : (totalQty / 1000) * rate;
+  }, [selectedService, orderQuantity, dripFeedEnabled, dripFeedRuns, autoMin, autoMax, autoPosts, autoOldPosts]);
 
   const getFriendlyErrorMessage = (error: string): string => {
     if (error === 'USER_INSUFFICIENT_BALANCE') return "Insufficient balance. Please add funds.";
@@ -295,27 +344,76 @@ const Services = () => {
   };
 
   const handlePlaceOrder = async () => {
-    if (!selectedService || !orderLink || !orderQuantity) {
-      toast.error("Please fill all required fields");
-      return;
-    }
-    if (!isValidServiceLink(orderLink)) {
-      toast.error("Please enter a valid link or username");
+    if (!selectedService) {
+      toast.error("Please select a service");
       return;
     }
     if (placingOrder) return;
 
-    const quantity = parseInt(orderQuantity);
-    if (quantity < selectedService.min_order || quantity > selectedService.max_order) {
-      toast.error(`Quantity must be between ${selectedService.min_order} and ${selectedService.max_order}`);
-      return;
-    }
+    const isAuto = isAutoService(selectedService);
+    const isTrafficKw = isTrafficKeywordsService(selectedService);
+    const isIgAuto = isInstagramAutoService(selectedService);
 
-    if (dripFeedEnabled) {
-      const interval = parseInt(dripFeedInterval);
-      if (!dripFeedInterval || isNaN(interval) || interval < 1) {
-        toast.error("Incorrect interval");
-        return;
+    const body: Record<string, any> = { service_id: selectedService.id };
+
+    if (isAuto) {
+      const username = autoUsername.trim();
+      const min = parseInt(autoMin);
+      const max = parseInt(autoMax);
+      const posts = parseInt(autoPosts);
+      const oldPosts = isIgAuto ? parseInt(autoOldPosts || "0") : 0;
+      const delay = parseInt(autoDelay);
+
+      if (!username || !/^@?[a-zA-Z0-9._-]{2,}$/.test(username)) {
+        toast.error("Please enter a valid username"); return;
+      }
+      if (!Number.isInteger(min) || min < selectedService.min_order) {
+        toast.error(`Min must be at least ${selectedService.min_order}`); return;
+      }
+      if (!Number.isInteger(max) || max > selectedService.max_order || max < min) {
+        toast.error(`Max must be between ${min || selectedService.min_order} and ${selectedService.max_order}`); return;
+      }
+      if (!Number.isInteger(posts) || posts < 0) { toast.error("Enter a valid number of new posts"); return; }
+      if (isIgAuto && (!Number.isInteger(oldPosts) || oldPosts < 0)) { toast.error("Enter a valid number of old posts"); return; }
+      if ((posts + oldPosts) <= 0) { toast.error("Enter at least one post (new or old)"); return; }
+      if (!Number.isInteger(delay) || delay < 0 || delay > 1440) { toast.error("Delay must be 0–1440 minutes"); return; }
+
+      body.username = username.replace(/^@/, '');
+      body.min = min;
+      body.max = max;
+      body.posts = posts;
+      if (isIgAuto) body.old_posts = oldPosts;
+      body.delay = delay;
+      if (autoExpiry) body.expiry = autoExpiry;
+    } else if (isTrafficKw) {
+      if (!orderLink || !isValidServiceLink(orderLink)) { toast.error("Please enter a valid link"); return; }
+      const kws = trafficKeywords.split('\n').map(k => k.trim()).filter(Boolean);
+      if (kws.length === 0) { toast.error("Enter at least one keyword"); return; }
+      if (!orderQuantity) { toast.error("Please enter a quantity"); return; }
+      const quantity = parseInt(orderQuantity);
+      if (quantity < selectedService.min_order || quantity > selectedService.max_order) {
+        toast.error(`Quantity must be between ${selectedService.min_order} and ${selectedService.max_order}`); return;
+      }
+      body.link = orderLink;
+      body.quantity = quantity;
+      body.keywords = kws.join(',');
+    } else {
+      if (!orderLink || !orderQuantity) { toast.error("Please fill all required fields"); return; }
+      if (!isValidServiceLink(orderLink)) { toast.error("Please enter a valid link or username"); return; }
+      const quantity = parseInt(orderQuantity);
+      if (quantity < selectedService.min_order || quantity > selectedService.max_order) {
+        toast.error(`Quantity must be between ${selectedService.min_order} and ${selectedService.max_order}`); return;
+      }
+      if (dripFeedEnabled) {
+        const interval = parseInt(dripFeedInterval);
+        if (!dripFeedInterval || isNaN(interval) || interval < 1) { toast.error("Incorrect interval"); return; }
+      }
+      body.link = orderLink;
+      body.quantity = quantity;
+      if (customComments) body.comments = customComments;
+      if (dripFeedEnabled) {
+        body.runs = parseInt(dripFeedRuns) || undefined;
+        body.interval = parseInt(dripFeedInterval) || undefined;
       }
     }
 
@@ -333,14 +431,7 @@ const Services = () => {
 
       const { data, error } = await supabase.functions.invoke("place-order", {
         headers: { Authorization: `Bearer ${session.access_token}` },
-        body: {
-          service_id: selectedService.id,
-          link: orderLink,
-          quantity,
-          comments: customComments || undefined,
-          runs: dripFeedEnabled ? parseInt(dripFeedRuns) || undefined : undefined,
-          interval: dripFeedEnabled ? parseInt(dripFeedInterval) || undefined : undefined,
-        },
+        body,
       });
 
       toast.dismiss("placing-order");
@@ -352,11 +443,7 @@ const Services = () => {
       if (user?.id) fetchUserBalance(user.id);
       setSelectedService(null);
       setOrderLink("");
-      setOrderQuantity("");
-      setCustomComments("");
-      setDripFeedEnabled(false);
-      setDripFeedRuns("");
-      setDripFeedInterval("");
+      resetOrderFields();
       navigate("/dashboard");
     } catch (error: any) {
       toast.dismiss("placing-order");
@@ -608,65 +695,140 @@ const Services = () => {
               )}
             </div>
 
-            {/* Link */}
-            <div className="space-y-1.5">
-              <Label className="text-sm font-medium">Link</Label>
-              <Input
-                value={orderLink}
-                onChange={(e) => setOrderLink(e.target.value)}
-                placeholder="https://..."
-                className="text-sm"
-              />
-            </div>
+            {/* === AUTO-SERVICE FORM (subscriptions: TikTok Auto, Instagram Auto, etc.) === */}
+            {isAutoService(selectedService) ? (
+              <>
+                <div className="space-y-1.5">
+                  <Label className="text-sm font-medium">Username <span className="text-destructive">*</span></Label>
+                  <Input
+                    value={autoUsername}
+                    onChange={(e) => setAutoUsername(e.target.value)}
+                    placeholder="username (no @, no full URL)"
+                    className="text-sm"
+                  />
+                  <p className="text-xs text-muted-foreground">Profile username only. Account must be public.</p>
+                </div>
 
-            {/* Custom Comments for comment services */}
-            {isCustomCommentService(selectedService) && (
-              <div className="space-y-1.5">
-                <Label className="text-sm font-medium">Custom Comments <span className="text-destructive">*</span></Label>
-                <Textarea
-                  value={customComments}
-                  onChange={(e) => {
-                    setCustomComments(e.target.value);
-                    const lineCount = getCommentLineCount(e.target.value);
-                    setOrderQuantity(lineCount > 0 ? lineCount.toString() : "");
-                  }}
-                  placeholder="Enter your comments here, one per line..."
-                  className="text-sm min-h-[100px]"
-                  rows={4}
-                />
-                <p className="text-xs text-muted-foreground">
-                  Each line = 1 comment. <span className="font-semibold text-primary">{getCommentLineCount(customComments)}</span> comment(s).
-                  {selectedService && ` Min: ${selectedService.min_order}, Max: ${selectedService.max_order}`}
-                </p>
-              </div>
-            )}
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <Label className="text-sm font-medium">Min per post <span className="text-destructive">*</span></Label>
+                    <Input type="number" value={autoMin} onChange={(e) => setAutoMin(e.target.value)}
+                      placeholder={`Min ${selectedService!.min_order}`} className="text-sm" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-sm font-medium">Max per post <span className="text-destructive">*</span></Label>
+                    <Input type="number" value={autoMax} onChange={(e) => setAutoMax(e.target.value)}
+                      placeholder={`Max ${selectedService!.max_order}`} className="text-sm" />
+                  </div>
+                </div>
 
-            {/* Quantity */}
-            {!isCustomCommentService(selectedService) && (
-              <div className="space-y-1.5">
-                <Label className="text-sm font-medium">Quantity</Label>
-                <Input
-                  type="number"
-                  value={orderQuantity}
-                  onChange={(e) => setOrderQuantity(e.target.value)}
-                  placeholder={selectedService ? `Min: ${selectedService.min_order} — Max: ${selectedService.max_order}` : "Select a service first"}
-                  min={selectedService?.min_order}
-                  max={selectedService?.max_order}
-                  className="text-sm"
-                />
-              </div>
-            )}
+                <div className={`grid ${isInstagramAutoService(selectedService) ? 'grid-cols-2' : 'grid-cols-1'} gap-3`}>
+                  <div className="space-y-1.5">
+                    <Label className="text-sm font-medium">New posts <span className="text-destructive">*</span></Label>
+                    <Input type="number" value={autoPosts} onChange={(e) => setAutoPosts(e.target.value)}
+                      placeholder="Future posts to cover" min={0} className="text-sm" />
+                  </div>
+                  {isInstagramAutoService(selectedService) && (
+                    <div className="space-y-1.5">
+                      <Label className="text-sm font-medium">Old posts</Label>
+                      <Input type="number" value={autoOldPosts} onChange={(e) => setAutoOldPosts(e.target.value)}
+                        placeholder="Past posts to include" min={0} className="text-sm" />
+                      <p className="text-xs text-muted-foreground">Applies to posts already on the profile.</p>
+                    </div>
+                  )}
+                </div>
 
-            {/* Read-only quantity for custom comment */}
-            {isCustomCommentService(selectedService) && getCommentLineCount(customComments) > 0 && (
-              <div className="space-y-1.5">
-                <Label className="text-sm font-medium">Quantity (auto-calculated)</Label>
-                <Input type="number" value={orderQuantity} readOnly className="text-sm bg-muted" />
-              </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <Label className="text-sm font-medium">Delay (min)</Label>
+                    <Input type="number" value={autoDelay} onChange={(e) => setAutoDelay(e.target.value)}
+                      placeholder="0" min={0} max={1440} className="text-sm" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-sm font-medium">Expiry (optional)</Label>
+                    <Input type="date" value={autoExpiry} onChange={(e) => setAutoExpiry(e.target.value)}
+                      className="text-sm" />
+                  </div>
+                </div>
+              </>
+            ) : (
+              <>
+                {/* Link */}
+                <div className="space-y-1.5">
+                  <Label className="text-sm font-medium">Link</Label>
+                  <Input
+                    value={orderLink}
+                    onChange={(e) => setOrderLink(e.target.value)}
+                    placeholder="https://..."
+                    className="text-sm"
+                  />
+                </div>
+
+                {/* Custom Comments for comment services */}
+                {isCustomCommentService(selectedService) && (
+                  <div className="space-y-1.5">
+                    <Label className="text-sm font-medium">Custom Comments <span className="text-destructive">*</span></Label>
+                    <Textarea
+                      value={customComments}
+                      onChange={(e) => {
+                        setCustomComments(e.target.value);
+                        const lineCount = getCommentLineCount(e.target.value);
+                        setOrderQuantity(lineCount > 0 ? lineCount.toString() : "");
+                      }}
+                      placeholder="Enter your comments here, one per line..."
+                      className="text-sm min-h-[100px]"
+                      rows={4}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Each line = 1 comment. <span className="font-semibold text-primary">{getCommentLineCount(customComments)}</span> comment(s).
+                      {selectedService && ` Min: ${selectedService.min_order}, Max: ${selectedService.max_order}`}
+                    </p>
+                  </div>
+                )}
+
+                {/* Keywords for Website Traffic services */}
+                {isTrafficKeywordsService(selectedService) && (
+                  <div className="space-y-1.5">
+                    <Label className="text-sm font-medium">Keywords <span className="text-destructive">*</span></Label>
+                    <Textarea
+                      value={trafficKeywords}
+                      onChange={(e) => setTrafficKeywords(e.target.value)}
+                      placeholder={`Enter keywords, one per line\nexample keyword 1\nexample keyword 2`}
+                      className="text-sm min-h-[90px]"
+                      rows={4}
+                    />
+                    <p className="text-xs text-muted-foreground">One keyword/phrase per line — visitors arrive via these search terms.</p>
+                  </div>
+                )}
+
+                {/* Quantity */}
+                {!isCustomCommentService(selectedService) && (
+                  <div className="space-y-1.5">
+                    <Label className="text-sm font-medium">Quantity</Label>
+                    <Input
+                      type="number"
+                      value={orderQuantity}
+                      onChange={(e) => setOrderQuantity(e.target.value)}
+                      placeholder={selectedService ? `Min: ${selectedService.min_order} — Max: ${selectedService.max_order}` : "Select a service first"}
+                      min={selectedService?.min_order}
+                      max={selectedService?.max_order}
+                      className="text-sm"
+                    />
+                  </div>
+                )}
+
+                {/* Read-only quantity for custom comment */}
+                {isCustomCommentService(selectedService) && getCommentLineCount(customComments) > 0 && (
+                  <div className="space-y-1.5">
+                    <Label className="text-sm font-medium">Quantity (auto-calculated)</Label>
+                    <Input type="number" value={orderQuantity} readOnly className="text-sm bg-muted" />
+                  </div>
+                )}
+              </>
             )}
 
             {/* Drip-feed */}
-            {selectedService?.dripfeed && (
+            {selectedService?.dripfeed && !isAutoService(selectedService) && (
               <div className="space-y-3 p-3 border rounded-lg bg-muted/30">
                 <div className="flex items-center gap-2">
                   <Checkbox
@@ -737,7 +899,12 @@ const Services = () => {
             <Button
               onClick={handlePlaceOrder}
               className="w-full h-11"
-              disabled={placingOrder || !selectedService || !orderLink || !orderQuantity}
+              disabled={
+                placingOrder || !selectedService ||
+                (isAutoService(selectedService)
+                  ? (!autoUsername || !autoMin || !autoMax || !autoPosts)
+                  : (!orderLink || !orderQuantity))
+              }
             >
               {placingOrder ? "Placing Order..." : "Submit Order"}
             </Button>
