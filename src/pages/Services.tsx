@@ -73,8 +73,9 @@ const Services = () => {
   const isCustomCommentService = (service: OrganizedService | null) => {
     if (!service) return false;
     const nameLower = service.name.toLowerCase();
-    return nameLower.includes('custom comment') || 
-      (nameLower.includes('comment') && nameLower.includes('custom'));
+    const typeLower = (service.type || '').toLowerCase();
+    return typeLower.includes('custom comment') || typeLower.includes('custom_comments') ||
+      nameLower.includes('custom comment') || (nameLower.includes('comment') && nameLower.includes('custom'));
   };
 
   const getCommentLineCount = (comments: string) => {
@@ -82,23 +83,45 @@ const Services = () => {
     return comments.split('\n').filter(line => line.trim()).length;
   };
 
-  // Auto-service detection (subscription / "auto" services use username + posts + min/max)
+  const isInstagramService = (service: OrganizedService | null): boolean => {
+    if (!service) return false;
+    return `${service.name} ${service.originalCategory}`.toLowerCase().includes('instagram');
+  };
+
+  const isTikTokService = (service: OrganizedService | null): boolean => {
+    if (!service) return false;
+    const txt = `${service.name} ${service.originalCategory}`.toLowerCase();
+    return txt.includes('tiktok') || txt.includes('tik tok');
+  };
+
+  // Only TikTok/Instagram subscription services use the auto form.
   const isAutoService = (service: OrganizedService | null): boolean => {
     if (!service) return false;
     const t = (service.type || '').toLowerCase();
     const n = service.name.toLowerCase();
-    return t.includes('subscription') || /\bauto\b/i.test(n);
+    const looksAuto = t.includes('subscription') || /\bauto\b/i.test(n);
+    return looksAuto && (isInstagramService(service) || isTikTokService(service));
   };
   const isInstagramAutoService = (service: OrganizedService | null): boolean => {
     if (!isAutoService(service)) return false;
-    const txt = `${service!.name} ${service!.originalCategory}`.toLowerCase();
-    return txt.includes('instagram');
+    return isInstagramService(service);
+  };
+  const isHashtagService = (service: OrganizedService | null): boolean => {
+    if (!service) return false;
+    const blob = `${service.name} ${service.originalCategory} ${service.description || ''} ${service.type || ''}`.toLowerCase();
+    return blob.includes('hashtag') || (blob.includes('traffic') && service.type?.toLowerCase().includes('mentions hashtag'));
   };
   const isTrafficKeywordsService = (service: OrganizedService | null): boolean => {
     if (!service) return false;
-    const blob = `${service.name} ${service.originalCategory} ${service.description || ''}`.toLowerCase();
-    return /traffic/.test(blob) && /(keyword|hashtag)/.test(blob);
+    const blob = `${service.name} ${service.originalCategory} ${service.description || ''} ${service.type || ''}`.toLowerCase();
+    return /traffic/.test(blob) && /(keyword|seo)/.test(blob) && !isHashtagService(service);
   };
+  const needsTrafficExtraField = (service: OrganizedService | null): boolean =>
+    isHashtagService(service) || isTrafficKeywordsService(service);
+
+  const todayIso = () => new Date().toISOString().slice(0, 10);
+
+  const delayOptions = [0, 5, 10, 15, 20, 30, 40, 50, 60, 90, 120, 150, 180, 210];
 
   const fetchUserBalance = async (userId: string) => {
     const { data: profile } = await supabase
