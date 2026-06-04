@@ -15,6 +15,7 @@ interface OrderRequest {
   interval?: number;
   // Website traffic keywords
   keywords?: string;
+  hashtag?: string;
   // Auto-service (subscriptions)
   username?: string;
   min?: number;
@@ -46,7 +47,9 @@ const calculateMarkup = (rate: number, isPremium: boolean): number =>
 const detectAutoService = (service: any): boolean => {
   const t = (service.type || '').toLowerCase();
   const n = (service.name || '').toLowerCase();
-  return t.includes('subscription') || /\bauto\b/.test(n);
+  const blob = `${service.name || ''} ${service.category || ''}`.toLowerCase();
+  const isTargetPlatform = blob.includes('instagram') || blob.includes('tiktok') || blob.includes('tik tok');
+  return isTargetPlatform && (t.includes('subscription') || /\bauto\b/.test(n));
 };
 
 const detectInstagramAuto = (service: any): boolean => {
@@ -56,8 +59,18 @@ const detectInstagramAuto = (service: any): boolean => {
 };
 
 const detectTrafficKeywords = (service: any): boolean => {
-  const blob = `${service.name} ${service.category} ${service.description || ''}`.toLowerCase();
-  return blob.includes('traffic') && /(keyword|hashtag)/.test(blob);
+  const blob = `${service.name} ${service.category} ${service.description || ''} ${service.type || ''}`.toLowerCase();
+  return blob.includes('traffic') && /(keyword|seo)/.test(blob) && !blob.includes('hashtag');
+};
+
+const detectHashtagService = (service: any): boolean => {
+  const blob = `${service.name} ${service.category} ${service.description || ''} ${service.type || ''}`.toLowerCase();
+  return blob.includes('hashtag') || (blob.includes('traffic') && blob.includes('mentions hashtag'));
+};
+
+const toProviderExpiry = (expiry: string): string => {
+  const [year, month, day] = expiry.split('-');
+  return `${day}/${month}/${year}`;
 };
 
 // Convert YYYY-MM-DD to d/m/Y
