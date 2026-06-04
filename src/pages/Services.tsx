@@ -766,13 +766,20 @@ const Services = () => {
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-1.5">
                     <Label className="text-sm font-medium">Delay (min)</Label>
-                    <Input type="number" value={autoDelay} onChange={(e) => setAutoDelay(e.target.value)}
-                      placeholder="0" min={0} max={1440} className="text-sm" />
+                    <select
+                      value={autoDelay}
+                      onChange={(e) => setAutoDelay(e.target.value)}
+                      className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                    >
+                      {delayOptions.map((minutes) => (
+                        <option key={minutes} value={minutes}>{minutes === 0 ? "No delay" : `${minutes} minutes`}</option>
+                      ))}
+                    </select>
                   </div>
                   <div className="space-y-1.5">
                     <Label className="text-sm font-medium">Expiry (optional)</Label>
                     <Input type="date" value={autoExpiry} onChange={(e) => setAutoExpiry(e.target.value)}
-                      className="text-sm" />
+                      min={todayIso()} className="text-sm" />
                   </div>
                 </div>
               </>
@@ -811,18 +818,18 @@ const Services = () => {
                   </div>
                 )}
 
-                {/* Keywords for Website Traffic services */}
-                {isTrafficKeywordsService(selectedService) && (
+                {/* Keywords / hashtag for special traffic services */}
+                {needsTrafficExtraField(selectedService) && (
                   <div className="space-y-1.5">
-                    <Label className="text-sm font-medium">Keywords <span className="text-destructive">*</span></Label>
+                    <Label className="text-sm font-medium">{isHashtagService(selectedService) ? "Hashtag" : "Keywords"} <span className="text-destructive">*</span></Label>
                     <Textarea
                       value={trafficKeywords}
                       onChange={(e) => setTrafficKeywords(e.target.value)}
-                      placeholder={`Enter keywords, one per line\nexample keyword 1\nexample keyword 2`}
+                      placeholder={isHashtagService(selectedService) ? "Enter one hashtag, for example: business" : `Enter keywords, one per line\nexample keyword 1\nexample keyword 2`}
                       className="text-sm min-h-[90px]"
                       rows={4}
                     />
-                    <p className="text-xs text-muted-foreground">One keyword/phrase per line — visitors arrive via these search terms.</p>
+                    <p className="text-xs text-muted-foreground">{isHashtagService(selectedService) ? "Use one hashtag without needing to add #." : "One keyword/phrase per line — visitors arrive via these search terms."}</p>
                   </div>
                 )}
 
