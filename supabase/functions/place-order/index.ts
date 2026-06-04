@@ -35,7 +35,6 @@ const isPremiumService = (name: string, category: string): boolean => {
     'recovery', 'disabled',
     'premium', 'verified', 'bluetick',
     'boost', 'no drop', 'non drop',
-    'some',
   ];
   const text = `${name} ${category}`.toLowerCase();
   return premiumKeywords.some(k => text.includes(k));
@@ -105,7 +104,7 @@ Deno.serve(async (req) => {
     const body: OrderRequest = await req.json();
     const {
       service_id, link, quantity, comments, runs, interval,
-      keywords, username, min, max, posts, old_posts, delay, expiry,
+      keywords, hashtag, username, min, max, posts, old_posts, delay, expiry,
     } = body;
 
     if (!service_id) throw new Error('Missing required fields');
@@ -126,6 +125,7 @@ Deno.serve(async (req) => {
     const isAuto = detectAutoService(service);
     const isIgAuto = detectInstagramAuto(service);
     const isTraffic = detectTrafficKeywords(service);
+    const isHashtag = detectHashtagService(service);
 
     let charge = 0;
     let recordedQuantity = 0;
@@ -146,6 +146,12 @@ Deno.serve(async (req) => {
       const op = isIgAuto && Number.isInteger(old_posts) ? (old_posts as number) : 0;
       if (op < 0) throw new Error('Invalid old_posts');
       if (((posts as number) + op) <= 0) throw new Error('At least one post required');
+      const allowedDelays = [0, 5, 10, 15, 20, 30, 40, 50, 60, 90, 120, 150, 180, 210];
+      if (delay !== undefined && (!Number.isInteger(delay) || !allowedDelays.includes(delay as number))) throw new Error('Invalid delay');
+      if (expiry) {
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(expiry)) throw new Error('Invalid expiry');
+        if (expiry < new Date().toISOString().slice(0, 10)) throw new Error('Expiry date cannot be in the past');
+      }
       
       const avg = ((min as number) + (max as number)) / 2;
       const totalUnits = avg * ((posts as number) + op);
@@ -157,19 +163,22 @@ Deno.serve(async (req) => {
       orderPayload.max = max;
       orderPayload.posts = posts;
       if (isIgAuto) orderPayload.old_posts = op;
-      if (delay !== undefined) orderPayload.delay = delay;
-      if (expiry) orderPayload.expiry = formatExpiry(expiry);
-    } else if (isTraffic) {
+      orderPayload.delay = delay ?? 0;
+      if (expiry) orderPayload.expiry = toProviderExpiry(expiry);
+    } else if (isTraffic || isHashtag) {
       if (!link || typeof link !== 'string' || !/^https?:\/\/.+/.test(link) || link.length > 500) throw new Error('Invalid link');
       if (!Number.isInteger(quantity) || (quantity as number) < 1) throw new Error('Invalid quantity');
-      if (!keywords || typeof keywords !== 'string' || !keywords.trim()) throw new Error('Keywords required');
+      if ((quantity as number) < service.min_order || (quantity as number) > service.max_order) throw new Error('Quantity out of range');
+      if (isTraffic && (!keywords || typeof keywords !== 'string' || !keywords.trim())) throw new Error('Keywords required');
+      if (isHashtag && (!hashtag || typeof hashtag !== 'string' || !hashtag.trim())) throw new Error('Hashtag required');
 
       charge = parseFloat((isPerOne ? (quantity as number) * markedUpRate : ((quantity as number) * markedUpRate) / 1000).toFixed(2));
       recordedQuantity = quantity as number;
 
       orderPayload.link = link;
       orderPayload.quantity = quantity;
-      orderPayload.keywords = keywords;
+      if (isTraffic) orderPayload.keywords = keywords;
+      if (isHashtag) orderPayload.hashtag = hashtag.replace(/^#/, '');
     } else {
       if (!link || typeof link !== 'string') throw new Error('Invalid link');
       if (!Number.isInteger(quantity) || (quantity as number) < 1) throw new Error('Invalid quantity');
@@ -238,18 +247,8 @@ Deno.serve(async (req) => {
         charge,
         status: 'processing',
         api_order_id: apiResult.order.toString(),
-        // Extra fields
         runs: runs || null,
         interval_minutes: interval || null,
-        comments: comments || null,
-        keywords: keywords || null,
-        username: isAuto ? (username || '').replace(/^@/, '') : null,
-        min: min || null,
-        max: max || null,
-        posts: posts || null,
-        old_posts: isIgAuto ? (old_posts || 0) : null,
-        delay: delay || null,
-        expiry: expiry || null,
       })
       .select().single();
     
