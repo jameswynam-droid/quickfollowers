@@ -27,6 +27,7 @@ interface Ticket {
   updated_at: string;
   user_email?: string;
   user_name?: string;
+  unread_count?: number;
 }
 
 interface TicketMessage {
