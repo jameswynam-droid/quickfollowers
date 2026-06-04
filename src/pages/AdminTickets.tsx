@@ -107,6 +107,18 @@ const AdminTickets = () => {
     checkAuth();
   }, []);
 
+  // Realtime: refresh ticket list when a new user message arrives
+  useEffect(() => {
+    if (!isAdmin) return;
+    const channel = supabase
+      .channel('admin-tickets-unread')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'ticket_messages' }, (payload: any) => {
+        if (payload.new?.is_admin_reply === false) fetchTickets();
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [isAdmin]);
+
   const checkAuth = async () => {
     const { data: { session } } = await supabase.auth.getSession();
     
