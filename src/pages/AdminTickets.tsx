@@ -137,6 +137,9 @@ const AdminTickets = () => {
 
   const fetchTickets = async () => {
     try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const adminId = session?.user?.id;
+
       const { data: ticketsData, error: ticketsError } = await supabase
         .from("tickets")
         .select("*")
@@ -144,7 +147,24 @@ const AdminTickets = () => {
 
       if (ticketsError) throw ticketsError;
 
-      // Fetch user info for each ticket
+      const ticketIds = (ticketsData || []).map(t => t.id);
+
+      // Batch: admin's read timestamps + all user messages on these tickets
+      const [readsRes, msgsRes] = await Promise.all([
+        adminId
+          ? supabase.from("ticket_reads").select("ticket_id, last_read_at").eq("user_id", adminId).in("ticket_id", ticketIds)
+          : Promise.resolve({ data: [] as any[] }),
+        supabase.from("ticket_messages").select("ticket_id, created_at").eq("is_admin_reply", false).in("ticket_id", ticketIds),
+      ]);
+      const readMap = new Map((readsRes.data || []).map((r: any) => [r.ticket_id, r.last_read_at]));
+      const unreadByTicket = new Map<string, number>();
+      (msgsRes.data || []).forEach((m: any) => {
+        const lastRead = readMap.get(m.ticket_id);
+        if (!lastRead || m.created_at > lastRead) {
+          unreadByTicket.set(m.ticket_id, (unreadByTicket.get(m.ticket_id) || 0) + 1);
+        }
+      });
+
       const ticketsWithUsers = await Promise.all(
         (ticketsData || []).map(async (ticket) => {
           const { data: profile } = await supabase
@@ -152,11 +172,11 @@ const AdminTickets = () => {
             .select("email, full_name")
             .eq("id", ticket.user_id)
             .maybeSingle();
-          
           return {
             ...ticket,
             user_email: profile?.email || "Unknown",
-            user_name: profile?.full_name || null
+            user_name: profile?.full_name || null,
+            unread_count: unreadByTicket.get(ticket.id) || 0,
           };
         })
       );
