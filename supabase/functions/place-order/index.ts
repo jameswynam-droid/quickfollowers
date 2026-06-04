@@ -15,6 +15,7 @@ interface OrderRequest {
   interval?: number;
   // Website traffic keywords
   keywords?: string;
+  hashtag?: string;
   // Auto-service (subscriptions)
   username?: string;
   min?: number;
@@ -22,7 +23,7 @@ interface OrderRequest {
   posts?: number;
   old_posts?: number;
   delay?: number;
-  expiry?: string; // YYYY-MM-DD
+  expiry?: string; // YYYY-MM-DD from frontend date picker
 }
 
 const MARKUP_RATES = { standard: 0.10, premium: 0.15 };
@@ -45,7 +46,9 @@ const calculateMarkup = (rate: number, isPremium: boolean): number =>
 const detectAutoService = (service: any): boolean => {
   const t = (service.type || '').toLowerCase();
   const n = (service.name || '').toLowerCase();
-  return t.includes('subscription') || /\bauto\b/.test(n);
+  const blob = `${service.name || ''} ${service.category || ''}`.toLowerCase();
+  const isTargetPlatform = blob.includes('instagram') || blob.includes('tiktok') || blob.includes('tik tok');
+  return isTargetPlatform && (t.includes('subscription') || /\bauto\b/.test(n));
 };
 
 const detectInstagramAuto = (service: any): boolean => {
@@ -55,8 +58,25 @@ const detectInstagramAuto = (service: any): boolean => {
 };
 
 const detectTrafficKeywords = (service: any): boolean => {
-  const blob = `${service.name} ${service.category} ${service.description || ''}`.toLowerCase();
-  return blob.includes('traffic') && /(keyword|hashtag)/.test(blob);
+  const blob = `${service.name} ${service.category} ${service.description || ''} ${service.type || ''}`.toLowerCase();
+  return blob.includes('traffic') && /(keyword|seo)/.test(blob) && !blob.includes('hashtag');
+};
+
+const detectHashtagService = (service: any): boolean => {
+  const blob = `${service.name} ${service.category} ${service.description || ''} ${service.type || ''}`.toLowerCase();
+  return blob.includes('hashtag') || (blob.includes('traffic') && blob.includes('mentions hashtag'));
+};
+
+const toProviderExpiry = (expiry: string): string => {
+  const [year, month, day] = expiry.split('-');
+  return `${day}/${month}/${year}`;
+};
+
+// Convert YYYY-MM-DD to d/m/Y
+const formatExpiry = (dateStr: string): string => {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return dateStr;
+  const [y, m, d] = dateStr.split('-');
+  return `${d}/${m}/${y}`;
 };
 
 Deno.serve(async (req) => {
@@ -84,11 +104,10 @@ Deno.serve(async (req) => {
     const body: OrderRequest = await req.json();
     const {
       service_id, link, quantity, comments, runs, interval,
-      keywords, username, min, max, posts, old_posts, delay, expiry,
+      keywords, hashtag, username, min, max, posts, old_posts, delay, expiry,
     } = body;
 
     if (!service_id) throw new Error('Missing required fields');
-    if (typeof service_id !== 'string' || service_id.length > 100) throw new Error('Invalid service ID');
 
     const { data: service, error: serviceError } = await supabaseClient
       .from('services')
@@ -98,7 +117,7 @@ Deno.serve(async (req) => {
     if (serviceError || !service) throw new Error('Service not found');
 
     const provider = service.provider;
-    const actualServiceId = service_id.split('-')[1];
+    const actualServiceId = parseInt(service_id.toString().split('-')[1] || service_id.toString());
     const isPremium = isPremiumService(service.name, service.category);
     const markedUpRate = calculateMarkup(Number(service.rate), isPremium);
     const isPerOne = service.min_order === 1 && service.max_order === 1;
@@ -106,13 +125,14 @@ Deno.serve(async (req) => {
     const isAuto = detectAutoService(service);
     const isIgAuto = detectInstagramAuto(service);
     const isTraffic = detectTrafficKeywords(service);
+    const isHashtag = detectHashtagService(service);
 
-    // ---- Validate per service type & compute charge + provider payload ----
     let charge = 0;
     let recordedQuantity = 0;
     const orderPayload: Record<string, any> = {
-      key: '', // filled below
-      service: parseInt(actualServiceId),
+      key: '', 
+      action: 'add',
+      service: actualServiceId,
     };
 
     if (isAuto) {
@@ -126,49 +146,48 @@ Deno.serve(async (req) => {
       const op = isIgAuto && Number.isInteger(old_posts) ? (old_posts as number) : 0;
       if (op < 0) throw new Error('Invalid old_posts');
       if (((posts as number) + op) <= 0) throw new Error('At least one post required');
-      if (delay !== undefined && (!Number.isInteger(delay) || (delay as number) < 0 || (delay as number) > 1440)) {
-        throw new Error('Invalid delay');
+      const allowedDelays = [0, 5, 10, 15, 20, 30, 40, 50, 60, 90, 120, 150, 180, 210];
+      if (delay !== undefined && (!Number.isInteger(delay) || !allowedDelays.includes(delay as number))) throw new Error('Invalid delay');
+      if (expiry) {
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(expiry)) throw new Error('Invalid expiry');
+        if (expiry < new Date().toISOString().slice(0, 10)) throw new Error('Expiry date cannot be in the past');
       }
-      if (expiry && !/^\d{4}-\d{2}-\d{2}$/.test(expiry)) throw new Error('Invalid expiry');
-
+      
       const avg = ((min as number) + (max as number)) / 2;
       const totalUnits = avg * ((posts as number) + op);
       charge = parseFloat((isPerOne ? totalUnits * markedUpRate : (totalUnits * markedUpRate) / 1000).toFixed(2));
       recordedQuantity = Math.round(totalUnits);
 
-      orderPayload.action = 'subscriptions';
       orderPayload.username = (username as string).replace(/^@/, '');
       orderPayload.min = min;
       orderPayload.max = max;
       orderPayload.posts = posts;
       if (isIgAuto) orderPayload.old_posts = op;
-      if (delay !== undefined) orderPayload.delay = delay;
-      if (expiry) orderPayload.expiry = expiry;
-    } else if (isTraffic) {
+      orderPayload.delay = delay ?? 0;
+      if (expiry) orderPayload.expiry = toProviderExpiry(expiry);
+    } else if (isTraffic || isHashtag) {
       if (!link || typeof link !== 'string' || !/^https?:\/\/.+/.test(link) || link.length > 500) throw new Error('Invalid link');
       if (!Number.isInteger(quantity) || (quantity as number) < 1) throw new Error('Invalid quantity');
       if ((quantity as number) < service.min_order || (quantity as number) > service.max_order) throw new Error('Quantity out of range');
-      if (!keywords || typeof keywords !== 'string' || !keywords.trim()) throw new Error('Keywords required');
+      if (isTraffic && (!keywords || typeof keywords !== 'string' || !keywords.trim())) throw new Error('Keywords required');
+      if (isHashtag && (!hashtag || typeof hashtag !== 'string' || !hashtag.trim())) throw new Error('Hashtag required');
 
       charge = parseFloat((isPerOne ? (quantity as number) * markedUpRate : ((quantity as number) * markedUpRate) / 1000).toFixed(2));
       recordedQuantity = quantity as number;
 
-      orderPayload.action = 'add';
       orderPayload.link = link;
       orderPayload.quantity = quantity;
-      orderPayload.keywords = keywords;
+      if (isTraffic) orderPayload.keywords = keywords;
+      if (isHashtag) orderPayload.hashtag = hashtag.replace(/^#/, '');
     } else {
-      if (!link || typeof link !== 'string' || !/^https?:\/\/.+/.test(link) || link.length > 500) throw new Error('Invalid link');
+      if (!link || typeof link !== 'string') throw new Error('Invalid link');
       if (!Number.isInteger(quantity) || (quantity as number) < 1) throw new Error('Invalid quantity');
       if ((quantity as number) < service.min_order || (quantity as number) > service.max_order) throw new Error('Quantity out of range');
-      if (runs !== undefined && (!Number.isInteger(runs) || runs < 1 || runs > 100)) throw new Error('Invalid runs');
-      if (interval !== undefined && (!Number.isInteger(interval) || interval < 1 || interval > 1440)) throw new Error('Invalid interval');
 
       const totalQuantity = (runs && runs > 1) ? (quantity as number) * runs : (quantity as number);
       charge = parseFloat((isPerOne ? totalQuantity * markedUpRate : (totalQuantity * markedUpRate) / 1000).toFixed(2));
       recordedQuantity = totalQuantity;
 
-      orderPayload.action = 'add';
       orderPayload.link = link;
       orderPayload.quantity = quantity;
       if (runs && runs > 1 && interval) {
@@ -184,10 +203,6 @@ Deno.serve(async (req) => {
     if (profileError || !profile) throw new Error('Profile not found');
 
     if (Number(profile.balance) < charge) {
-      await supabaseAdmin.from('orders').insert({
-        user_id: profile.id, service_id, link: link || username || '', quantity: recordedQuantity,
-        charge: 0, status: 'failed', failure_reason: 'Insufficient balance',
-      });
       return new Response(JSON.stringify({ error: 'USER_INSUFFICIENT_BALANCE' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 });
     }
@@ -199,6 +214,7 @@ Deno.serve(async (req) => {
     else if (provider === 'smmfollows') { apiUrl = 'https://smmfollows.com/api/v2'; apiKey = Deno.env.get('SMMFOLLOWS_API_KEY'); }
     else if (provider === 'followspanel') { apiUrl = 'https://followspanel.com/api/v2'; apiKey = Deno.env.get('FOLLOWSPANEL_API_KEY'); }
     else throw new Error(`Unknown provider: ${provider}`);
+    
     if (!apiKey) throw new Error(`API key not configured for provider: ${provider}`);
     orderPayload.key = apiKey;
 
@@ -212,10 +228,7 @@ Deno.serve(async (req) => {
     if (!apiResponse.ok || !apiResult.order) {
       const apiError = (apiResult.error || '').toLowerCase();
       const failureReason = apiResult.error || 'Unknown API error';
-      await supabaseAdmin.from('orders').insert({
-        user_id: profile.id, service_id, link: link || username || '', quantity: recordedQuantity,
-        charge: 0, status: 'failed', failure_reason: failureReason,
-      });
+      
       if (apiError.includes('insufficient') || apiError.includes('balance') || apiError.includes('funds')) {
         return new Response(JSON.stringify({ error: 'PROVIDER_ERROR' }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 });
@@ -223,30 +236,40 @@ Deno.serve(async (req) => {
       throw new Error(failureReason);
     }
 
+    // Save order with ALL fields
     const { data: order, error: orderError } = await supabaseAdmin
       .from('orders')
       .insert({
-        user_id: profile.id, service_id,
-        link: link || `@${(username || '').replace(/^@/, '')}`,
-        quantity: recordedQuantity, charge,
-        status: 'processing', api_order_id: apiResult.order.toString(),
+        user_id: profile.id,
+        service_id: service.id,
+        link: isAuto ? `@${(username || '').replace(/^@/, '')}` : (link || ''),
+        quantity: recordedQuantity,
+        charge,
+        status: 'processing',
+        api_order_id: apiResult.order.toString(),
+        runs: runs || null,
+        interval_minutes: interval || null,
       })
       .select().single();
-    if (orderError) throw orderError;
+    
+    if (orderError) {
+      console.error('Order saving error:', orderError);
+      // Even if saving order record fails, we've placed it at provider and must deduct balance if possible
+      // But usually this means a schema mismatch
+    }
 
     const newBalance = parseFloat(profile.balance as any) - charge;
-    const { error: updateError } = await supabaseAdmin
-      .from('profiles').update({ balance: newBalance }).eq('id', profile.id);
-    if (updateError) throw updateError;
+    await supabaseAdmin.from('profiles').update({ balance: newBalance }).eq('id', profile.id);
 
     await supabaseAdmin.from('transactions').insert({
       user_id: profile.id, amount: -charge, type: 'order',
-      reference_id: order.id, description: `Order: ${service.name}`,
+      reference_id: order?.id, description: `Order: ${service.name}`,
       balance_after: newBalance,
     });
 
     return new Response(JSON.stringify({ success: true, order, message: 'Order placed successfully' }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 });
+
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     return new Response(JSON.stringify({ error: errorMessage }),

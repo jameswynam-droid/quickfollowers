@@ -73,8 +73,9 @@ const Services = () => {
   const isCustomCommentService = (service: OrganizedService | null) => {
     if (!service) return false;
     const nameLower = service.name.toLowerCase();
-    return nameLower.includes('custom comment') || 
-      (nameLower.includes('comment') && nameLower.includes('custom'));
+    const typeLower = (service.type || '').toLowerCase();
+    return typeLower.includes('custom comment') || typeLower.includes('custom_comments') ||
+      nameLower.includes('custom comment') || (nameLower.includes('comment') && nameLower.includes('custom'));
   };
 
   const getCommentLineCount = (comments: string) => {
@@ -82,23 +83,45 @@ const Services = () => {
     return comments.split('\n').filter(line => line.trim()).length;
   };
 
-  // Auto-service detection (subscription / "auto" services use username + posts + min/max)
+  const isInstagramService = (service: OrganizedService | null): boolean => {
+    if (!service) return false;
+    return `${service.name} ${service.originalCategory}`.toLowerCase().includes('instagram');
+  };
+
+  const isTikTokService = (service: OrganizedService | null): boolean => {
+    if (!service) return false;
+    const txt = `${service.name} ${service.originalCategory}`.toLowerCase();
+    return txt.includes('tiktok') || txt.includes('tik tok');
+  };
+
+  // Only TikTok/Instagram subscription services use the auto form.
   const isAutoService = (service: OrganizedService | null): boolean => {
     if (!service) return false;
     const t = (service.type || '').toLowerCase();
     const n = service.name.toLowerCase();
-    return t.includes('subscription') || /\bauto\b/i.test(n);
+    const looksAuto = t.includes('subscription') || /\bauto\b/i.test(n);
+    return looksAuto && (isInstagramService(service) || isTikTokService(service));
   };
   const isInstagramAutoService = (service: OrganizedService | null): boolean => {
     if (!isAutoService(service)) return false;
-    const txt = `${service!.name} ${service!.originalCategory}`.toLowerCase();
-    return txt.includes('instagram');
+    return isInstagramService(service);
+  };
+  const isHashtagService = (service: OrganizedService | null): boolean => {
+    if (!service) return false;
+    const blob = `${service.name} ${service.originalCategory} ${service.description || ''} ${service.type || ''}`.toLowerCase();
+    return blob.includes('hashtag') || (blob.includes('traffic') && service.type?.toLowerCase().includes('mentions hashtag'));
   };
   const isTrafficKeywordsService = (service: OrganizedService | null): boolean => {
     if (!service) return false;
-    const blob = `${service.name} ${service.originalCategory} ${service.description || ''}`.toLowerCase();
-    return /traffic/.test(blob) && /(keyword|hashtag)/.test(blob);
+    const blob = `${service.name} ${service.originalCategory} ${service.description || ''} ${service.type || ''}`.toLowerCase();
+    return /traffic/.test(blob) && /(keyword|seo)/.test(blob) && !isHashtagService(service);
   };
+  const needsTrafficExtraField = (service: OrganizedService | null): boolean =>
+    isHashtagService(service) || isTrafficKeywordsService(service);
+
+  const todayIso = () => new Date().toISOString().slice(0, 10);
+
+  const delayOptions = [0, 5, 10, 15, 20, 30, 40, 50, 60, 90, 120, 150, 180, 210];
 
   const fetchUserBalance = async (userId: string) => {
     const { data: profile } = await supabase
@@ -351,7 +374,7 @@ const Services = () => {
     if (placingOrder) return;
 
     const isAuto = isAutoService(selectedService);
-    const isTrafficKw = isTrafficKeywordsService(selectedService);
+    const isTrafficExtra = needsTrafficExtraField(selectedService);
     const isIgAuto = isInstagramAutoService(selectedService);
 
     const body: Record<string, any> = { service_id: selectedService.id };
@@ -362,7 +385,7 @@ const Services = () => {
       const max = parseInt(autoMax);
       const posts = parseInt(autoPosts);
       const oldPosts = isIgAuto ? parseInt(autoOldPosts || "0") : 0;
-      const delay = parseInt(autoDelay);
+      const delay = autoDelay === "" ? 0 : parseInt(autoDelay);
 
       if (!username || !/^@?[a-zA-Z0-9._-]{2,}$/.test(username)) {
         toast.error("Please enter a valid username"); return;
@@ -376,7 +399,8 @@ const Services = () => {
       if (!Number.isInteger(posts) || posts < 0) { toast.error("Enter a valid number of new posts"); return; }
       if (isIgAuto && (!Number.isInteger(oldPosts) || oldPosts < 0)) { toast.error("Enter a valid number of old posts"); return; }
       if ((posts + oldPosts) <= 0) { toast.error("Enter at least one post (new or old)"); return; }
-      if (!Number.isInteger(delay) || delay < 0 || delay > 1440) { toast.error("Delay must be 0–1440 minutes"); return; }
+      if (!Number.isInteger(delay) || !delayOptions.includes(delay)) { toast.error("Please select a valid delay"); return; }
+      if (autoExpiry && autoExpiry < todayIso()) { toast.error("Expiry date cannot be in the past"); return; }
 
       body.username = username.replace(/^@/, '');
       body.min = min;
@@ -385,18 +409,19 @@ const Services = () => {
       if (isIgAuto) body.old_posts = oldPosts;
       body.delay = delay;
       if (autoExpiry) body.expiry = autoExpiry;
-    } else if (isTrafficKw) {
+    } else if (isTrafficExtra) {
       if (!orderLink || !isValidServiceLink(orderLink)) { toast.error("Please enter a valid link"); return; }
-      const kws = trafficKeywords.split('\n').map(k => k.trim()).filter(Boolean);
-      if (kws.length === 0) { toast.error("Enter at least one keyword"); return; }
       if (!orderQuantity) { toast.error("Please enter a quantity"); return; }
       const quantity = parseInt(orderQuantity);
       if (quantity < selectedService.min_order || quantity > selectedService.max_order) {
         toast.error(`Quantity must be between ${selectedService.min_order} and ${selectedService.max_order}`); return;
       }
+      const extraValues = trafficKeywords.split('\n').map(k => k.trim()).filter(Boolean);
+      if (extraValues.length === 0) { toast.error(`Enter at least one ${isHashtagService(selectedService) ? "hashtag" : "keyword"}`); return; }
       body.link = orderLink;
       body.quantity = quantity;
-      body.keywords = kws.join(',');
+      if (isHashtagService(selectedService)) body.hashtag = extraValues[0].replace(/^#/, '');
+      else body.keywords = extraValues.join('\n');
     } else {
       if (!orderLink || !orderQuantity) { toast.error("Please fill all required fields"); return; }
       if (!isValidServiceLink(orderLink)) { toast.error("Please enter a valid link or username"); return; }
@@ -741,13 +766,20 @@ const Services = () => {
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-1.5">
                     <Label className="text-sm font-medium">Delay (min)</Label>
-                    <Input type="number" value={autoDelay} onChange={(e) => setAutoDelay(e.target.value)}
-                      placeholder="0" min={0} max={1440} className="text-sm" />
+                    <select
+                      value={autoDelay}
+                      onChange={(e) => setAutoDelay(e.target.value)}
+                      className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                    >
+                      {delayOptions.map((minutes) => (
+                        <option key={minutes} value={minutes}>{minutes === 0 ? "No delay" : `${minutes} minutes`}</option>
+                      ))}
+                    </select>
                   </div>
                   <div className="space-y-1.5">
                     <Label className="text-sm font-medium">Expiry (optional)</Label>
                     <Input type="date" value={autoExpiry} onChange={(e) => setAutoExpiry(e.target.value)}
-                      className="text-sm" />
+                      min={todayIso()} className="text-sm" />
                   </div>
                 </div>
               </>
@@ -786,18 +818,18 @@ const Services = () => {
                   </div>
                 )}
 
-                {/* Keywords for Website Traffic services */}
-                {isTrafficKeywordsService(selectedService) && (
+                {/* Keywords / hashtag for special traffic services */}
+                {needsTrafficExtraField(selectedService) && (
                   <div className="space-y-1.5">
-                    <Label className="text-sm font-medium">Keywords <span className="text-destructive">*</span></Label>
+                    <Label className="text-sm font-medium">{isHashtagService(selectedService) ? "Hashtag" : "Keywords"} <span className="text-destructive">*</span></Label>
                     <Textarea
                       value={trafficKeywords}
                       onChange={(e) => setTrafficKeywords(e.target.value)}
-                      placeholder={`Enter keywords, one per line\nexample keyword 1\nexample keyword 2`}
+                      placeholder={isHashtagService(selectedService) ? "Enter one hashtag, for example: business" : `Enter keywords, one per line\nexample keyword 1\nexample keyword 2`}
                       className="text-sm min-h-[90px]"
                       rows={4}
                     />
-                    <p className="text-xs text-muted-foreground">One keyword/phrase per line — visitors arrive via these search terms.</p>
+                    <p className="text-xs text-muted-foreground">{isHashtagService(selectedService) ? "Use one hashtag without needing to add #." : "One keyword/phrase per line — visitors arrive via these search terms."}</p>
                   </div>
                 )}
 
