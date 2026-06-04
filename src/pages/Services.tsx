@@ -875,13 +875,42 @@ const Services = () => {
               </div>
             )}
 
-            {/* Charge */}
-            {charge > 0 && (
+            {/* Charge — Auto-services bill on detection */}
+            {charge > 0 && isAutoService(selectedService) && (
+              <div className="p-3 sm:p-4 bg-primary/10 border border-primary/20 rounded-lg space-y-1.5">
+                <div className="flex justify-between items-center text-sm sm:text-base">
+                  <span className="font-medium">Estimated cost per cycle</span>
+                  <span className="font-bold text-lg text-primary">{formatPrice(charge)}</span>
+                </div>
+                <p className="text-xs text-foreground">
+                  You are <span className="font-semibold">not charged now</span>. Each time a new post is detected on your account, the average cost for that post is debited from your balance automatically. If your balance is too low when a post is detected, that post is skipped — so keep your wallet funded.
+                </p>
+              </div>
+            )}
+            {charge > 0 && !isAutoService(selectedService) && (
               <div className="p-3 sm:p-4 bg-primary/10 border border-primary/20 rounded-lg">
                 <div className="flex justify-between items-center text-sm sm:text-base">
                   <span className="font-medium">Charge</span>
                   <span className="font-bold text-lg text-primary">{formatPrice(charge)}</span>
                 </div>
+              </div>
+            )}
+
+            {/* Auto-service field explainer */}
+            {isAutoService(selectedService) && (
+              <div className="p-3 sm:p-4 rounded-lg border bg-muted/30 text-foreground space-y-2 text-xs sm:text-sm">
+                <p className="font-semibold text-primary">How auto-services work</p>
+                <ul className="space-y-1.5 list-disc pl-5">
+                  <li><span className="font-medium">Username</span> — your public profile handle. The system watches it for new posts.</li>
+                  <li><span className="font-medium">Min / Max per post</span> — random range delivered to each new post (e.g. 100–300 likes per post).</li>
+                  <li><span className="font-medium">New posts</span> — how many future uploads this subscription covers.</li>
+                  {isInstagramAutoService(selectedService) && (
+                    <li><span className="font-medium">Old posts</span> — apply the service to that many recent existing posts on the profile too.</li>
+                  )}
+                  <li><span className="font-medium">Delay</span> — wait time (in minutes) after a new post is detected before delivery starts.</li>
+                  <li><span className="font-medium">Expiry</span> — optional date when the subscription auto-stops.</li>
+                </ul>
+                <p className="pt-1"><span className="font-semibold">Billing:</span> automatic per detected post. Insufficient balance = post skipped. Account must stay public.</p>
               </div>
             )}
 
