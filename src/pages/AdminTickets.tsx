@@ -406,6 +406,11 @@ const AdminTickets = () => {
                     <Badge variant={getStatusColor(ticket.status)} className="capitalize shrink-0">
                       {ticket.status.replace('_', ' ')}
                     </Badge>
+                    {(ticket.unread_count ?? 0) > 0 && (
+                      <Badge variant="destructive" className="shrink-0 min-w-[1.5rem] h-6 px-1.5 flex items-center justify-center text-xs font-semibold">
+                        {ticket.unread_count}
+                      </Badge>
+                    )}
                   </div>
                 </CardContent>
               </Card>
