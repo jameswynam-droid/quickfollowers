@@ -295,6 +295,25 @@ const AdminTickets = () => {
     setSelectedTicket(ticket);
     isAtBottomRef.current = true;
     await fetchMessages(ticket.id);
+    // Mark ticket as read for the admin
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const adminId = session?.user?.id;
+      if (adminId) {
+        const { data: existing } = await supabase
+          .from("ticket_reads")
+          .select("id")
+          .eq("user_id", adminId)
+          .eq("ticket_id", ticket.id)
+          .maybeSingle();
+        if (existing) {
+          await supabase.from("ticket_reads").update({ last_read_at: new Date().toISOString() }).eq("id", existing.id);
+        } else {
+          await supabase.from("ticket_reads").insert({ user_id: adminId, ticket_id: ticket.id, last_read_at: new Date().toISOString() });
+        }
+        setTickets(prev => prev.map(t => t.id === ticket.id ? { ...t, unread_count: 0 } : t));
+      }
+    } catch (e) { /* non-fatal */ }
     setTimeout(() => scrollToBottom(true), 50);
   };
 
