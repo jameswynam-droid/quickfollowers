@@ -174,9 +174,11 @@ export type Database = {
           created_at: string
           failure_reason: string | null
           id: string
+          interval_minutes: number | null
           link: string
           quantity: number
           remains: number | null
+          runs: number | null
           service_id: string
           start_count: number | null
           status: Database["public"]["Enums"]["order_status"]
@@ -189,9 +191,11 @@ export type Database = {
           created_at?: string
           failure_reason?: string | null
           id?: string
+          interval_minutes?: number | null
           link: string
           quantity: number
           remains?: number | null
+          runs?: number | null
           service_id: string
           start_count?: number | null
           status?: Database["public"]["Enums"]["order_status"]
@@ -204,9 +208,11 @@ export type Database = {
           created_at?: string
           failure_reason?: string | null
           id?: string
+          interval_minutes?: number | null
           link?: string
           quantity?: number
           remains?: number | null
+          runs?: number | null
           service_id?: string
           start_count?: number | null
           status?: Database["public"]["Enums"]["order_status"]
