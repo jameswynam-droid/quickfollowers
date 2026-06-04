@@ -374,7 +374,7 @@ const Services = () => {
     if (placingOrder) return;
 
     const isAuto = isAutoService(selectedService);
-    const isTrafficKw = isTrafficKeywordsService(selectedService);
+    const isTrafficExtra = needsTrafficExtraField(selectedService);
     const isIgAuto = isInstagramAutoService(selectedService);
 
     const body: Record<string, any> = { service_id: selectedService.id };
@@ -385,7 +385,7 @@ const Services = () => {
       const max = parseInt(autoMax);
       const posts = parseInt(autoPosts);
       const oldPosts = isIgAuto ? parseInt(autoOldPosts || "0") : 0;
-      const delay = parseInt(autoDelay);
+      const delay = autoDelay === "" ? 0 : parseInt(autoDelay);
 
       if (!username || !/^@?[a-zA-Z0-9._-]{2,}$/.test(username)) {
         toast.error("Please enter a valid username"); return;
@@ -399,7 +399,8 @@ const Services = () => {
       if (!Number.isInteger(posts) || posts < 0) { toast.error("Enter a valid number of new posts"); return; }
       if (isIgAuto && (!Number.isInteger(oldPosts) || oldPosts < 0)) { toast.error("Enter a valid number of old posts"); return; }
       if ((posts + oldPosts) <= 0) { toast.error("Enter at least one post (new or old)"); return; }
-      if (!Number.isInteger(delay) || delay < 0 || delay > 1440) { toast.error("Delay must be 0–1440 minutes"); return; }
+      if (!Number.isInteger(delay) || !delayOptions.includes(delay)) { toast.error("Please select a valid delay"); return; }
+      if (autoExpiry && autoExpiry < todayIso()) { toast.error("Expiry date cannot be in the past"); return; }
 
       body.username = username.replace(/^@/, '');
       body.min = min;
@@ -408,18 +409,19 @@ const Services = () => {
       if (isIgAuto) body.old_posts = oldPosts;
       body.delay = delay;
       if (autoExpiry) body.expiry = autoExpiry;
-    } else if (isTrafficKw) {
+    } else if (isTrafficExtra) {
       if (!orderLink || !isValidServiceLink(orderLink)) { toast.error("Please enter a valid link"); return; }
-      const kws = trafficKeywords.split('\n').map(k => k.trim()).filter(Boolean);
-      if (kws.length === 0) { toast.error("Enter at least one keyword"); return; }
       if (!orderQuantity) { toast.error("Please enter a quantity"); return; }
       const quantity = parseInt(orderQuantity);
       if (quantity < selectedService.min_order || quantity > selectedService.max_order) {
         toast.error(`Quantity must be between ${selectedService.min_order} and ${selectedService.max_order}`); return;
       }
+      const extraValues = trafficKeywords.split('\n').map(k => k.trim()).filter(Boolean);
+      if (extraValues.length === 0) { toast.error(`Enter at least one ${isHashtagService(selectedService) ? "hashtag" : "keyword"}`); return; }
       body.link = orderLink;
       body.quantity = quantity;
-      body.keywords = kws.join(',');
+      if (isHashtagService(selectedService)) body.hashtag = extraValues[0].replace(/^#/, '');
+      else body.keywords = extraValues.join('\n');
     } else {
       if (!orderLink || !orderQuantity) { toast.error("Please fill all required fields"); return; }
       if (!isValidServiceLink(orderLink)) { toast.error("Please enter a valid link or username"); return; }
