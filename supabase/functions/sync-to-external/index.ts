@@ -19,7 +19,7 @@ const TABLE_COLUMNS: Record<string, string> = {
   profiles: 'id, full_name, email, balance, username, created_at, updated_at',
   services: 'id, name, category, type, rate, min_order, max_order, description, provider, average_time, dripfeed, created_at, updated_at',
   user_roles: 'id, user_id, role, created_at',
-  orders: 'id, user_id, service_id, link, quantity, charge, status, api_order_id, start_count, remains, failure_reason, created_at, updated_at',
+  orders: 'id, user_id, service_id, link, quantity, charge, status, api_order_id, start_count, remains, failure_reason, runs, interval_minutes, comments, keywords, username, min, max, posts, old_posts, delay, expiry, created_at, updated_at',
   transactions: 'id, user_id, type, amount, balance_after, description, reference_id, payment_method, short_id, created_at',
   payments: 'id, user_id, amount, status, approved_by, approved_at, proof_url, bank_details, notes, created_at, updated_at',
   tickets: 'id, user_id, subject, status, priority, created_at, updated_at',
