@@ -1,0 +1,3 @@
+ALTER TABLE public.orders
+  ADD COLUMN IF NOT EXISTS runs INTEGER,
+  ADD COLUMN IF NOT EXISTS interval_minutes INTEGER;

@@ -27,6 +27,7 @@ interface Ticket {
   updated_at: string;
   user_email?: string;
   user_name?: string;
+  unread_count?: number;
 }
 
 interface TicketMessage {
@@ -106,6 +107,18 @@ const AdminTickets = () => {
     checkAuth();
   }, []);
 
+  // Realtime: refresh ticket list when a new user message arrives
+  useEffect(() => {
+    if (!isAdmin) return;
+    const channel = supabase
+      .channel('admin-tickets-unread')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'ticket_messages' }, (payload: any) => {
+        if (payload.new?.is_admin_reply === false) fetchTickets();
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [isAdmin]);
+
   const checkAuth = async () => {
     const { data: { session } } = await supabase.auth.getSession();
     
@@ -136,6 +149,9 @@ const AdminTickets = () => {
 
   const fetchTickets = async () => {
     try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const adminId = session?.user?.id;
+
       const { data: ticketsData, error: ticketsError } = await supabase
         .from("tickets")
         .select("*")
@@ -143,7 +159,24 @@ const AdminTickets = () => {
 
       if (ticketsError) throw ticketsError;
 
-      // Fetch user info for each ticket
+      const ticketIds = (ticketsData || []).map(t => t.id);
+
+      // Batch: admin's read timestamps + all user messages on these tickets
+      const [readsRes, msgsRes] = await Promise.all([
+        adminId
+          ? supabase.from("ticket_reads").select("ticket_id, last_read_at").eq("user_id", adminId).in("ticket_id", ticketIds)
+          : Promise.resolve({ data: [] as any[] }),
+        supabase.from("ticket_messages").select("ticket_id, created_at").eq("is_admin_reply", false).in("ticket_id", ticketIds),
+      ]);
+      const readMap = new Map((readsRes.data || []).map((r: any) => [r.ticket_id, r.last_read_at]));
+      const unreadByTicket = new Map<string, number>();
+      (msgsRes.data || []).forEach((m: any) => {
+        const lastRead = readMap.get(m.ticket_id);
+        if (!lastRead || m.created_at > lastRead) {
+          unreadByTicket.set(m.ticket_id, (unreadByTicket.get(m.ticket_id) || 0) + 1);
+        }
+      });
+
       const ticketsWithUsers = await Promise.all(
         (ticketsData || []).map(async (ticket) => {
           const { data: profile } = await supabase
@@ -151,11 +184,11 @@ const AdminTickets = () => {
             .select("email, full_name")
             .eq("id", ticket.user_id)
             .maybeSingle();
-          
           return {
             ...ticket,
             user_email: profile?.email || "Unknown",
-            user_name: profile?.full_name || null
+            user_name: profile?.full_name || null,
+            unread_count: unreadByTicket.get(ticket.id) || 0,
           };
         })
       );
@@ -274,6 +307,25 @@ const AdminTickets = () => {
     setSelectedTicket(ticket);
     isAtBottomRef.current = true;
     await fetchMessages(ticket.id);
+    // Mark ticket as read for the admin
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const adminId = session?.user?.id;
+      if (adminId) {
+        const { data: existing } = await supabase
+          .from("ticket_reads")
+          .select("id")
+          .eq("user_id", adminId)
+          .eq("ticket_id", ticket.id)
+          .maybeSingle();
+        if (existing) {
+          await supabase.from("ticket_reads").update({ last_read_at: new Date().toISOString() }).eq("id", existing.id);
+        } else {
+          await supabase.from("ticket_reads").insert({ user_id: adminId, ticket_id: ticket.id, last_read_at: new Date().toISOString() });
+        }
+        setTickets(prev => prev.map(t => t.id === ticket.id ? { ...t, unread_count: 0 } : t));
+      }
+    } catch (e) { /* non-fatal */ }
     setTimeout(() => scrollToBottom(true), 50);
   };
 
@@ -366,6 +418,11 @@ const AdminTickets = () => {
                     <Badge variant={getStatusColor(ticket.status)} className="capitalize shrink-0">
                       {ticket.status.replace('_', ' ')}
                     </Badge>
+                    {(ticket.unread_count ?? 0) > 0 && (
+                      <Badge variant="destructive" className="shrink-0 min-w-[1.5rem] h-6 px-1.5 flex items-center justify-center text-xs font-semibold">
+                        {ticket.unread_count}
+                      </Badge>
+                    )}
                   </div>
                 </CardContent>
               </Card>
