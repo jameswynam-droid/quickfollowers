@@ -1006,7 +1006,9 @@ const Services = () => {
                 placingOrder || !selectedService ||
                 (isAutoService(selectedService)
                   ? (!autoUsername || !autoMin || !autoMax || !autoPosts)
-                  : (!orderLink || !orderQuantity))
+                  : isFixedQuantityService(selectedService)
+                    ? !orderLink
+                    : (!orderLink || !orderQuantity))
               }
             >
               {placingOrder ? "Placing Order..." : "Submit Order"}
