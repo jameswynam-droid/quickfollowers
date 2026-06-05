@@ -94,18 +94,27 @@ const Services = () => {
     return txt.includes('tiktok') || txt.includes('tik tok');
   };
 
-  // Only TikTok/Instagram subscription services use the auto form.
+  // Auto-service detection: rely on provider type containing "subscription".
+  // This naturally excludes Telegram services like 7287 which use the regular link+quantity flow.
   const isAutoService = (service: OrganizedService | null): boolean => {
     if (!service) return false;
-    const t = (service.type || '').toLowerCase();
-    const n = service.name.toLowerCase();
-    const looksAuto = t.includes('subscription') || /\bauto\b/i.test(n);
-    return looksAuto && (isInstagramService(service) || isTikTokService(service));
+    return (service.type || '').toLowerCase().includes('subscription');
   };
-  const isInstagramAutoService = (service: OrganizedService | null): boolean => {
+  // Show Old posts for any auto-service except TikTok.
+  const hasOldPostsField = (service: OrganizedService | null): boolean => {
     if (!isAutoService(service)) return false;
-    return isInstagramService(service);
+    return !isTikTokService(service);
   };
+  const isInstagramAutoService = (service: OrganizedService | null): boolean => hasOldPostsField(service);
+
+  // Fixed-quantity package (e.g. Instagram Verified BlueTick Comments id 4379): min===max===1
+  // and the service is not a custom-comment one. Hide quantity, auto-send quantity = min.
+  const isFixedQuantityService = (service: OrganizedService | null): boolean => {
+    if (!service) return false;
+    if (isCustomCommentService(service)) return false;
+    return service.min_order === 1 && service.max_order === 1;
+  };
+
   const isHashtagService = (service: OrganizedService | null): boolean => {
     if (!service) return false;
     const blob = `${service.name} ${service.originalCategory} ${service.description || ''} ${service.type || ''}`.toLowerCase();
@@ -116,12 +125,16 @@ const Services = () => {
     const blob = `${service.name} ${service.originalCategory} ${service.description || ''} ${service.type || ''}`.toLowerCase();
     return /traffic/.test(blob) && /(keyword|seo)/.test(blob) && !isHashtagService(service);
   };
+  const isBrandSearchesService = (service: OrganizedService | null): boolean => {
+    if (!service) return false;
+    return service.originalCategory.toLowerCase().includes('brand searches');
+  };
   const needsTrafficExtraField = (service: OrganizedService | null): boolean =>
-    isHashtagService(service) || isTrafficKeywordsService(service);
+    isHashtagService(service) || isTrafficKeywordsService(service) || isBrandSearchesService(service);
 
   const todayIso = () => new Date().toISOString().slice(0, 10);
 
-  const delayOptions = [0, 5, 10, 15, 20, 30, 40, 50, 60, 90, 120, 150, 180, 210];
+  const delayOptions = [0, 5, 10, 15, 20, 30, 40, 50, 60, 90, 120, 150, 180, 210, 240, 270, 300, 360, 420, 480, 540, 600];
 
   const fetchUserBalance = async (userId: string) => {
     const { data: profile } = await supabase
@@ -417,11 +430,17 @@ const Services = () => {
         toast.error(`Quantity must be between ${selectedService.min_order} and ${selectedService.max_order}`); return;
       }
       const extraValues = trafficKeywords.split('\n').map(k => k.trim()).filter(Boolean);
-      if (extraValues.length === 0) { toast.error(`Enter at least one ${isHashtagService(selectedService) ? "hashtag" : "keyword"}`); return; }
+      const labelForExtra = isHashtagService(selectedService) ? "hashtag" : isBrandSearchesService(selectedService) ? "username" : "keyword";
+      if (extraValues.length === 0) { toast.error(`Enter at least one ${labelForExtra}`); return; }
       body.link = orderLink;
       body.quantity = quantity;
-      if (isHashtagService(selectedService)) body.hashtag = extraValues[0].replace(/^#/, '');
+      if (isHashtagService(selectedService)) body.hashtag = extraValues.map(h => h.replace(/^#/, '')).join('\n');
+      else if (isBrandSearchesService(selectedService)) body.usernames = extraValues.map(u => u.replace(/^@/, '')).join('\n');
       else body.keywords = extraValues.join('\n');
+    } else if (isFixedQuantityService(selectedService)) {
+      if (!orderLink || !isValidServiceLink(orderLink)) { toast.error("Please enter a valid link"); return; }
+      body.link = orderLink;
+      body.quantity = selectedService.min_order; // always 1 for these packages
     } else {
       if (!orderLink || !orderQuantity) { toast.error("Please fill all required fields"); return; }
       if (!isValidServiceLink(orderLink)) { toast.error("Please enter a valid link or username"); return; }
@@ -818,23 +837,39 @@ const Services = () => {
                   </div>
                 )}
 
-                {/* Keywords / hashtag for special traffic services */}
+                {/* Keywords / hashtag / brand-searches usernames for special traffic services */}
                 {needsTrafficExtraField(selectedService) && (
                   <div className="space-y-1.5">
-                    <Label className="text-sm font-medium">{isHashtagService(selectedService) ? "Hashtag" : "Keywords"} <span className="text-destructive">*</span></Label>
+                    <Label className="text-sm font-medium">
+                      {isHashtagService(selectedService)
+                        ? "Hashtags (1 per line)"
+                        : isBrandSearchesService(selectedService)
+                          ? "Usernames (1 per line)"
+                          : "Keywords (1 per line)"} <span className="text-destructive">*</span>
+                    </Label>
                     <Textarea
                       value={trafficKeywords}
                       onChange={(e) => setTrafficKeywords(e.target.value)}
-                      placeholder={isHashtagService(selectedService) ? "Enter one hashtag, for example: business" : `Enter keywords, one per line\nexample keyword 1\nexample keyword 2`}
+                      placeholder={isHashtagService(selectedService)
+                        ? "yourbrand+country\nanotherhashtag"
+                        : isBrandSearchesService(selectedService)
+                          ? "yourbrand\nyourbrand shop\nyourbrand agency"
+                          : "example keyword 1\nexample keyword 2"}
                       className="text-sm min-h-[90px]"
                       rows={4}
                     />
-                    <p className="text-xs text-muted-foreground">{isHashtagService(selectedService) ? "Use one hashtag without needing to add #." : "One keyword/phrase per line — visitors arrive via these search terms."}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {isHashtagService(selectedService)
+                        ? "Add one hashtag per line. No need to include the # symbol. Example: 'yourbrand+france' targets your brand in that country."
+                        : isBrandSearchesService(selectedService)
+                          ? "Add one brand name or username per line. Example: 'yourbrand', 'yourbrand shop', 'yourbrand agency'. Real people will search these terms in Google."
+                          : "One keyword/phrase per line — visitors arrive via these search terms."}
+                    </p>
                   </div>
                 )}
 
-                {/* Quantity */}
-                {!isCustomCommentService(selectedService) && (
+                {/* Quantity — hidden for custom comments and fixed-quantity packages */}
+                {!isCustomCommentService(selectedService) && !isFixedQuantityService(selectedService) && (
                   <div className="space-y-1.5">
                     <Label className="text-sm font-medium">Quantity</Label>
                     <Input
@@ -847,6 +882,13 @@ const Services = () => {
                       className="text-sm"
                     />
                   </div>
+                )}
+
+                {/* Fixed-quantity packages: show informational note instead of input */}
+                {isFixedQuantityService(selectedService) && (
+                  <p className="text-xs text-muted-foreground">
+                    This is a fixed package — quantity is set automatically by the service ({selectedService!.min_order}).
+                  </p>
                 )}
 
                 {/* Read-only quantity for custom comment */}
@@ -964,7 +1006,9 @@ const Services = () => {
                 placingOrder || !selectedService ||
                 (isAutoService(selectedService)
                   ? (!autoUsername || !autoMin || !autoMax || !autoPosts)
-                  : (!orderLink || !orderQuantity))
+                  : isFixedQuantityService(selectedService)
+                    ? !orderLink
+                    : (!orderLink || !orderQuantity))
               }
             >
               {placingOrder ? "Placing Order..." : "Submit Order"}

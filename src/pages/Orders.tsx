@@ -30,6 +30,10 @@ const Orders = () => {
 
   const filteredOrders = useMemo(() => {
     return orders.filter((order) => {
+      // Exclude failed, drip-feed (runs>1) and subscription (link starts with @) from main Orders list
+      if (order.status === 'failed') return false;
+      if (order.runs && order.runs > 1) return false;
+      if (typeof order.link === 'string' && order.link.startsWith('@')) return false;
       const matchesSearch = searchQuery === "" || 
         order.services?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         order.link?.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -85,7 +89,7 @@ const Orders = () => {
     try {
       const { data, error } = await supabase
         .from("orders")
-        .select("id, service_id, api_order_id, link, quantity, charge, status, remains, start_count, created_at, services(id, name, category)")
+        .select("id, service_id, api_order_id, link, quantity, charge, status, remains, start_count, runs, created_at, services(id, name, category)")
         .eq("user_id", userId)
         .order("created_at", { ascending: false });
       if (error) throw error;

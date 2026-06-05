@@ -13,9 +13,10 @@ interface OrderRequest {
   comments?: string;
   runs?: number;
   interval?: number;
-  // Website traffic keywords
+  // Website traffic keywords/hashtags/brand-search usernames (multiline)
   keywords?: string;
   hashtag?: string;
+  usernames?: string;
   // Auto-service (subscriptions)
   username?: string;
   min?: number;
@@ -45,16 +46,18 @@ const calculateMarkup = (rate: number, isPremium: boolean): number =>
 
 const detectAutoService = (service: any): boolean => {
   const t = (service.type || '').toLowerCase();
-  const n = (service.name || '').toLowerCase();
-  const blob = `${service.name || ''} ${service.category || ''}`.toLowerCase();
-  const isTargetPlatform = blob.includes('instagram') || blob.includes('tiktok') || blob.includes('tik tok');
-  return isTargetPlatform && (t.includes('subscription') || /\bauto\b/.test(n));
+  return t.includes('subscription');
 };
 
-const detectInstagramAuto = (service: any): boolean => {
+const detectTikTokAuto = (service: any): boolean => {
   if (!detectAutoService(service)) return false;
-  const blob = `${service.name} ${service.category}`.toLowerCase();
-  return blob.includes('instagram');
+  const blob = `${service.name || ''} ${service.category || ''}`.toLowerCase();
+  return blob.includes('tiktok') || blob.includes('tik tok');
+};
+
+const detectHasOldPosts = (service: any): boolean => {
+  // Old posts field is available for all auto-services except TikTok
+  return detectAutoService(service) && !detectTikTokAuto(service);
 };
 
 const detectTrafficKeywords = (service: any): boolean => {
@@ -65,6 +68,16 @@ const detectTrafficKeywords = (service: any): boolean => {
 const detectHashtagService = (service: any): boolean => {
   const blob = `${service.name} ${service.category} ${service.description || ''} ${service.type || ''}`.toLowerCase();
   return blob.includes('hashtag') || (blob.includes('traffic') && blob.includes('mentions hashtag'));
+};
+
+const detectBrandSearches = (service: any): boolean => {
+  return (service.category || '').toLowerCase().includes('brand searches');
+};
+
+const detectFixedQuantity = (service: any): boolean => {
+  if (Number(service.min_order) !== 1 || Number(service.max_order) !== 1) return false;
+  const t = (service.type || '').toLowerCase();
+  return !t.includes('custom') && !t.includes('subscription');
 };
 
 const toProviderExpiry = (expiry: string): string => {
@@ -104,7 +117,7 @@ Deno.serve(async (req) => {
     const body: OrderRequest = await req.json();
     const {
       service_id, link, quantity, comments, runs, interval,
-      keywords, hashtag, username, min, max, posts, old_posts, delay, expiry,
+      keywords, hashtag, usernames, username, min, max, posts, old_posts, delay, expiry,
     } = body;
 
     if (!service_id) throw new Error('Missing required fields');
@@ -123,9 +136,11 @@ Deno.serve(async (req) => {
     const isPerOne = service.min_order === 1 && service.max_order === 1;
 
     const isAuto = detectAutoService(service);
-    const isIgAuto = detectInstagramAuto(service);
+    const hasOldPosts = detectHasOldPosts(service);
     const isTraffic = detectTrafficKeywords(service);
     const isHashtag = detectHashtagService(service);
+    const isBrand = detectBrandSearches(service);
+    const isFixed = detectFixedQuantity(service);
 
     let charge = 0;
     let recordedQuantity = 0;
@@ -143,10 +158,10 @@ Deno.serve(async (req) => {
         throw new Error('Invalid min/max range');
       }
       if (!Number.isInteger(posts) || (posts as number) < 0) throw new Error('Invalid posts');
-      const op = isIgAuto && Number.isInteger(old_posts) ? (old_posts as number) : 0;
+      const op = hasOldPosts && Number.isInteger(old_posts) ? (old_posts as number) : 0;
       if (op < 0) throw new Error('Invalid old_posts');
       if (((posts as number) + op) <= 0) throw new Error('At least one post required');
-      const allowedDelays = [0, 5, 10, 15, 20, 30, 40, 50, 60, 90, 120, 150, 180, 210];
+      const allowedDelays = [0, 5, 10, 15, 20, 30, 40, 50, 60, 90, 120, 150, 180, 210, 240, 270, 300, 360, 420, 480, 540, 600];
       if (delay !== undefined && (!Number.isInteger(delay) || !allowedDelays.includes(delay as number))) throw new Error('Invalid delay');
       if (expiry) {
         if (!/^\d{4}-\d{2}-\d{2}$/.test(expiry)) throw new Error('Invalid expiry');
@@ -162,15 +177,16 @@ Deno.serve(async (req) => {
       orderPayload.min = min;
       orderPayload.max = max;
       orderPayload.posts = posts;
-      if (isIgAuto) orderPayload.old_posts = op;
+      if (hasOldPosts) orderPayload.old_posts = op;
       orderPayload.delay = delay ?? 0;
       if (expiry) orderPayload.expiry = toProviderExpiry(expiry);
-    } else if (isTraffic || isHashtag) {
+    } else if (isTraffic || isHashtag || isBrand) {
       if (!link || typeof link !== 'string' || !/^https?:\/\/.+/.test(link) || link.length > 500) throw new Error('Invalid link');
       if (!Number.isInteger(quantity) || (quantity as number) < 1) throw new Error('Invalid quantity');
       if ((quantity as number) < service.min_order || (quantity as number) > service.max_order) throw new Error('Quantity out of range');
       if (isTraffic && (!keywords || typeof keywords !== 'string' || !keywords.trim())) throw new Error('Keywords required');
       if (isHashtag && (!hashtag || typeof hashtag !== 'string' || !hashtag.trim())) throw new Error('Hashtag required');
+      if (isBrand && (!usernames || typeof usernames !== 'string' || !usernames.trim())) throw new Error('Usernames required');
 
       charge = parseFloat((isPerOne ? (quantity as number) * markedUpRate : ((quantity as number) * markedUpRate) / 1000).toFixed(2));
       recordedQuantity = quantity as number;
@@ -178,7 +194,15 @@ Deno.serve(async (req) => {
       orderPayload.link = link;
       orderPayload.quantity = quantity;
       if (isTraffic) orderPayload.keywords = keywords;
-      if (isHashtag) orderPayload.hashtag = hashtag.replace(/^#/, '');
+      if (isHashtag) orderPayload.hashtag = hashtag!.split('\n').map(h => h.trim().replace(/^#/, '')).filter(Boolean).join('\n');
+      if (isBrand) orderPayload.usernames = usernames!.split('\n').map(u => u.trim().replace(/^@/, '')).filter(Boolean).join('\n');
+    } else if (isFixed) {
+      if (!link || typeof link !== 'string') throw new Error('Invalid link');
+      const qty = service.min_order; // always 1 for these packages
+      charge = parseFloat((qty * markedUpRate).toFixed(2));
+      recordedQuantity = qty;
+      orderPayload.link = link;
+      orderPayload.quantity = qty;
     } else {
       if (!link || typeof link !== 'string') throw new Error('Invalid link');
       if (!Number.isInteger(quantity) || (quantity as number) < 1) throw new Error('Invalid quantity');
