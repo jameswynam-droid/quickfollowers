@@ -1,54 +1,78 @@
-All required secrets (R2_*, TURNSTILE_*) are saved. Execution will run in 7 waves so each is testable.
+## Plan
 
-## Wave 1 — Auto-service order form (in-flight bug fix)
-- Detect Auto services (`type` contains `subscription` or name contains `auto`) and Website Traffic with keywords (name/description contains `keyword`/`hashtag`).
-- Replace **Link** input with **Username** for Auto services; hide Quantity, show: New Posts, Old Posts (Instagram only), Min, Max, Delay (minutes), Expiry (date).
-- Show **Keywords** textarea (one per line) for Website Traffic.
-- Live charge preview: `((min+max)/2) × posts × markedUpRate / 1000` for Auto; standard formula for traffic.
-- Extend `place-order` edge function to accept `username, min, max, posts, old_posts, delay, expiry, keywords`. Switch provider `action` to `subscriptions` for Auto, keep `add` with `keywords` for traffic. Re-validate server-side.
+### 1) Fix subscription/auto-service ordering and billing
+- Change auto-services from normal instant-debit orders into a separate subscription flow.
+- Use the provider's documented `action: add` subscription fields: `username`, `min`, `max`, `posts`, optional `old_posts`, `delay`, `expiry` in `d/m/Y` format.
+- Do not create a normal negative transaction immediately for auto-services.
+- Add a reservation/hold system for subscriptions:
+  - On subscription creation, reserve the estimated maximum/average subscription budget from the user's available wallet balance so they cannot spend money that may be needed later.
+  - When detected post deliveries are confirmed from provider status/subscription data, convert the relevant reserved amount into actual charges with normal profit markup.
+  - If the subscription expires/cancels/completes with unused reservation, release the unused hold back to available balance.
+- Important limitation: if the provider itself owns the new-post detection, the only safe way to stop you paying out of pocket is to ensure the user has reserved wallet funds before the provider subscription can run. There is no reliable “provider detected a post but ask my site first before charging me” hook in the standard PerfectPanel API.
 
-## Wave 2 — Cloudflare R2 storage + URL hiding
-- Edge functions: `r2-upload` (signed PUT, size/type validation: images 10MB, videos 50MB, ticket attachments 5MB), `r2-view` (5-min signed GET), `r2-delete`.
-- Same-origin proxy route `r2-proxy` serving images so browsers see `quickfollowers.online/api/r2/<token>` instead of `*.r2.cloudflarestorage.com`.
-- New table `r2_assets(id, key, bucket_prefix, owner_id, kind, size, content_type, created_at, expires_at)` with strict RLS (owner-only) + GRANTs + service_role policy.
-- Daily `pg_cron` + `pg_net` job deletes ticket-kind assets older than 7 days from R2 and DB (scoped exception to the "no auto-cleanup" rule).
-- Frontend helper `src/lib/r2.ts` (upload + resolve-via-proxy).
-- Image protection on attachments in `Tickets.tsx` and `AdminTickets.tsx`: `onContextMenu={e => e.preventDefault()}`, `draggable={false}`, `user-select:none; -webkit-touch-callout:none`, served only through the proxy URL.
-- Migrate popup uploads, service icons, and new ticket attachments to flow through `r2-upload`. Existing Supabase `ticket-attachments` bucket kept read-only as legacy for 7 days, then retired.
+### 2) Correct auto-service form rules
+- TikTok auto-services: show `Username`, `New posts`, `Min per post`, `Max per post`, `Delay`, `Expiry`; no old-post box.
+- Instagram auto-services: show same fields plus `Old posts`, even when the service name does not explicitly say Instagram but the category/service data indicates it.
+- Telegram auto services:
+  - Only these should use subscription extra boxes: `Telegram Auto Reaction Mix Positive` and `Telegram Comment AI-Generated [Auto] [Comments Relevant to your Topic]` / service `7773`.
+  - Other Telegram auto services like `7287`/`7289` should remain normal link + quantity orders.
+- Extend delay dropdown to include: `240, 270, 300, 360, 420, 480, 540, 600` minutes.
+- Keep expiry date picker blocked from past dates on both frontend and backend.
 
-## Wave 3 — Blog / Help Center (20 articles, 4 categories)
-- Tables: `blog_categories`, `blog_articles`, `blog_article_images` (RLS: public read where `status='published'`; admin write; GRANTs for anon SELECT on published rows + authenticated/service_role).
-- Frontend routes `/help`, `/help/:category`, `/help/:category/:slug` with client-side fuse.js search, TOC, related articles, JSON-LD `Article` + `BreadcrumbList`.
-- Admin CMS at `/admin/blog` (create/edit, draft/publish, R2 image upload).
-- Seed 20 articles across **Getting Started**, **Platform Guides** (Instagram / TikTok / YouTube / Facebook / X / Telegram / Spotify), **Payments & Wallet**, **Troubleshooting & FAQs**. Hero + 3-6 inline images per article, generated with `imagegen` premium tier (ultra-realistic device mockups showing "where to find your Instagram profile link", "copy TikTok video URL", etc.).
-- Sitemap updated with `/help` and every published article.
+### 3) Fix special service fields
+- Instagram Verified Comments service `4379`: treat it as a package/default-one-comment service, not custom comments; hide quantity and send only the required link/service payload.
+- Website Traffic:
+  - Hashtag services: multiline textarea, one hashtag/phrase per line, send all lines instead of only the first.
+  - Brand Searches category: add a usernames/brand-name textarea (`1 per line`) as shown in the screenshot, while preserving link and quantity.
+  - Add the explanatory helper text from the screenshot for Brand Searches and hashtag/traffic inputs.
 
-## Wave 4 — Category landing pages
-- New file `src/data/categoryLandingData.ts` mapping each platform to followers/likes/views/comments/shares.
-- Routes `/services/:platform/:category` rendered by extending `PlatformLanding.tsx`.
-- JSON-LD `Service` + `BreadcrumbList`, OG image per category, all entries appended to sitemap.
+### 4) Separate normal orders, drip-feed, and subscriptions
+- Add order classification fields in the database, e.g. `order_kind = standard | drip_feed | subscription`, plus subscription-specific fields (`username`, min/max, posts, old_posts, delay, expiry, provider subscription id, progress counts) and drip-feed fields (`parent id`, runs, interval, run progress).
+- Update `place-order` to save the correct kind and metadata.
+- Update `/orders` to exclude `drip_feed`, `subscription`, and `failed` orders.
+- Create `/drip-feed` page matching the screenshot: parent/order ID, date, link, charge, quantity, service, runs progress, interval, total quantity, status.
+- Create `/subscriptions` page matching the screenshot: ID, username, quantity/min-max, new/old post progress, delay, service, status, created, updated, expiry, cancel action.
+- Show Drip Feed and Subscriptions links in desktop nav and mobile hamburger only after that user has at least one order of that kind.
+- Make both new tables/pages horizontally scrollable and stable on mobile, with no clipped menu items.
 
-## Wave 5 — Cloudflare Turnstile CAPTCHA
-- Frontend `<Turnstile>` widget (sitekey from `TURNSTILE_SITE_KEY` as `VITE_TURNSTILE_SITE_KEY` constant) on Auth (signup + login), OTP request form, password reset request.
-- New shared helper `verify-turnstile` (deno) calls `https://challenges.cloudflare.com/turnstile/v0/siteverify`.
-- Wire into `send-otp`, `reset-password`, and a new `verify-signup-captcha` guard called before `auth.signUp`. Reject with friendly error if invalid/expired.
+### 5) Remove or hide failed orders cleanly
+- Filter `failed` out of user-facing order history immediately.
+- Keep failed records internally for admin/support/audit, but do not show them in the normal user history.
+- Keep refund/idempotency protection intact so failed/cancelled refunds are not duplicated.
 
-## Wave 6 — Admin TOTP 2FA (mandatory, 7-day grace + recovery codes)
-- Supabase native MFA (`auth.mfa.enroll/challenge/verify` TOTP).
-- Table `admin_2fa_status(user_id, enrolled_at, grace_started_at, recovery_codes_hashed[])` (RLS: admin self-read/write).
-- `RequireAdmin` guard: redirects to `/admin/setup-2fa` if not enrolled, blocks `/admin` past 7-day grace.
-- Setup page: QR code, 6-digit verify, downloadable 10 backup codes (one-use, bcrypt-hashed).
-- Login flow: after password, if admin + enrolled, prompt for TOTP before granting `/admin`.
+### 6) Add saved ticket replies for admins
+- Add a `saved_ticket_replies` table with admin-only RLS and proper GRANTs.
+- Add a searchable saved-reply box in `AdminTickets.tsx` inside the reply area.
+- Include default order-related replies (order pending, partial/refund, wrong link, refill/drop, payment confirmation, delivery delay).
+- Allow admins to insert a saved reply into the message textarea, then edit before sending.
 
-## Wave 7 — Security scan + verification
-- Run Supabase linter, fix all warnings tied to new tables/functions.
-- Update `mem://` with: R2 storage, ticket 7-day auto-cleanup exception, blog/help-center, admin 2FA policy, Turnstile placements.
+### 7) Fix currency converter console errors
+- Update the CSP `connect-src` in `netlify.toml` to allow the currency endpoints currently used:
+  - `https://latest.currency-api.pages.dev`
+  - `https://*.currency-api.pages.dev`
+  - `https://ipapi.co`
+- Reduce console warnings for expected fallback behavior so users do not see noisy failed-rate messages when fallback rates are used.
 
-## Technical notes
-- All new public-schema tables include GRANTs in the same migration (per Lovable Cloud rule).
-- `R2_PUBLIC_HOSTNAME` is optional; if blank, fall back to signed-only proxy URLs.
-- Edge functions deploy automatically; new ones default to `verify_jwt = false` and validate JWTs in code where needed.
-- Frontend needs `VITE_TURNSTILE_SITE_KEY` constant (publishable) — will read from `import.meta.env` if exposed, otherwise hardcode the value the user pasted into the secret.
+### 8) Reduce provider/service ID exposure
+- Stop exposing raw provider-prefixed service IDs to the frontend/network by adding an internal public alias layer.
+- Add a backend-only mapping from public service aliases to real provider service IDs.
+- Frontend will receive aliases like `QF-000001` or numeric-looking public IDs only; provider names and original IDs stay server-side.
+- Update search, order placement, reorder, order history, and service dropdowns to use public aliases.
+- Update edge functions (`place-order`, `reorder`, sync/status functions as needed) to translate aliases server-side before calling provider APIs.
+- Note: fully hiding the fact that an external provider exists is not possible from every indirect clue, but raw provider names/IDs should no longer appear in normal frontend payloads, HTML, service options, or user/admin UI.
 
-## Order
-1 → 2 → 3 → 4 → 5 → 6 → 7. Each wave is a separate batch of edits so you can review/test between them.
+### 9) Staff-support access without exposing provider names
+- Add a simple staff/admin-support view inside this app first, because it is free and non-technical.
+- Staff view will show users, orders, tickets, transactions, and support context using masked service/order IDs only.
+- Keep provider names, provider API IDs, and internal service mappings hidden from non-owner staff.
+- Use role-based access (`admin` / later `support`) instead of giving staff backend/database access.
+- External syncing can remain a later phase if you choose a free destination, but the safest immediate free option is an in-app support dashboard.
+
+### 10) Verification
+- Test auto-service payloads for TikTok, Instagram, Telegram `6599`, Telegram `7773`, and Telegram `7287` behavior.
+- Test Instagram Verified Comments `4379` submits without quantity.
+- Test Brand Searches and multiline hashtags payloads.
+- Test normal orders, drip-feed, and subscriptions are separated correctly.
+- Test mobile and desktop navigation visibility after users have/ do not have drip-feed/subscription orders.
+- Test currency console errors are gone after CSP update.
+- Deploy updated backend functions after code and migration changes.
