@@ -30,6 +30,10 @@ const Orders = () => {
 
   const filteredOrders = useMemo(() => {
     return orders.filter((order) => {
+      // Exclude failed, drip-feed (runs>1) and subscription (link starts with @) from main Orders list
+      if (order.status === 'failed') return false;
+      if (order.runs && order.runs > 1) return false;
+      if (typeof order.link === 'string' && order.link.startsWith('@')) return false;
       const matchesSearch = searchQuery === "" || 
         order.services?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         order.link?.toLowerCase().includes(searchQuery.toLowerCase()) ||
