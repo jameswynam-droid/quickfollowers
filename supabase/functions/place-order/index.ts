@@ -13,9 +13,10 @@ interface OrderRequest {
   comments?: string;
   runs?: number;
   interval?: number;
-  // Website traffic keywords
+  // Website traffic keywords/hashtags/brand-search usernames (multiline)
   keywords?: string;
   hashtag?: string;
+  usernames?: string;
   // Auto-service (subscriptions)
   username?: string;
   min?: number;
