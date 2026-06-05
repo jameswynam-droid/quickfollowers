@@ -46,16 +46,18 @@ const calculateMarkup = (rate: number, isPremium: boolean): number =>
 
 const detectAutoService = (service: any): boolean => {
   const t = (service.type || '').toLowerCase();
-  const n = (service.name || '').toLowerCase();
-  const blob = `${service.name || ''} ${service.category || ''}`.toLowerCase();
-  const isTargetPlatform = blob.includes('instagram') || blob.includes('tiktok') || blob.includes('tik tok');
-  return isTargetPlatform && (t.includes('subscription') || /\bauto\b/.test(n));
+  return t.includes('subscription');
 };
 
-const detectInstagramAuto = (service: any): boolean => {
+const detectTikTokAuto = (service: any): boolean => {
   if (!detectAutoService(service)) return false;
-  const blob = `${service.name} ${service.category}`.toLowerCase();
-  return blob.includes('instagram');
+  const blob = `${service.name || ''} ${service.category || ''}`.toLowerCase();
+  return blob.includes('tiktok') || blob.includes('tik tok');
+};
+
+const detectHasOldPosts = (service: any): boolean => {
+  // Old posts field is available for all auto-services except TikTok
+  return detectAutoService(service) && !detectTikTokAuto(service);
 };
 
 const detectTrafficKeywords = (service: any): boolean => {
@@ -66,6 +68,16 @@ const detectTrafficKeywords = (service: any): boolean => {
 const detectHashtagService = (service: any): boolean => {
   const blob = `${service.name} ${service.category} ${service.description || ''} ${service.type || ''}`.toLowerCase();
   return blob.includes('hashtag') || (blob.includes('traffic') && blob.includes('mentions hashtag'));
+};
+
+const detectBrandSearches = (service: any): boolean => {
+  return (service.category || '').toLowerCase().includes('brand searches');
+};
+
+const detectFixedQuantity = (service: any): boolean => {
+  if (Number(service.min_order) !== 1 || Number(service.max_order) !== 1) return false;
+  const t = (service.type || '').toLowerCase();
+  return !t.includes('custom') && !t.includes('subscription');
 };
 
 const toProviderExpiry = (expiry: string): string => {
