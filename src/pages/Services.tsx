@@ -430,11 +430,17 @@ const Services = () => {
         toast.error(`Quantity must be between ${selectedService.min_order} and ${selectedService.max_order}`); return;
       }
       const extraValues = trafficKeywords.split('\n').map(k => k.trim()).filter(Boolean);
-      if (extraValues.length === 0) { toast.error(`Enter at least one ${isHashtagService(selectedService) ? "hashtag" : "keyword"}`); return; }
+      const labelForExtra = isHashtagService(selectedService) ? "hashtag" : isBrandSearchesService(selectedService) ? "username" : "keyword";
+      if (extraValues.length === 0) { toast.error(`Enter at least one ${labelForExtra}`); return; }
       body.link = orderLink;
       body.quantity = quantity;
-      if (isHashtagService(selectedService)) body.hashtag = extraValues[0].replace(/^#/, '');
+      if (isHashtagService(selectedService)) body.hashtag = extraValues.map(h => h.replace(/^#/, '')).join('\n');
+      else if (isBrandSearchesService(selectedService)) body.usernames = extraValues.map(u => u.replace(/^@/, '')).join('\n');
       else body.keywords = extraValues.join('\n');
+    } else if (isFixedQuantityService(selectedService)) {
+      if (!orderLink || !isValidServiceLink(orderLink)) { toast.error("Please enter a valid link"); return; }
+      body.link = orderLink;
+      body.quantity = selectedService.min_order; // always 1 for these packages
     } else {
       if (!orderLink || !orderQuantity) { toast.error("Please fill all required fields"); return; }
       if (!isValidServiceLink(orderLink)) { toast.error("Please enter a valid link or username"); return; }
