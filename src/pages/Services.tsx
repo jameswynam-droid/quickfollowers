@@ -94,18 +94,27 @@ const Services = () => {
     return txt.includes('tiktok') || txt.includes('tik tok');
   };
 
-  // Only TikTok/Instagram subscription services use the auto form.
+  // Auto-service detection: rely on provider type containing "subscription".
+  // This naturally excludes Telegram services like 7287 which use the regular link+quantity flow.
   const isAutoService = (service: OrganizedService | null): boolean => {
     if (!service) return false;
-    const t = (service.type || '').toLowerCase();
-    const n = service.name.toLowerCase();
-    const looksAuto = t.includes('subscription') || /\bauto\b/i.test(n);
-    return looksAuto && (isInstagramService(service) || isTikTokService(service));
+    return (service.type || '').toLowerCase().includes('subscription');
   };
-  const isInstagramAutoService = (service: OrganizedService | null): boolean => {
+  // Show Old posts for any auto-service except TikTok.
+  const hasOldPostsField = (service: OrganizedService | null): boolean => {
     if (!isAutoService(service)) return false;
-    return isInstagramService(service);
+    return !isTikTokService(service);
   };
+  const isInstagramAutoService = (service: OrganizedService | null): boolean => hasOldPostsField(service);
+
+  // Fixed-quantity package (e.g. Instagram Verified BlueTick Comments id 4379): min===max===1
+  // and the service is not a custom-comment one. Hide quantity, auto-send quantity = min.
+  const isFixedQuantityService = (service: OrganizedService | null): boolean => {
+    if (!service) return false;
+    if (isCustomCommentService(service)) return false;
+    return service.min_order === 1 && service.max_order === 1;
+  };
+
   const isHashtagService = (service: OrganizedService | null): boolean => {
     if (!service) return false;
     const blob = `${service.name} ${service.originalCategory} ${service.description || ''} ${service.type || ''}`.toLowerCase();
@@ -116,12 +125,16 @@ const Services = () => {
     const blob = `${service.name} ${service.originalCategory} ${service.description || ''} ${service.type || ''}`.toLowerCase();
     return /traffic/.test(blob) && /(keyword|seo)/.test(blob) && !isHashtagService(service);
   };
+  const isBrandSearchesService = (service: OrganizedService | null): boolean => {
+    if (!service) return false;
+    return service.originalCategory.toLowerCase().includes('brand searches');
+  };
   const needsTrafficExtraField = (service: OrganizedService | null): boolean =>
-    isHashtagService(service) || isTrafficKeywordsService(service);
+    isHashtagService(service) || isTrafficKeywordsService(service) || isBrandSearchesService(service);
 
   const todayIso = () => new Date().toISOString().slice(0, 10);
 
-  const delayOptions = [0, 5, 10, 15, 20, 30, 40, 50, 60, 90, 120, 150, 180, 210];
+  const delayOptions = [0, 5, 10, 15, 20, 30, 40, 50, 60, 90, 120, 150, 180, 210, 240, 270, 300, 360, 420, 480, 540, 600];
 
   const fetchUserBalance = async (userId: string) => {
     const { data: profile } = await supabase
