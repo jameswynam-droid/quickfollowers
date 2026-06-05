@@ -837,23 +837,39 @@ const Services = () => {
                   </div>
                 )}
 
-                {/* Keywords / hashtag for special traffic services */}
+                {/* Keywords / hashtag / brand-searches usernames for special traffic services */}
                 {needsTrafficExtraField(selectedService) && (
                   <div className="space-y-1.5">
-                    <Label className="text-sm font-medium">{isHashtagService(selectedService) ? "Hashtag" : "Keywords"} <span className="text-destructive">*</span></Label>
+                    <Label className="text-sm font-medium">
+                      {isHashtagService(selectedService)
+                        ? "Hashtags (1 per line)"
+                        : isBrandSearchesService(selectedService)
+                          ? "Usernames (1 per line)"
+                          : "Keywords (1 per line)"} <span className="text-destructive">*</span>
+                    </Label>
                     <Textarea
                       value={trafficKeywords}
                       onChange={(e) => setTrafficKeywords(e.target.value)}
-                      placeholder={isHashtagService(selectedService) ? "Enter one hashtag, for example: business" : `Enter keywords, one per line\nexample keyword 1\nexample keyword 2`}
+                      placeholder={isHashtagService(selectedService)
+                        ? "yourbrand+country\nanotherhashtag"
+                        : isBrandSearchesService(selectedService)
+                          ? "yourbrand\nyourbrand shop\nyourbrand agency"
+                          : "example keyword 1\nexample keyword 2"}
                       className="text-sm min-h-[90px]"
                       rows={4}
                     />
-                    <p className="text-xs text-muted-foreground">{isHashtagService(selectedService) ? "Use one hashtag without needing to add #." : "One keyword/phrase per line — visitors arrive via these search terms."}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {isHashtagService(selectedService)
+                        ? "Add one hashtag per line. No need to include the # symbol. Example: 'yourbrand+france' targets your brand in that country."
+                        : isBrandSearchesService(selectedService)
+                          ? "Add one brand name or username per line. Example: 'yourbrand', 'yourbrand shop', 'yourbrand agency'. Real people will search these terms in Google."
+                          : "One keyword/phrase per line — visitors arrive via these search terms."}
+                    </p>
                   </div>
                 )}
 
-                {/* Quantity */}
-                {!isCustomCommentService(selectedService) && (
+                {/* Quantity — hidden for custom comments and fixed-quantity packages */}
+                {!isCustomCommentService(selectedService) && !isFixedQuantityService(selectedService) && (
                   <div className="space-y-1.5">
                     <Label className="text-sm font-medium">Quantity</Label>
                     <Input
@@ -866,6 +882,13 @@ const Services = () => {
                       className="text-sm"
                     />
                   </div>
+                )}
+
+                {/* Fixed-quantity packages: show informational note instead of input */}
+                {isFixedQuantityService(selectedService) && (
+                  <p className="text-xs text-muted-foreground">
+                    This is a fixed package — quantity is set automatically by the service ({selectedService!.min_order}).
+                  </p>
                 )}
 
                 {/* Read-only quantity for custom comment */}
