@@ -1008,10 +1008,11 @@ const Services = () => {
               <div className="p-3 sm:p-4 bg-primary/10 border border-primary/20 rounded-lg space-y-1.5">
                 <div className="flex justify-between items-center text-sm sm:text-base">
                   <span className="font-medium">Estimated cost per cycle</span>
-                  <span className="font-bold text-lg text-primary">{formatPrice(charge)}</span>
+                  <span className="font-medium">Reserved from balance</span>
                 </div>
                 <p className="text-xs text-foreground">
-                  You are <span className="font-semibold">not charged now</span>. Each time a new post is detected on your account, the average cost for that post is debited from your balance automatically. If your balance is too low when a post is detected, that post is skipped — so keep your wallet funded.
+                  When you place this subscription, the <span className="font-semibold">maximum possible cost</span> (max × posts) is reserved from your balance so it cannot be spent elsewhere. You are only actually charged each time a new post is detected and delivered — any unused reservation is released back to your balance when the subscription ends.
+
                 </p>
               </div>
             )}
