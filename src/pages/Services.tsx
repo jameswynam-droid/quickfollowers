@@ -1007,15 +1007,15 @@ const Services = () => {
             {charge > 0 && isAutoService(selectedService) && (
               <div className="p-3 sm:p-4 bg-primary/10 border border-primary/20 rounded-lg space-y-1.5">
                 <div className="flex justify-between items-center text-sm sm:text-base">
-                  <span className="font-medium">Estimated cost per cycle</span>
-                  <span className="font-medium">Reserved from balance</span>
+                  <span className="font-medium">Estimated max charge</span>
+                  <span className="font-bold text-lg text-primary">{formatPrice(charge)}</span>
                 </div>
                 <p className="text-xs text-foreground">
                   When you place this subscription, the <span className="font-semibold">maximum possible cost</span> (max × posts) is reserved from your balance so it cannot be spent elsewhere. You are only actually charged each time a new post is detected and delivered — any unused reservation is released back to your balance when the subscription ends.
-
                 </p>
               </div>
             )}
+
             {charge > 0 && !isAutoService(selectedService) && (
               <div className="p-3 sm:p-4 bg-primary/10 border border-primary/20 rounded-lg">
                 <div className="flex justify-between items-center text-sm sm:text-base">
