@@ -94,25 +94,68 @@ const Services = () => {
     return txt.includes('tiktok') || txt.includes('tik tok');
   };
 
-  // Auto-service detection: rely on provider type containing "subscription".
-  // This naturally excludes Telegram services like 7287 which use the regular link+quantity flow.
+  // Auto-service classifier
+  // The provider's `type` may say "subscription" for many services that the user does NOT want
+  // treated as subscriptions (auto members, auto followers, "Future Posts" services, "By Post Count" services, etc.)
+  // We narrow that down with a precise rule matrix.
+  const isTelegramService = (service: OrganizedService | null): boolean => {
+    if (!service) return false;
+    return `${service.name} ${service.originalCategory}`.toLowerCase().includes('telegram');
+  };
+
+  const isAutoMembersOrFollowers = (service: OrganizedService | null): boolean => {
+    if (!service) return false;
+    const blob = `${service.name} ${service.originalCategory}`.toLowerCase();
+    return /auto\s*(members?|followers?|subscribers?)/.test(blob);
+  };
+
   const isAutoService = (service: OrganizedService | null): boolean => {
     if (!service) return false;
-    return (service.type || '').toLowerCase().includes('subscription');
+    const typeLower = (service.type || '').toLowerCase();
+    if (!typeLower.includes('subscription')) return false;
+    // Auto members / followers / subscribers never need subscription boxes
+    if (isAutoMembersOrFollowers(service)) return false;
+    const blob = `${service.name} ${service.originalCategory}`.toLowerCase();
+    const provider = (service as any).provider || '';
+    const sid = (service.id || '').toString().split('-')[1] || service.id;
+
+    // Service-specific overrides
+    if (sid === '7287') return false;            // standard
+    if (sid === '7289' || sid === '6599' || sid === '7773') return true; // subscription
+
+    if (isTelegramService(service)) {
+      if (provider === 'owlet') {
+        // Only "Reaction" or AI-comments services get subscription boxes
+        return blob.includes('reaction') || blob.includes('ai-generated') || blob.includes('ai generated');
+      }
+      // SmmFollows Telegram auto
+      if (blob.includes('future post')) return false;
+      if (blob.includes('by post count')) return false;
+      // Generic auto views/reactions on SmmFollows → subscription
+      return blob.includes('auto');
+    }
+    // TikTok / Instagram / others with subscription type
+    return true;
   };
-  // Show Old posts for any auto-service except TikTok.
+
+  // Show Old posts for any auto-service except TikTok and service 7287/specific exclusions.
+  // Service 7289 forces both new + old posts.
   const hasOldPostsField = (service: OrganizedService | null): boolean => {
     if (!isAutoService(service)) return false;
-    return !isTikTokService(service);
+    const sid = (service?.id || '').toString().split('-')[1] || service?.id;
+    if (sid === '7289') return true;
+    if (isTikTokService(service)) return false;
+    return true;
   };
   const isInstagramAutoService = (service: OrganizedService | null): boolean => hasOldPostsField(service);
 
-  // Fixed-quantity package (e.g. Instagram Verified BlueTick Comments id 4379): min===max===1
-  // and the service is not a custom-comment one. Hide quantity, auto-send quantity = min.
+  // Fixed-quantity package (e.g. Instagram Verified BlueTick Comments id 4379, per-1/per-2/etc):
+  // min === max and not a custom-comment service. Hide quantity, auto-send quantity = min_order.
   const isFixedQuantityService = (service: OrganizedService | null): boolean => {
     if (!service) return false;
     if (isCustomCommentService(service)) return false;
-    return service.min_order === 1 && service.max_order === 1;
+    if (isAutoService(service)) return false;
+    return service.min_order === service.max_order && service.min_order >= 1;
   };
 
   const isHashtagService = (service: OrganizedService | null): boolean => {
@@ -131,6 +174,7 @@ const Services = () => {
   };
   const needsTrafficExtraField = (service: OrganizedService | null): boolean =>
     isHashtagService(service) || isTrafficKeywordsService(service) || isBrandSearchesService(service);
+
 
   const todayIso = () => new Date().toISOString().slice(0, 10);
 
