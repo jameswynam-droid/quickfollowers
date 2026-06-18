@@ -481,14 +481,15 @@ const Services = () => {
       if (quantity < selectedService.min_order || quantity > selectedService.max_order) {
         toast.error(`Quantity must be between ${selectedService.min_order} and ${selectedService.max_order}`); return;
       }
-      const extraValues = trafficKeywords.split('\n').map(k => k.trim()).filter(Boolean);
+      const extra = trafficKeywords.trim();
       const labelForExtra = isHashtagService(selectedService) ? "hashtag" : isBrandSearchesService(selectedService) ? "username" : "keyword";
-      if (extraValues.length === 0) { toast.error(`Enter at least one ${labelForExtra}`); return; }
+      if (!extra) { toast.error(`Enter a ${labelForExtra}`); return; }
       body.link = orderLink;
       body.quantity = quantity;
-      if (isHashtagService(selectedService)) body.hashtag = extraValues.map(h => h.replace(/^#/, '')).join('\n');
-      else if (isBrandSearchesService(selectedService)) body.usernames = extraValues.map(u => u.replace(/^@/, '')).join('\n');
-      else body.keywords = extraValues.join('\n');
+      if (isHashtagService(selectedService)) body.hashtag = extra.replace(/^#/, '');
+      else if (isBrandSearchesService(selectedService)) body.usernames = extra.replace(/^@/, '');
+      else body.keywords = extra;
+
     } else if (isFixedQuantityService(selectedService)) {
       if (!orderLink || !isValidServiceLink(orderLink)) { toast.error("Please enter a valid link"); return; }
       body.link = orderLink;
