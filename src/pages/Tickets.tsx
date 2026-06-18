@@ -101,9 +101,14 @@ const Tickets = () => {
             if (prev.some((p) => p.id === m.id)) return prev;
             return [...prev, { ...m, attachment_view_url: view }];
           });
+          // If admin replied while user has this ticket open, immediately mark as read
+          if (m.is_admin_reply) {
+            await markTicketAsRead(selectedTicket.id);
+          }
         }
       )
       .subscribe();
+
     return () => { supabase.removeChannel(channel); };
   }, [selectedTicket?.id]);
 

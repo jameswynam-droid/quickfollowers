@@ -107,17 +107,39 @@ const AdminTickets = () => {
     checkAuth();
   }, []);
 
-  // Realtime: refresh ticket list when a new user message arrives
+  // Realtime: refresh ticket list AND fire browser notification when a new user message arrives
   useEffect(() => {
     if (!isAdmin) return;
+    // Request permission once
+    if (typeof Notification !== "undefined" && Notification.permission === "default") {
+      Notification.requestPermission().catch(() => {});
+    }
     const channel = supabase
       .channel('admin-tickets-unread')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'ticket_messages' }, (payload: any) => {
-        if (payload.new?.is_admin_reply === false) fetchTickets();
+        if (payload.new?.is_admin_reply === false) {
+          fetchTickets();
+          // Fire browser notification (skip if this user is the message sender)
+          try {
+            if (
+              typeof Notification !== "undefined" &&
+              Notification.permission === "granted" &&
+              payload.new?.user_id !== user?.id
+            ) {
+              const n = new Notification("New support message", {
+                body: (payload.new?.message || "").slice(0, 140) || "A user replied to a ticket.",
+                icon: "/favicon.ico",
+                tag: `ticket-${payload.new?.ticket_id}`,
+              });
+              n.onclick = () => { window.focus(); n.close(); };
+            }
+          } catch {}
+        }
       })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, [isAdmin]);
+  }, [isAdmin, user?.id]);
+
 
   const checkAuth = async () => {
     const { data: { session } } = await supabase.auth.getSession();

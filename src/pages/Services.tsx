@@ -94,25 +94,68 @@ const Services = () => {
     return txt.includes('tiktok') || txt.includes('tik tok');
   };
 
-  // Auto-service detection: rely on provider type containing "subscription".
-  // This naturally excludes Telegram services like 7287 which use the regular link+quantity flow.
+  // Auto-service classifier
+  // The provider's `type` may say "subscription" for many services that the user does NOT want
+  // treated as subscriptions (auto members, auto followers, "Future Posts" services, "By Post Count" services, etc.)
+  // We narrow that down with a precise rule matrix.
+  const isTelegramService = (service: OrganizedService | null): boolean => {
+    if (!service) return false;
+    return `${service.name} ${service.originalCategory}`.toLowerCase().includes('telegram');
+  };
+
+  const isAutoMembersOrFollowers = (service: OrganizedService | null): boolean => {
+    if (!service) return false;
+    const blob = `${service.name} ${service.originalCategory}`.toLowerCase();
+    return /auto\s*(members?|followers?|subscribers?)/.test(blob);
+  };
+
   const isAutoService = (service: OrganizedService | null): boolean => {
     if (!service) return false;
-    return (service.type || '').toLowerCase().includes('subscription');
+    const typeLower = (service.type || '').toLowerCase();
+    if (!typeLower.includes('subscription')) return false;
+    // Auto members / followers / subscribers never need subscription boxes
+    if (isAutoMembersOrFollowers(service)) return false;
+    const blob = `${service.name} ${service.originalCategory}`.toLowerCase();
+    const provider = (service as any).provider || '';
+    const sid = (service.id || '').toString().split('-')[1] || service.id;
+
+    // Service-specific overrides
+    if (sid === '7287') return false;            // standard
+    if (sid === '7289' || sid === '6599' || sid === '7773') return true; // subscription
+
+    if (isTelegramService(service)) {
+      if (provider === 'owlet') {
+        // Only "Reaction" or AI-comments services get subscription boxes
+        return blob.includes('reaction') || blob.includes('ai-generated') || blob.includes('ai generated');
+      }
+      // SmmFollows Telegram auto
+      if (blob.includes('future post')) return false;
+      if (blob.includes('by post count')) return false;
+      // Generic auto views/reactions on SmmFollows → subscription
+      return blob.includes('auto');
+    }
+    // TikTok / Instagram / others with subscription type
+    return true;
   };
-  // Show Old posts for any auto-service except TikTok.
+
+  // Show Old posts for any auto-service except TikTok and service 7287/specific exclusions.
+  // Service 7289 forces both new + old posts.
   const hasOldPostsField = (service: OrganizedService | null): boolean => {
     if (!isAutoService(service)) return false;
-    return !isTikTokService(service);
+    const sid = (service?.id || '').toString().split('-')[1] || service?.id;
+    if (sid === '7289') return true;
+    if (isTikTokService(service)) return false;
+    return true;
   };
   const isInstagramAutoService = (service: OrganizedService | null): boolean => hasOldPostsField(service);
 
-  // Fixed-quantity package (e.g. Instagram Verified BlueTick Comments id 4379): min===max===1
-  // and the service is not a custom-comment one. Hide quantity, auto-send quantity = min.
+  // Fixed-quantity package (e.g. Instagram Verified BlueTick Comments id 4379, per-1/per-2/etc):
+  // min === max and not a custom-comment service. Hide quantity, auto-send quantity = min_order.
   const isFixedQuantityService = (service: OrganizedService | null): boolean => {
     if (!service) return false;
     if (isCustomCommentService(service)) return false;
-    return service.min_order === 1 && service.max_order === 1;
+    if (isAutoService(service)) return false;
+    return service.min_order === service.max_order && service.min_order >= 1;
   };
 
   const isHashtagService = (service: OrganizedService | null): boolean => {
@@ -131,6 +174,7 @@ const Services = () => {
   };
   const needsTrafficExtraField = (service: OrganizedService | null): boolean =>
     isHashtagService(service) || isTrafficKeywordsService(service) || isBrandSearchesService(service);
+
 
   const todayIso = () => new Date().toISOString().slice(0, 10);
 
@@ -321,16 +365,23 @@ const Services = () => {
     if (!selectedService) return 0;
     const rate = selectedService.markedUpRate;
     const isPerOne = selectedService.min_order === 1 && selectedService.max_order === 1;
+    const isFixedPerN = selectedService.min_order === selectedService.max_order && selectedService.min_order >= 1;
 
     if (isAutoService(selectedService)) {
       const min = parseInt(autoMin) || 0;
       const max = parseInt(autoMax) || 0;
       const posts = parseInt(autoPosts) || 0;
-      const oldPosts = isInstagramAutoService(selectedService) ? (parseInt(autoOldPosts) || 0) : 0;
+      const oldPosts = hasOldPostsField(selectedService) ? (parseInt(autoOldPosts) || 0) : 0;
       if (min <= 0 || max <= 0 || max < min || (posts + oldPosts) <= 0) return 0;
       const avg = (min + max) / 2;
       const totalUnits = avg * (posts + oldPosts);
       return isPerOne ? totalUnits * rate : (totalUnits / 1000) * rate;
+    }
+
+    // Fixed-quantity packages (per-1, per-2, etc): charge = min_order * rate (or /1000 if rate is per-1000)
+    if (isFixedQuantityService(selectedService)) {
+      const qty = selectedService.min_order;
+      return isPerOne || isFixedPerN ? qty * rate : (qty / 1000) * rate;
     }
 
     if (!orderQuantity) return 0;
@@ -339,6 +390,7 @@ const Services = () => {
     const totalQty = qty * runs;
     return isPerOne ? totalQty * rate : (totalQty / 1000) * rate;
   }, [selectedService, orderQuantity, dripFeedEnabled, dripFeedRuns, autoMin, autoMax, autoPosts, autoOldPosts]);
+
 
   const getFriendlyErrorMessage = (error: string): string => {
     if (error === 'USER_INSUFFICIENT_BALANCE') return "Insufficient balance. Please add funds.";
@@ -429,14 +481,15 @@ const Services = () => {
       if (quantity < selectedService.min_order || quantity > selectedService.max_order) {
         toast.error(`Quantity must be between ${selectedService.min_order} and ${selectedService.max_order}`); return;
       }
-      const extraValues = trafficKeywords.split('\n').map(k => k.trim()).filter(Boolean);
+      const extra = trafficKeywords.trim();
       const labelForExtra = isHashtagService(selectedService) ? "hashtag" : isBrandSearchesService(selectedService) ? "username" : "keyword";
-      if (extraValues.length === 0) { toast.error(`Enter at least one ${labelForExtra}`); return; }
+      if (!extra) { toast.error(`Enter a ${labelForExtra}`); return; }
       body.link = orderLink;
       body.quantity = quantity;
-      if (isHashtagService(selectedService)) body.hashtag = extraValues.map(h => h.replace(/^#/, '')).join('\n');
-      else if (isBrandSearchesService(selectedService)) body.usernames = extraValues.map(u => u.replace(/^@/, '')).join('\n');
-      else body.keywords = extraValues.join('\n');
+      if (isHashtagService(selectedService)) body.hashtag = extra.replace(/^#/, '');
+      else if (isBrandSearchesService(selectedService)) body.usernames = extra.replace(/^@/, '');
+      else body.keywords = extra;
+
     } else if (isFixedQuantityService(selectedService)) {
       if (!orderLink || !isValidServiceLink(orderLink)) { toast.error("Please enter a valid link"); return; }
       body.link = orderLink;
@@ -837,36 +890,37 @@ const Services = () => {
                   </div>
                 )}
 
-                {/* Keywords / hashtag / brand-searches usernames for special traffic services */}
+                {/* Keywords / hashtag / brand-searches usernames for special traffic services (single line) */}
                 {needsTrafficExtraField(selectedService) && (
                   <div className="space-y-1.5">
                     <Label className="text-sm font-medium">
                       {isHashtagService(selectedService)
-                        ? "Hashtags (1 per line)"
+                        ? "Hashtag"
                         : isBrandSearchesService(selectedService)
-                          ? "Usernames (1 per line)"
-                          : "Keywords (1 per line)"} <span className="text-destructive">*</span>
+                          ? "Username / Brand"
+                          : "Keyword"} <span className="text-destructive">*</span>
                     </Label>
-                    <Textarea
+                    <Input
                       value={trafficKeywords}
-                      onChange={(e) => setTrafficKeywords(e.target.value)}
+                      onChange={(e) => setTrafficKeywords(e.target.value.replace(/\n/g, ' '))}
                       placeholder={isHashtagService(selectedService)
-                        ? "yourbrand+country\nanotherhashtag"
+                        ? "yourbrand+country"
                         : isBrandSearchesService(selectedService)
-                          ? "yourbrand\nyourbrand shop\nyourbrand agency"
-                          : "example keyword 1\nexample keyword 2"}
-                      className="text-sm min-h-[90px]"
-                      rows={4}
+                          ? "yourbrand"
+                          : "example keyword"}
+                      className="text-sm"
                     />
                     <p className="text-xs text-muted-foreground">
                       {isHashtagService(selectedService)
-                        ? "Add one hashtag per line. No need to include the # symbol. Example: 'yourbrand+france' targets your brand in that country."
+                        ? "Enter a single hashtag. No need to include the # symbol. Example: 'yourbrand+france' targets your brand in that country."
                         : isBrandSearchesService(selectedService)
-                          ? "Add one brand name or username per line. Example: 'yourbrand', 'yourbrand shop', 'yourbrand agency'. Real people will search these terms in Google."
-                          : "One keyword/phrase per line — visitors arrive via these search terms."}
+                          ? "Enter a single brand or username. Example: 'yourbrand'. Real people will search this term in Google."
+                          : "A single keyword/phrase — visitors arrive via this search term."}
                     </p>
                   </div>
                 )}
+
+
 
                 {/* Quantity — hidden for custom comments and fixed-quantity packages */}
                 {!isCustomCommentService(selectedService) && !isFixedQuantityService(selectedService) && (
@@ -953,14 +1007,15 @@ const Services = () => {
             {charge > 0 && isAutoService(selectedService) && (
               <div className="p-3 sm:p-4 bg-primary/10 border border-primary/20 rounded-lg space-y-1.5">
                 <div className="flex justify-between items-center text-sm sm:text-base">
-                  <span className="font-medium">Estimated cost per cycle</span>
+                  <span className="font-medium">Estimated max charge</span>
                   <span className="font-bold text-lg text-primary">{formatPrice(charge)}</span>
                 </div>
                 <p className="text-xs text-foreground">
-                  You are <span className="font-semibold">not charged now</span>. Each time a new post is detected on your account, the average cost for that post is debited from your balance automatically. If your balance is too low when a post is detected, that post is skipped — so keep your wallet funded.
+                  When you place this subscription, the <span className="font-semibold">maximum possible cost</span> (max × posts) is reserved from your balance so it cannot be spent elsewhere. You are only actually charged each time a new post is detected and delivered — any unused reservation is released back to your balance when the subscription ends.
                 </p>
               </div>
             )}
+
             {charge > 0 && !isAutoService(selectedService) && (
               <div className="p-3 sm:p-4 bg-primary/10 border border-primary/20 rounded-lg">
                 <div className="flex justify-between items-center text-sm sm:text-base">
@@ -984,7 +1039,7 @@ const Services = () => {
                   <li><span className="font-medium">Delay</span> — wait time (in minutes) after a new post is detected before delivery starts.</li>
                   <li><span className="font-medium">Expiry</span> — optional date when the subscription auto-stops.</li>
                 </ul>
-                <p className="pt-1"><span className="font-semibold">Billing:</span> automatic per detected post. Insufficient balance = post skipped. Account must stay public.</p>
+                <p className="pt-1"><span className="font-semibold">Billing:</span> the max possible cost is reserved up-front. Real charges happen per detected post. Unused reservation is released when the subscription ends. Account must stay public.</p>
               </div>
             )}
 

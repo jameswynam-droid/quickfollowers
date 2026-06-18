@@ -7,24 +7,21 @@ const corsHeaders = {
 
 interface OrderRequest {
   service_id: string;
-  // Standard
   link?: string;
   quantity?: number;
   comments?: string;
   runs?: number;
   interval?: number;
-  // Website traffic keywords/hashtags/brand-search usernames (multiline)
   keywords?: string;
   hashtag?: string;
   usernames?: string;
-  // Auto-service (subscriptions)
   username?: string;
   min?: number;
   max?: number;
   posts?: number;
   old_posts?: number;
   delay?: number;
-  expiry?: string; // YYYY-MM-DD from frontend date picker
+  expiry?: string;
 }
 
 const MARKUP_RATES = { standard: 0.10, premium: 0.15 };
@@ -44,20 +41,42 @@ const isPremiumService = (name: string, category: string): boolean => {
 const calculateMarkup = (rate: number, isPremium: boolean): number =>
   rate * (1 + (isPremium ? MARKUP_RATES.premium : MARKUP_RATES.standard));
 
+// ---- Classifier (mirror of frontend) ----
+const isTelegram = (s: any) => `${s.name} ${s.category}`.toLowerCase().includes('telegram');
+const isTikTokSvc = (s: any) => {
+  const b = `${s.name} ${s.category}`.toLowerCase();
+  return b.includes('tiktok') || b.includes('tik tok');
+};
+const isAutoMembers = (s: any) => /auto\s*(members?|followers?|subscribers?)/.test(`${s.name} ${s.category}`.toLowerCase());
+
 const detectAutoService = (service: any): boolean => {
   const t = (service.type || '').toLowerCase();
-  return t.includes('subscription');
-};
+  if (!t.includes('subscription')) return false;
+  if (isAutoMembers(service)) return false;
+  const blob = `${service.name} ${service.category}`.toLowerCase();
+  const provider = service.provider || '';
+  const rawSid = (service.id || '').toString().split('-')[1] || service.id?.toString() || '';
 
-const detectTikTokAuto = (service: any): boolean => {
-  if (!detectAutoService(service)) return false;
-  const blob = `${service.name || ''} ${service.category || ''}`.toLowerCase();
-  return blob.includes('tiktok') || blob.includes('tik tok');
+  if (rawSid === '7287') return false;
+  if (rawSid === '7289' || rawSid === '6599' || rawSid === '7773') return true;
+
+  if (isTelegram(service)) {
+    if (provider === 'owlet') {
+      return blob.includes('reaction') || blob.includes('ai-generated') || blob.includes('ai generated');
+    }
+    if (blob.includes('future post')) return false;
+    if (blob.includes('by post count')) return false;
+    return blob.includes('auto');
+  }
+  return true;
 };
 
 const detectHasOldPosts = (service: any): boolean => {
-  // Old posts field is available for all auto-services except TikTok
-  return detectAutoService(service) && !detectTikTokAuto(service);
+  if (!detectAutoService(service)) return false;
+  const rawSid = (service.id || '').toString().split('-')[1] || service.id?.toString() || '';
+  if (rawSid === '7289') return true;
+  if (isTikTokSvc(service)) return false;
+  return true;
 };
 
 const detectTrafficKeywords = (service: any): boolean => {
@@ -70,25 +89,19 @@ const detectHashtagService = (service: any): boolean => {
   return blob.includes('hashtag') || (blob.includes('traffic') && blob.includes('mentions hashtag'));
 };
 
-const detectBrandSearches = (service: any): boolean => {
-  return (service.category || '').toLowerCase().includes('brand searches');
-};
+const detectBrandSearches = (service: any): boolean =>
+  (service.category || '').toLowerCase().includes('brand searches');
 
 const detectFixedQuantity = (service: any): boolean => {
-  if (Number(service.min_order) !== 1 || Number(service.max_order) !== 1) return false;
+  if (detectAutoService(service)) return false;
+  if (Number(service.min_order) !== Number(service.max_order)) return false;
+  if (Number(service.min_order) < 1) return false;
   const t = (service.type || '').toLowerCase();
-  return !t.includes('custom') && !t.includes('subscription');
+  return !t.includes('custom');
 };
 
 const toProviderExpiry = (expiry: string): string => {
-  const [year, month, day] = expiry.split('-');
-  return `${day}/${month}/${year}`;
-};
-
-// Convert YYYY-MM-DD to d/m/Y
-const formatExpiry = (dateStr: string): string => {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return dateStr;
-  const [y, m, d] = dateStr.split('-');
+  const [y, m, d] = expiry.split('-');
   return `${d}/${m}/${y}`;
 };
 
@@ -134,6 +147,7 @@ Deno.serve(async (req) => {
     const isPremium = isPremiumService(service.name, service.category);
     const markedUpRate = calculateMarkup(Number(service.rate), isPremium);
     const isPerOne = service.min_order === 1 && service.max_order === 1;
+    const isFixedPerN = service.min_order === service.max_order && service.min_order >= 1;
 
     const isAuto = detectAutoService(service);
     const hasOldPosts = detectHasOldPosts(service);
@@ -144,8 +158,9 @@ Deno.serve(async (req) => {
 
     let charge = 0;
     let recordedQuantity = 0;
+    let reservationAmount = 0; // only for auto-services
     const orderPayload: Record<string, any> = {
-      key: '', 
+      key: '',
       action: 'add',
       service: actualServiceId,
     };
@@ -167,11 +182,15 @@ Deno.serve(async (req) => {
         if (!/^\d{4}-\d{2}-\d{2}$/.test(expiry)) throw new Error('Invalid expiry');
         if (expiry < new Date().toISOString().slice(0, 10)) throw new Error('Expiry date cannot be in the past');
       }
-      
+
       const avg = ((min as number) + (max as number)) / 2;
       const totalUnits = avg * ((posts as number) + op);
       charge = parseFloat((isPerOne ? totalUnits * markedUpRate : (totalUnits * markedUpRate) / 1000).toFixed(2));
       recordedQuantity = Math.round(totalUnits);
+
+      // Reserve the MAX possible cost (not avg)
+      const maxUnits = (max as number) * ((posts as number) + op);
+      reservationAmount = parseFloat((isPerOne ? maxUnits * markedUpRate : (maxUnits * markedUpRate) / 1000).toFixed(2));
 
       orderPayload.username = (username as string).replace(/^@/, '');
       orderPayload.min = min;
@@ -193,13 +212,14 @@ Deno.serve(async (req) => {
 
       orderPayload.link = link;
       orderPayload.quantity = quantity;
-      if (isTraffic) orderPayload.keywords = keywords;
-      if (isHashtag) orderPayload.hashtag = hashtag!.split('\n').map(h => h.trim().replace(/^#/, '')).filter(Boolean).join('\n');
-      if (isBrand) orderPayload.usernames = usernames!.split('\n').map(u => u.trim().replace(/^@/, '')).filter(Boolean).join('\n');
+      // Single-value, no newline splitting
+      if (isTraffic) orderPayload.keywords = keywords!.trim();
+      if (isHashtag) orderPayload.hashtag = hashtag!.trim().replace(/^#/, '');
+      if (isBrand) orderPayload.usernames = usernames!.trim().replace(/^@/, '');
     } else if (isFixed) {
       if (!link || typeof link !== 'string') throw new Error('Invalid link');
-      const qty = service.min_order; // always 1 for these packages
-      charge = parseFloat((qty * markedUpRate).toFixed(2));
+      const qty = service.min_order;
+      charge = parseFloat((isPerOne || isFixedPerN ? qty * markedUpRate : (qty * markedUpRate) / 1000).toFixed(2));
       recordedQuantity = qty;
       orderPayload.link = link;
       orderPayload.quantity = qty;
@@ -221,12 +241,15 @@ Deno.serve(async (req) => {
       if (comments) orderPayload.comments = comments;
     }
 
-    // Balance check
+    // Balance check — auto-services check available (balance - reserved) against RESERVATION amount,
+    // not the avg charge, so user can't overspend reserved funds.
     const { data: profile, error: profileError } = await supabaseClient
-      .from('profiles').select('id, balance').eq('id', user.id).single();
+      .from('profiles').select('id, balance, reserved_balance').eq('id', user.id).single();
     if (profileError || !profile) throw new Error('Profile not found');
 
-    if (Number(profile.balance) < charge) {
+    const available = Number(profile.balance) - Number(profile.reserved_balance || 0);
+    const required = isAuto ? reservationAmount : charge;
+    if (available < required) {
       return new Response(JSON.stringify({ error: 'USER_INSUFFICIENT_BALANCE' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 });
     }
@@ -238,7 +261,7 @@ Deno.serve(async (req) => {
     else if (provider === 'smmfollows') { apiUrl = 'https://smmfollows.com/api/v2'; apiKey = Deno.env.get('SMMFOLLOWS_API_KEY'); }
     else if (provider === 'followspanel') { apiUrl = 'https://followspanel.com/api/v2'; apiKey = Deno.env.get('FOLLOWSPANEL_API_KEY'); }
     else throw new Error(`Unknown provider: ${provider}`);
-    
+
     if (!apiKey) throw new Error(`API key not configured for provider: ${provider}`);
     orderPayload.key = apiKey;
 
@@ -252,7 +275,6 @@ Deno.serve(async (req) => {
     if (!apiResponse.ok || !apiResult.order) {
       const apiError = (apiResult.error || '').toLowerCase();
       const failureReason = apiResult.error || 'Unknown API error';
-      
       if (apiError.includes('insufficient') || apiError.includes('balance') || apiError.includes('funds')) {
         return new Response(JSON.stringify({ error: 'PROVIDER_ERROR' }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 });
@@ -260,7 +282,7 @@ Deno.serve(async (req) => {
       throw new Error(failureReason);
     }
 
-    // Save order with ALL fields
+    // Save order
     const { data: order, error: orderError } = await supabaseAdmin
       .from('orders')
       .insert({
@@ -268,20 +290,38 @@ Deno.serve(async (req) => {
         service_id: service.id,
         link: isAuto ? `@${(username || '').replace(/^@/, '')}` : (link || ''),
         quantity: recordedQuantity,
-        charge,
+        charge: isAuto ? 0 : charge, // auto-services start at 0 charged; updated as posts deliver
         status: 'processing',
         api_order_id: apiResult.order.toString(),
         runs: runs || null,
         interval_minutes: interval || null,
       })
       .select().single();
-    
+
     if (orderError) {
       console.error('Order saving error:', orderError);
-      // Even if saving order record fails, we've placed it at provider and must deduct balance if possible
-      // But usually this means a schema mismatch
     }
 
+    if (isAuto) {
+      // Reserve funds — do NOT debit balance. Insert reservation row.
+      const newReserved = Number(profile.reserved_balance || 0) + reservationAmount;
+      await supabaseAdmin.from('profiles').update({ reserved_balance: newReserved }).eq('id', profile.id);
+      await supabaseAdmin.from('subscription_reservations').insert({
+        user_id: profile.id,
+        order_id: order?.id,
+        api_subscription_id: apiResult.order.toString(),
+        estimated_max: reservationAmount,
+        charged_so_far: 0,
+        status: 'active',
+      });
+
+      return new Response(JSON.stringify({
+        success: true, order,
+        message: `Subscription started. ${reservationAmount.toFixed(2)} reserved from balance.`
+      }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 });
+    }
+
+    // Standard order: debit immediately
     const newBalance = parseFloat(profile.balance as any) - charge;
     await supabaseAdmin.from('profiles').update({ balance: newBalance }).eq('id', profile.id);
 
