@@ -365,16 +365,23 @@ const Services = () => {
     if (!selectedService) return 0;
     const rate = selectedService.markedUpRate;
     const isPerOne = selectedService.min_order === 1 && selectedService.max_order === 1;
+    const isFixedPerN = selectedService.min_order === selectedService.max_order && selectedService.min_order >= 1;
 
     if (isAutoService(selectedService)) {
       const min = parseInt(autoMin) || 0;
       const max = parseInt(autoMax) || 0;
       const posts = parseInt(autoPosts) || 0;
-      const oldPosts = isInstagramAutoService(selectedService) ? (parseInt(autoOldPosts) || 0) : 0;
+      const oldPosts = hasOldPostsField(selectedService) ? (parseInt(autoOldPosts) || 0) : 0;
       if (min <= 0 || max <= 0 || max < min || (posts + oldPosts) <= 0) return 0;
       const avg = (min + max) / 2;
       const totalUnits = avg * (posts + oldPosts);
       return isPerOne ? totalUnits * rate : (totalUnits / 1000) * rate;
+    }
+
+    // Fixed-quantity packages (per-1, per-2, etc): charge = min_order * rate (or /1000 if rate is per-1000)
+    if (isFixedQuantityService(selectedService)) {
+      const qty = selectedService.min_order;
+      return isPerOne || isFixedPerN ? qty * rate : (qty / 1000) * rate;
     }
 
     if (!orderQuantity) return 0;
@@ -383,6 +390,7 @@ const Services = () => {
     const totalQty = qty * runs;
     return isPerOne ? totalQty * rate : (totalQty / 1000) * rate;
   }, [selectedService, orderQuantity, dripFeedEnabled, dripFeedRuns, autoMin, autoMax, autoPosts, autoOldPosts]);
+
 
   const getFriendlyErrorMessage = (error: string): string => {
     if (error === 'USER_INSUFFICIENT_BALANCE') return "Insufficient balance. Please add funds.";
