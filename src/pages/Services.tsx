@@ -889,36 +889,37 @@ const Services = () => {
                   </div>
                 )}
 
-                {/* Keywords / hashtag / brand-searches usernames for special traffic services */}
+                {/* Keywords / hashtag / brand-searches usernames for special traffic services (single line) */}
                 {needsTrafficExtraField(selectedService) && (
                   <div className="space-y-1.5">
                     <Label className="text-sm font-medium">
                       {isHashtagService(selectedService)
-                        ? "Hashtags (1 per line)"
+                        ? "Hashtag"
                         : isBrandSearchesService(selectedService)
-                          ? "Usernames (1 per line)"
-                          : "Keywords (1 per line)"} <span className="text-destructive">*</span>
+                          ? "Username / Brand"
+                          : "Keyword"} <span className="text-destructive">*</span>
                     </Label>
-                    <Textarea
+                    <Input
                       value={trafficKeywords}
-                      onChange={(e) => setTrafficKeywords(e.target.value)}
+                      onChange={(e) => setTrafficKeywords(e.target.value.replace(/\n/g, ' '))}
                       placeholder={isHashtagService(selectedService)
-                        ? "yourbrand+country\nanotherhashtag"
+                        ? "yourbrand+country"
                         : isBrandSearchesService(selectedService)
-                          ? "yourbrand\nyourbrand shop\nyourbrand agency"
-                          : "example keyword 1\nexample keyword 2"}
-                      className="text-sm min-h-[90px]"
-                      rows={4}
+                          ? "yourbrand"
+                          : "example keyword"}
+                      className="text-sm"
                     />
                     <p className="text-xs text-muted-foreground">
                       {isHashtagService(selectedService)
-                        ? "Add one hashtag per line. No need to include the # symbol. Example: 'yourbrand+france' targets your brand in that country."
+                        ? "Enter a single hashtag. No need to include the # symbol. Example: 'yourbrand+france' targets your brand in that country."
                         : isBrandSearchesService(selectedService)
-                          ? "Add one brand name or username per line. Example: 'yourbrand', 'yourbrand shop', 'yourbrand agency'. Real people will search these terms in Google."
-                          : "One keyword/phrase per line — visitors arrive via these search terms."}
+                          ? "Enter a single brand or username. Example: 'yourbrand'. Real people will search this term in Google."
+                          : "A single keyword/phrase — visitors arrive via this search term."}
                     </p>
                   </div>
                 )}
+
+
 
                 {/* Quantity — hidden for custom comments and fixed-quantity packages */}
                 {!isCustomCommentService(selectedService) && !isFixedQuantityService(selectedService) && (
