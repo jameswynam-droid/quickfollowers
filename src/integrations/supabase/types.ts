@@ -393,6 +393,7 @@ export type Database = {
           email: string
           full_name: string | null
           id: string
+          reserved_balance: number
           updated_at: string
           username: string | null
         }
@@ -402,6 +403,7 @@ export type Database = {
           email: string
           full_name?: string | null
           id: string
+          reserved_balance?: number
           updated_at?: string
           username?: string | null
         }
@@ -411,6 +413,7 @@ export type Database = {
           email?: string
           full_name?: string | null
           id?: string
+          reserved_balance?: number
           updated_at?: string
           username?: string | null
         }
@@ -463,6 +466,50 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      subscription_reservations: {
+        Row: {
+          api_subscription_id: string | null
+          charged_so_far: number
+          created_at: string
+          estimated_max: number
+          id: string
+          order_id: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          api_subscription_id?: string | null
+          charged_so_far?: number
+          created_at?: string
+          estimated_max: number
+          id?: string
+          order_id?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          api_subscription_id?: string | null
+          charged_so_far?: number
+          created_at?: string
+          estimated_max?: number
+          id?: string
+          order_id?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subscription_reservations_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       ticket_messages: {
         Row: {
