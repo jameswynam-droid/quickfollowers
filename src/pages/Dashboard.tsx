@@ -61,7 +61,38 @@ const Dashboard = () => {
     setUser(session.user);
     await Promise.all([fetchProfile(session.user.id), fetchOrders(session.user.id), checkAdminStatus(session.user.id)]);
     setIsLoading(false);
+    checkUnreadSupportReplies(session.user.id);
   };
+
+  // One-time-per-session popup if user has unread support replies
+  const checkUnreadSupportReplies = async (userId: string) => {
+    try {
+      const flag = `qf-support-popup-${userId}`;
+      if (sessionStorage.getItem(flag)) return;
+      const { data: tickets } = await supabase.from("tickets").select("id").eq("user_id", userId);
+      if (!tickets?.length) return;
+      const ticketIds = tickets.map(t => t.id);
+      const [readsRes, msgsRes] = await Promise.all([
+        supabase.from("ticket_reads").select("ticket_id, last_read_at").eq("user_id", userId).in("ticket_id", ticketIds),
+        supabase.from("ticket_messages").select("ticket_id, created_at").eq("is_admin_reply", true).in("ticket_id", ticketIds),
+      ]);
+      const readMap = new Map((readsRes.data || []).map((r: any) => [r.ticket_id, r.last_read_at]));
+      const unread = (msgsRes.data || []).filter((m: any) => {
+        const lr = readMap.get(m.ticket_id);
+        return !lr || m.created_at > lr;
+      }).length;
+      if (unread > 0) {
+        sessionStorage.setItem(flag, '1');
+        toast.info(`You have ${unread} new repl${unread === 1 ? 'y' : 'ies'} from support`, {
+          duration: 8000,
+          action: { label: "View", onClick: () => navigate("/tickets") },
+        });
+      }
+    } catch (e) {
+      // silent
+    }
+  };
+
 
   const fetchProfile = async (userId: string) => {
     const { data } = await supabase.from("profiles").select("balance, full_name, username, email").eq("id", userId).single();
