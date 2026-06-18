@@ -1039,7 +1039,7 @@ const Services = () => {
                   <li><span className="font-medium">Delay</span> — wait time (in minutes) after a new post is detected before delivery starts.</li>
                   <li><span className="font-medium">Expiry</span> — optional date when the subscription auto-stops.</li>
                 </ul>
-                <p className="pt-1"><span className="font-semibold">Billing:</span> automatic per detected post. Insufficient balance = post skipped. Account must stay public.</p>
+                <p className="pt-1"><span className="font-semibold">Billing:</span> the max possible cost is reserved up-front. Real charges happen per detected post. Unused reservation is released when the subscription ends. Account must stay public.</p>
               </div>
             )}
 
