@@ -178,13 +178,13 @@ export const organizeServices = (rawServices: any[]): ServiceCategory[] => {
     return true;
   });
 
-  // Deduplicate by service name + rate (keep first occurrence)
+  // Deduplicate only by exact id (keep all visually similar services so each unique
+  // provider service ID remains searchable — e.g. owlet-6596 and owlet-6599 may share
+  // a display name but are distinct provider services and users may search for either).
   const seenServices = new Map<string, boolean>();
   const deduplicatedServices = validServices.filter(service => {
-    const key = `${service.name.trim().toLowerCase()}-${service.rate}`;
-    if (seenServices.has(key)) {
-      return false;
-    }
+    const key = String(service.id).toLowerCase();
+    if (seenServices.has(key)) return false;
     seenServices.set(key, true);
     return true;
   });
