@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 
-const TURNSTILE_SITE_KEY = "0x4AAAAAAB3jZB8lpa6OuIxV";
+
 
 interface Profile {
   id: string;
@@ -64,23 +64,43 @@ const UserLookup = () => {
     }
   };
 
-  const openAddFunds = () => {
+  const openAddFunds = async () => {
     setAmount("");
     setAdminPwd("");
     setTurnstileToken("");
     setAddOpen(true);
-    setTimeout(() => {
+    let siteKey = "";
+    try {
+      const { data } = await supabase.functions.invoke("admin-login", { method: "GET" });
+      siteKey = data?.site_key || "";
+    } catch {}
+    if (!siteKey) return;
+    if (!document.getElementById("cf-turnstile-script")) {
+      const s = document.createElement("script");
+      s.id = "cf-turnstile-script";
+      s.src = "https://challenges.cloudflare.com/turnstile/v0/api.js";
+      s.async = true; s.defer = true;
+      document.head.appendChild(s);
+    }
+    const tryRender = () => {
       const el = document.getElementById("admin-credit-turnstile");
       if (el && (window as any).turnstile) {
+        el.innerHTML = "";
         try {
           (window as any).turnstile.render(el, {
-            sitekey: TURNSTILE_SITE_KEY,
+            sitekey: siteKey,
             callback: (t: string) => setTurnstileToken(t),
             theme: "auto",
           });
         } catch {}
+        return true;
       }
-    }, 100);
+      return false;
+    };
+    let attempts = 0;
+    const iv = setInterval(() => {
+      if (tryRender() || ++attempts > 20) clearInterval(iv);
+    }, 200);
   };
 
   const submitCredit = async () => {
