@@ -3,14 +3,14 @@
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
   "framework": "vite",
-  "cleanUrls": true,
+  "cleanUrls": false,
   "trailingSlash": false,
   "redirects": [
     { "source": "/favicon.ico", "destination": "/favicon.png", "permanent": true },
     { "source": "/og-image.png", "destination": "/brand-logo.png", "permanent": true }
   ],
   "rewrites": [
-    { "source": "/((?!.*\\.).*)", "destination": "/index.html" }
+    { "source": "/((?!assets/|.*\\.[a-zA-Z0-9]+$).*)", "destination": "/index.html" }
   ],
   "headers": [
     {
@@ -23,7 +23,7 @@
         { "key": "Permissions-Policy", "value": "camera=(), microphone=(), geolocation=()" },
         { "key": "Cross-Origin-Opener-Policy", "value": "same-origin" },
         { "key": "Strict-Transport-Security", "value": "max-age=31536000; includeSubDomains" },
-        { "key": "Content-Security-Policy", "value": "default-src 'self'; script-src 'self' 'unsafe-inline' https://js.paystack.co https://checkout.flutterwave.com; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; img-src 'self' data: blob: https://*.supabase.co https://cdnjs.cloudflare.com; font-src 'self' https://cdnjs.cloudflare.com; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.exchangerate-data.com https://open.er-api.com https://api.paystack.co https://api.flutterwave.com https://latest.currency-api.pages.dev https://*.currency-api.pages.dev https://ipapi.co; frame-src https://js.paystack.co https://checkout.flutterwave.com; frame-ancestors 'self'; form-action 'self'; object-src 'none'; base-uri 'self'" }
+        { "key": "Content-Security-Policy", "value": "default-src 'self'; script-src 'self' 'unsafe-inline' https://js.paystack.co https://checkout.flutterwave.com https://challenges.cloudflare.com; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; img-src 'self' data: blob: https://*.supabase.co https://cdnjs.cloudflare.com; font-src 'self' https://cdnjs.cloudflare.com; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.exchangerate-data.com https://open.er-api.com https://api.paystack.co https://api.flutterwave.com https://latest.currency-api.pages.dev https://*.currency-api.pages.dev https://ipapi.co https://challenges.cloudflare.com; frame-src https://js.paystack.co https://checkout.flutterwave.com https://challenges.cloudflare.com; frame-ancestors 'self'; form-action 'self'; object-src 'none'; base-uri 'self'" }
       ]
     },
     {

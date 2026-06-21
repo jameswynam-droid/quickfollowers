@@ -17,7 +17,8 @@ import Dashboard from "./pages/Dashboard";
 import Services from "./pages/Services";
 import Orders from "./pages/Orders";
 import Transactions from "./pages/Transactions";
-import Admin from "./pages/Admin";
+import AdminLogin from "./pages/AdminLogin";
+import AdminPanel from "./pages/AdminPanel";
 import AdminTickets from "./pages/AdminTickets";
 import Tickets from "./pages/Tickets";
 import AddFunds from "./pages/AddFunds";
@@ -68,7 +69,8 @@ const App = () => (
                 <Route path="/transactions" element={<Transactions />} />
                 <Route path="/tickets" element={<Tickets />} />
                 <Route path="/account" element={<Account />} />
-                <Route path="/admin" element={<Admin />} />
+                <Route path="/admin" element={<AdminLogin />} />
+                <Route path="/admin/panel" element={<AdminPanel />} />
                 <Route path="/admin/tickets" element={<AdminTickets />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
