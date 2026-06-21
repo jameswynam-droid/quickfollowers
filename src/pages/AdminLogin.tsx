@@ -9,7 +9,7 @@ import { toast } from "sonner";
 import { useNoIndex } from "@/hooks/useNoIndex";
 import { ADMIN_SESSION_KEY, getAdminSession } from "@/components/admin/AdminGuard";
 
-const TURNSTILE_SITE_KEY = "0x4AAAAAAB3jZB8lpa6OuIxV";
+
 
 declare global {
   interface Window {
@@ -28,6 +28,7 @@ const AdminLogin = () => {
   const [password, setPassword] = useState("");
   const [token, setToken] = useState("");
   const [loading, setLoading] = useState(false);
+  const [siteKey, setSiteKey] = useState("");
   const widgetRef = useRef<HTMLDivElement>(null);
   const widgetIdRef = useRef<string | null>(null);
 
@@ -35,15 +36,22 @@ const AdminLogin = () => {
     if (getAdminSession()) {
       navigate("/admin/panel", { replace: true });
     }
+    (async () => {
+      try {
+        const { data } = await supabase.functions.invoke("admin-login", { method: "GET" });
+        if (data?.site_key) setSiteKey(data.site_key);
+      } catch {}
+    })();
   }, [navigate]);
 
   useEffect(() => {
+    if (!siteKey) return;
     const id = "cf-turnstile-script";
     let s = document.getElementById(id) as HTMLScriptElement | null;
     const render = () => {
       if (!window.turnstile || !widgetRef.current || widgetIdRef.current) return;
       widgetIdRef.current = window.turnstile.render(widgetRef.current, {
-        sitekey: TURNSTILE_SITE_KEY,
+        sitekey: siteKey,
         callback: (t: string) => setToken(t),
         "error-callback": () => setToken(""),
         "expired-callback": () => setToken(""),

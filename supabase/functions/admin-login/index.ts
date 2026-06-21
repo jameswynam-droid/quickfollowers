@@ -24,6 +24,12 @@ async function verifyTurnstile(token: string, ip?: string): Promise<boolean> {
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
 
+  if (req.method === 'GET') {
+    return new Response(JSON.stringify({ site_key: Deno.env.get('TURNSTILE_SITE_KEY') ?? '' }), {
+      status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
   try {
     const { email, password, turnstile_token } = await req.json();
     if (!email || !password || !turnstile_token) {
