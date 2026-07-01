@@ -127,17 +127,9 @@ Deno.serve(async (req) => {
     const { data: { user }, error: userError } = await supabaseClient.auth.getUser(jwt);
     if (userError || !user) throw new Error('Not authenticated');
 
-    const { data: adminRole } = await supabaseAdmin
-      .from('user_roles')
-      .select('role')
-      .eq('user_id', user.id)
-      .eq('role', 'admin')
-      .maybeSingle();
-    if (adminRole) {
-      return new Response(JSON.stringify({ error: 'Admin accounts cannot place orders' }), {
-        status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
+    // Note: admin restriction removed — only the standalone Admin Panel
+    // (separate from normal user accounts) is restricted from ordering.
+
 
     const body: OrderRequest = await req.json();
     const {
