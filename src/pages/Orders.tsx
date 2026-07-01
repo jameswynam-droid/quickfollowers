@@ -16,6 +16,8 @@ import { toast } from "sonner";
 import { useNoIndex } from "@/hooks/useNoIndex";
 import { useCurrency } from "@/hooks/useCurrency";
 
+const PAGE_SIZE = 25;
+
 const Orders = () => {
   useNoIndex();
   const { formatPrice } = useCurrency();
@@ -26,15 +28,15 @@ const Orders = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
   const navigate = useNavigate();
 
   const filteredOrders = useMemo(() => {
     return orders.filter((order) => {
-      // Exclude failed, drip-feed (runs>1) and subscription (link starts with @) from main Orders list
       if (order.status === 'failed') return false;
       if (order.runs && order.runs > 1) return false;
       if (typeof order.link === 'string' && order.link.startsWith('@')) return false;
-      const matchesSearch = searchQuery === "" || 
+      const matchesSearch = searchQuery === "" ||
         order.services?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         order.link?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         order.api_order_id?.toLowerCase().includes(searchQuery.toLowerCase());
@@ -42,6 +44,16 @@ const Orders = () => {
       return matchesSearch && matchesStatus;
     });
   }, [orders, searchQuery, statusFilter]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredOrders.length / PAGE_SIZE));
+  const currentPage = Math.min(page, totalPages);
+  const pagedOrders = useMemo(
+    () => filteredOrders.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE),
+    [filteredOrders, currentPage]
+  );
+
+  useEffect(() => { setPage(1); }, [searchQuery, statusFilter]);
+
 
   useEffect(() => { checkAuth(); }, []);
 
@@ -225,7 +237,7 @@ const Orders = () => {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {filteredOrders.map((order) => (
+                        {pagedOrders.map((order) => (
                           <TableRow key={order.id} className="cursor-pointer hover:bg-muted/50" onClick={() => setSelectedOrder(order)}>
                             <TableCell className="whitespace-nowrap font-mono text-xs text-muted-foreground">
                               {order.api_order_id || order.id.slice(0, 8)}
@@ -265,9 +277,26 @@ const Orders = () => {
                   </div>
                 </div>
               )}
+              {filteredOrders.length > PAGE_SIZE && (
+                <div className="flex items-center justify-between gap-2 p-3 sm:p-4 border-t">
+                  <p className="text-xs sm:text-sm text-muted-foreground">
+                    Page {currentPage} of {totalPages} · Showing {(currentPage - 1) * PAGE_SIZE + 1}
+                    –{Math.min(currentPage * PAGE_SIZE, filteredOrders.length)} of {filteredOrders.length}
+                  </p>
+                  <div className="flex gap-2">
+                    <Button variant="outline" size="sm" disabled={currentPage <= 1} onClick={() => setPage((p) => Math.max(1, p - 1))}>
+                      Previous
+                    </Button>
+                    <Button variant="outline" size="sm" disabled={currentPage >= totalPages} onClick={() => setPage((p) => Math.min(totalPages, p + 1))}>
+                      Next
+                    </Button>
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
         )}
+
 
         {/* Order Details Dialog */}
         <Dialog open={!!selectedOrder} onOpenChange={() => setSelectedOrder(null)}>
