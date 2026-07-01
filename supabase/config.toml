@@ -1,7 +1,11 @@
 project_id = "ejdyjdpugsxluvgrlymk"
 
+[functions.bootstrap-admin]
+verify_jwt = false
+
 [functions.approve-payment]
 verify_jwt = true
+
 
 [functions.complete-email-change]
 verify_jwt = false
