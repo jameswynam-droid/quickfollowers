@@ -175,21 +175,13 @@ const Auth = () => {
         if (existingUsers) throw new Error("An account with this email already exists. Please sign in instead.");
         const { data: usernameAvailable } = await supabase.rpc('check_username_available', { requested_username: normalizedUsername });
         if (!usernameAvailable) throw new Error("Username already exists. Please use another username.");
-        setUsername(normalizedUsername);
-        setEmail(normalizedEmail);
-        await sendOTP(normalizedEmail, 'email_verification');
-        toast.success("Verification code sent to your email!");
-        setAuthMode('signup-verify-otp');
-        setResendCooldown(60);
-      } else if (authMode === 'signup-verify-otp') {
-        if (otp.length !== 6) throw new Error("Please enter a valid 6-digit OTP code");
-        const normalizedEmail = email.toLowerCase().trim();
-        const normalizedUsername = username.toLowerCase().trim();
-        await verifyOTP(normalizedEmail, otp, 'email_verification');
         const { data, error } = await supabase.auth.signUp({
           email: normalizedEmail,
           password,
-          options: { data: { full_name: fullName, username: normalizedUsername, email_verified: true } },
+          options: {
+            emailRedirectTo: window.location.origin,
+            data: { full_name: fullName, username: normalizedUsername, email_verified: true },
+          },
         });
         if (error) {
           const m = error.message || "";
@@ -199,18 +191,20 @@ const Auth = () => {
         if (data.user && data.user.identities && data.user.identities.length === 0) {
           throw new Error("An account with this email already exists. Please sign in instead.");
         }
-        // Sign the user in immediately and redirect to dashboard
         const { error: signInError } = await supabase.auth.signInWithPassword({ email: normalizedEmail, password });
         if (signInError) {
-          // Account exists but sign-in failed (rare) — fall back to login screen with message
           toast.success("Account created. Please sign in.");
           setAuthMode('login');
-          setPassword(""); setConfirmPassword(""); setOtp("");
+          setPassword(""); setConfirmPassword("");
           return;
         }
         localStorage.setItem('session_start', Date.now().toString());
         toast.success("Welcome to QuickFollowers!");
         navigate('/dashboard');
+        return;
+      } else if (authMode === 'signup-verify-otp') {
+        // Legacy branch retained for compatibility; signup no longer routes here.
+        setAuthMode('login');
         return;
       } else if (authMode === 'forgot-password') {
         await sendOTP(email);
