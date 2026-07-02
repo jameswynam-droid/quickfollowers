@@ -77,7 +77,7 @@ const AdminLogin = () => {
         widgetIdRef.current = null;
       }
     };
-  }, []);
+  }, [siteKey]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
