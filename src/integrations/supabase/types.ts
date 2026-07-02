@@ -14,6 +14,33 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_totp: {
+        Row: {
+          backup_codes: string[] | null
+          created_at: string
+          secret: string
+          updated_at: string
+          user_id: string
+          verified: boolean
+        }
+        Insert: {
+          backup_codes?: string[] | null
+          created_at?: string
+          secret: string
+          updated_at?: string
+          user_id: string
+          verified?: boolean
+        }
+        Update: {
+          backup_codes?: string[] | null
+          created_at?: string
+          secret?: string
+          updated_at?: string
+          user_id?: string
+          verified?: boolean
+        }
+        Relationships: []
+      }
       bell_notifications: {
         Row: {
           created_at: string
@@ -46,6 +73,89 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      blog_categories: {
+        Row: {
+          created_at: string
+          description: string | null
+          name: string
+          slug: string
+          sort_order: number
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          name: string
+          slug: string
+          sort_order?: number
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          name?: string
+          slug?: string
+          sort_order?: number
+        }
+        Relationships: []
+      }
+      blog_posts: {
+        Row: {
+          author_id: string | null
+          body_md: string
+          category_slug: string | null
+          cover_image_url: string | null
+          created_at: string
+          excerpt: string | null
+          id: string
+          published: boolean
+          published_at: string | null
+          seo_description: string | null
+          seo_title: string | null
+          slug: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          author_id?: string | null
+          body_md?: string
+          category_slug?: string | null
+          cover_image_url?: string | null
+          created_at?: string
+          excerpt?: string | null
+          id?: string
+          published?: boolean
+          published_at?: string | null
+          seo_description?: string | null
+          seo_title?: string | null
+          slug: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          author_id?: string | null
+          body_md?: string
+          category_slug?: string | null
+          cover_image_url?: string | null
+          created_at?: string
+          excerpt?: string | null
+          id?: string
+          published?: boolean
+          published_at?: string | null
+          seo_description?: string | null
+          seo_title?: string | null
+          slug?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "blog_posts_category_slug_fkey"
+            columns: ["category_slug"]
+            isOneToOne: false
+            referencedRelation: "blog_categories"
+            referencedColumns: ["slug"]
+          },
+        ]
       }
       daily_popups: {
         Row: {
@@ -416,6 +526,36 @@ export type Database = {
           reserved_balance?: number
           updated_at?: string
           username?: string | null
+        }
+        Relationships: []
+      }
+      saved_replies: {
+        Row: {
+          body: string
+          category: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          body: string
+          category?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          body?: string
+          category?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          title?: string
+          updated_at?: string
         }
         Relationships: []
       }
