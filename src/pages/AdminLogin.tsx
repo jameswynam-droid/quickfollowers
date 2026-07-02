@@ -9,15 +9,9 @@ import { toast } from "sonner";
 import { useNoIndex } from "@/hooks/useNoIndex";
 import { ADMIN_SESSION_KEY, getAdminSession } from "@/components/admin/AdminGuard";
 
-
-
 declare global {
   interface Window {
-    turnstile?: {
-      render: (el: HTMLElement, opts: any) => string;
-      reset: (id?: string) => void;
-      remove: (id?: string) => void;
-    };
+    turnstile?: { render: (el: HTMLElement, opts: any) => string; reset: (id?: string) => void; remove: (id?: string) => void; };
   }
 }
 
@@ -26,6 +20,8 @@ const AdminLogin = () => {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [totpCode, setTotpCode] = useState("");
+  const [needsTotp, setNeedsTotp] = useState(false);
   const [token, setToken] = useState("");
   const [loading, setLoading] = useState(false);
   const [siteKey, setSiteKey] = useState("");
@@ -33,9 +29,7 @@ const AdminLogin = () => {
   const widgetIdRef = useRef<string | null>(null);
 
   useEffect(() => {
-    if (getAdminSession()) {
-      navigate("/admin/panel", { replace: true });
-    }
+    if (getAdminSession()) navigate("/admin/panel", { replace: true });
     (async () => {
       try {
         const { data } = await supabase.functions.invoke("admin-login", { method: "GET" });
@@ -62,58 +56,46 @@ const AdminLogin = () => {
       s = document.createElement("script");
       s.id = id;
       s.src = "https://challenges.cloudflare.com/turnstile/v0/api.js";
-      s.async = true;
-      s.defer = true;
+      s.async = true; s.defer = true;
       s.onload = render;
       document.head.appendChild(s);
-    } else {
-      render();
-    }
+    } else render();
     const t = setInterval(render, 400);
     return () => {
       clearInterval(t);
-      if (widgetIdRef.current && window.turnstile) {
-        try { window.turnstile.remove(widgetIdRef.current); } catch {}
-        widgetIdRef.current = null;
-      }
+      if (widgetIdRef.current && window.turnstile) { try { window.turnstile.remove(widgetIdRef.current); } catch {} widgetIdRef.current = null; }
     };
   }, [siteKey]);
 
+  const resetTurnstile = () => {
+    setToken("");
+    if (widgetIdRef.current && window.turnstile) { try { window.turnstile.reset(widgetIdRef.current); } catch {} }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!token) {
-      toast.error("Please complete the verification");
-      return;
-    }
+    if (!token) { toast.error("Please complete the verification"); return; }
     setLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke("admin-login", {
-        body: { email, password, turnstile_token: token },
-      });
-      if (error || !data?.success) {
-        throw new Error(data?.error || error?.message || "Login failed");
+      const body: any = { email, password, turnstile_token: token };
+      if (needsTotp) body.totp_code = totpCode;
+      const { data, error } = await supabase.functions.invoke("admin-login", { body });
+      if (data?.requires_totp) {
+        setNeedsTotp(true);
+        toast.info("Enter your authenticator code");
+        setLoading(false);
+        return;
       }
-      // Establish supabase session for subsequent calls
-      await supabase.auth.setSession({
-        access_token: data.session.access_token,
-        refresh_token: data.session.refresh_token,
-      });
-      sessionStorage.setItem(ADMIN_SESSION_KEY, JSON.stringify({
-        user_id: data.user.id,
-        email: data.user.email,
-        admin_expires_at: data.admin_expires_at,
-      }));
+      if (error || !data?.success) throw new Error(data?.error || error?.message || "Login failed");
+      await supabase.auth.setSession({ access_token: data.session.access_token, refresh_token: data.session.refresh_token });
+      sessionStorage.setItem(ADMIN_SESSION_KEY, JSON.stringify({ user_id: data.user.id, email: data.user.email, admin_expires_at: data.admin_expires_at }));
       toast.success("Welcome, admin");
       navigate("/admin/panel", { replace: true });
     } catch (err: any) {
       toast.error(err.message || "Login failed");
-      setToken("");
-      if (widgetIdRef.current && window.turnstile) {
-        try { window.turnstile.reset(widgetIdRef.current); } catch {}
-      }
-    } finally {
-      setLoading(false);
-    }
+      resetTurnstile();
+      if (!needsTotp) setTotpCode("");
+    } finally { setLoading(false); }
   };
 
   return (
@@ -126,29 +108,21 @@ const AdminLogin = () => {
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-1.5">
             <Label htmlFor="email">Email</Label>
-            <Input
-              id="email"
-              type="email"
-              autoComplete="username"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-            />
+            <Input id="email" type="email" autoComplete="username" value={email} onChange={e => setEmail(e.target.value)} required disabled={needsTotp} />
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="password">Password</Label>
-            <Input
-              id="password"
-              type="password"
-              autoComplete="current-password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-            />
+            <Input id="password" type="password" autoComplete="current-password" value={password} onChange={e => setPassword(e.target.value)} required disabled={needsTotp} />
           </div>
+          {needsTotp && (
+            <div className="space-y-1.5">
+              <Label htmlFor="totp">Authenticator code</Label>
+              <Input id="totp" inputMode="numeric" maxLength={6} value={totpCode} onChange={e => setTotpCode(e.target.value.replace(/\D/g, '').slice(0, 6))} className="tracking-widest text-center text-lg" autoFocus required />
+            </div>
+          )}
           <div ref={widgetRef} className="flex justify-center" />
-          <Button type="submit" className="w-full" disabled={loading || !token}>
-            {loading ? "Verifying..." : "Sign In"}
+          <Button type="submit" className="w-full" disabled={loading || !token || (needsTotp && totpCode.length !== 6)}>
+            {loading ? "Verifying..." : needsTotp ? "Verify Code" : "Sign In"}
           </Button>
         </form>
       </Card>
