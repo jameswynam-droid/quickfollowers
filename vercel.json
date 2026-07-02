@@ -17,6 +17,10 @@
       "source": "/(.*)",
       "headers": [
         { "key": "X-Frame-Options", "value": "SAMEORIGIN" },
+        { "key": "X-Powered-By", "value": "" },
+        { "key": "Server", "value": "" },
+        { "key": "X-Vercel-Id", "value": "" },
+        { "key": "X-Vercel-Cache", "value": "" },
         { "key": "X-Content-Type-Options", "value": "nosniff" },
         { "key": "X-XSS-Protection", "value": "0" },
         { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" },
