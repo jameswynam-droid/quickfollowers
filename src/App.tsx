@@ -12,6 +12,8 @@ import ConfirmEmailChange from "./pages/ConfirmEmailChange";
 import Terms from "./pages/Terms";
 import Privacy from "./pages/Privacy";
 import PlatformLanding from "./pages/PlatformLanding";
+import Help from "./pages/Help";
+import HelpPost from "./pages/HelpPost";
 
 import Dashboard from "./pages/Dashboard";
 import Services from "./pages/Services";
@@ -58,6 +60,8 @@ const App = () => (
                 <Route path="/terms" element={<Terms />} />
                 <Route path="/privacy" element={<Privacy />} />
                 <Route path="/buy/:platform" element={<PlatformLanding />} />
+                <Route path="/help" element={<Help />} />
+                <Route path="/help/:slug" element={<HelpPost />} />
 
                 <Route path="/add-funds" element={<AddFunds />} />
                 <Route path="/payment/success" element={<PaymentSuccess />} />
