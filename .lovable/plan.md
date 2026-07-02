@@ -1,94 +1,90 @@
-## Scope (single build turn — no more questions)
+## Immediate blocker: Turnstile "Unable to connect to website"
 
-### 1. Vercel reload 404 (highest priority)
-Replace overly-narrow rewrite in `vercel.json` with the canonical SPA rewrite and disable `cleanUrls`:
-```json
-"cleanUrls": false,
-"rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
-```
-Keep existing headers, redirects, asset caching.
+This error is **not a code bug**. Cloudflare Turnstile only accepts requests from the exact hostnames listed on the site key's allow-list in the Cloudflare dashboard. Your current key was configured for `quickfollowers.online`, so it rejects `id-preview--92633b06-ce4f-4cc5-accd-124a59937de2.lovable.app` (the preview URL you're testing on).
 
-### 2. Standalone Admin Panel (new, isolated)
-- New route `/admin` becomes a **dedicated login page** (no signup, no forgot password, no header/footer, minimal flat UI).
-- Login fields: username + password + **Cloudflare Turnstile** widget (required). Uses existing `TURNSTILE_SITE_KEY` / `TURNSTILE_SECRET_KEY` secrets.
-- New edge function `admin-login`:
-  - Verifies Turnstile token server-side.
-  - Re-validates credentials via `signInWithPassword`.
-  - Confirms `has_role(user_id,'admin')` — non-admins are rejected outright.
-  - Returns a short-lived (4h) admin session JWT stored in `sessionStorage` under `qf_admin_session` (cleared on tab close).
-- New route `/admin/panel` (and sub-routes) guarded by an `AdminGuard` that requires:
-  1. The `qf_admin_session` token,
-  2. A live Supabase session whose user has the `admin` role,
-  3. Session not expired.
-  Failing any check redirects to `/admin` login.
-- Admin accounts **cannot place or buy orders**: `place-order` edge function rejects requests where the calling user has the `admin` role (returns 403 "Admin accounts cannot place orders").
-- The current Admin tab in the regular user header is removed; admins access via `/admin` URL only.
+**What you need to do (2 minutes):**
 
-### 3. Admin Panel features (existing + new)
-Keep everything from current `Admin.tsx` (payments, sync services, all notification tabs, tickets link) and add:
+1. Cloudflare dashboard → Turnstile → your site key → **Settings**
+2. Under "Hostname Management" add:
+  - `id-preview--92633b06-ce4f-4cc5-accd-124a59937de2.lovable.app`
+  - `*.lovable.app` (or just the preview host above)
+3. Save. The widget will work instantly — no redeploy needed.
 
-**User Lookup tab**
-- Search input by username OR email.
-- Displays: full name, username, email, balance (in user's currency), reserved balance, signup date, last order date, role.
-- **Order History section**: paginated list of selected user's orders (alias IDs only, no provider names).
-- **Add Funds to User** form:
-  - Amount + currency dropdown (uses existing currency list).
-  - On submit, modal asks admin to **re-enter their admin password** + Turnstile retry.
-  - New edge function `admin-credit-user` verifies password + admin role + Turnstile, then calls existing `process_deposit` RPC with `payment_method = 'admin_credit'` and a description like "Admin top-up by {admin_username}".
-  - Creates a `transactions` row so user sees it in their history.
+If you'd rather test only on the live domain, open `/admin` on `quickfollowers.online` — it already works there.
 
-### 4. Per-post real charging in `sync-order-status`
-For subscription orders with a row in `subscription_reservations`:
-- Poll provider; on each newly-delivered post, compute `cost = per_post_qty * marked_up_rate / 1000`.
-- If balance sufficient → debit, decrement `reserved_balance`, insert `transactions` row (`type='order_charge'`).
-- If insufficient → mark that post `skipped`, bell-notify user, keep subscription running.
-- On subscription end → release remaining `reserved_balance`.
-- Add `posts_delivered`, `posts_charged`, `per_post_reserved` columns to `subscription_reservations`.
+## Vercel headers "still detected"
 
-### 5. `/drip-feed` and `/subscriptions` pages
-- New routes; filter `orders` by `order_kind`.
-- Header + mobile-menu links **only render when the user has ≥1 order of that kind** (cheap count query, 5-min cache).
+Your app is deployed on **Netlify**, not Vercel (per project memory). `vercel.json` header rules have zero effect on Netlify responses. To strip `x-powered-by`, `server`, `x-vercel-*` etc. on Netlify I need to add a `netlify.toml` `[[headers]]` block, plus an `_headers` file as a safety net. I'll also add strict security headers (X-Frame-Options, Referrer-Policy, Permissions-Policy, HSTS).
 
-### 6. Saved ticket replies (admin)
-- New table `admin_saved_replies` (admin_id, title, body, sort_order). RLS: admin owns rows.
-- `AdminTickets.tsx`: dropdown above reply box + "Manage" modal for CRUD.
+Note: Netlify doesn't send `x-vercel-*` at all — if the scanner is flagging those, it's scanning a **cached** copy or a different deployment. After my fix, re-scan with cache disabled.
 
-### 7. Public service alias layer + RLS hardening
-- Add `services.public_alias text unique` (`O-<n>` / `S-<n>` / `F-<n>`), populated in `sync-services`.
-- Create view `public.services_public` exposing only safe columns; grant SELECT to anon/authenticated; revoke SELECT on base `services` from anon/authenticated (service_role keeps full access for edge functions).
-- Frontend reads from `services_public`; provider name and `api_service_id` never leave the server.
-- Run linter; close any remaining RLS gaps on user-data tables.
+&nbsp;
 
-### 8. Currency selector search + auto-timezone
-- Full-variant `CurrencySelector` uses shadcn `Command` with search by code/name/symbol.
-- On first authenticated Dashboard mount, if `profiles.timezone` is null, write `Intl.DateTimeFormat().resolvedOptions().timeZone`.
+## Plan for this turn
 
-### 9. Exchange-rate rate-limit hardening
-- `useExchangeRates`: cache TTL 12h, serve cached up to 24h (stale-while-revalidate), exponential backoff on 429, share across tabs via `BroadcastChannel`, fetch only on cold start.
+### 1. Turnstile + headers (ship now)
 
-### 10. Small UI polish
-- Tighter mobile paddings, semantic tokens for any remaining hardcoded greys, sticky table headers on Orders/Drip-Feed/Subscriptions, consistent skeleton heights.
+- Add `netlify.toml` + `public/_headers` stripping server-identifying headers and adding CSP/HSTS/XFO/Referrer-Policy/Permissions-Policy
+- Remove obsolete `vercel.json` (or leave it inert — user's choice)
 
----
+User: No!! I told you previously that I moved to Vercel, I don't use Netlify anymore, please do the needful by doing what's asked
 
-### Deferred to next turn
-TOTP 2FA for admin (Turnstile already covers bot/brute-force now), Turnstile on user auth, R2 attachment migration, Supabase URL proxy, full blog/help-center, 30-day ticket cleanup.
+### 2. Private storage bucket audit (ship now)
 
-### Files
+- Verify `ticket-attachments` bucket is `public=false`
+- Confirm RLS on `storage.objects` restricts SELECT to ticket owner + admins
+- Confirm all client reads go through signed URLs (already done in `src/lib/ticketAttachments.ts`)
+- Add `oncontextmenu` block + `user-select:none` on attachment `<img>` tags so long-press/right-click can't reveal the signed URL directly in the ticket UI
 
-**New:** `src/pages/AdminLogin.tsx`, `src/pages/AdminPanel.tsx`, `src/components/admin/AdminGuard.tsx`, `src/components/admin/UserLookup.tsx`, `src/components/admin/AddFundsToUser.tsx`, `src/components/admin/SavedRepliesManager.tsx`, `src/pages/DripFeed.tsx`, `src/pages/Subscriptions.tsx`, `supabase/functions/admin-login/index.ts`, `supabase/functions/admin-credit-user/index.ts`.
+### 3. Admin TOTP 2FA (ship now)
 
-**Edited:** `vercel.json`, `src/App.tsx` (route swap), `src/components/Header.tsx` (remove admin link, conditional drip-feed/subscriptions links), `src/pages/Admin.tsx` → moved into `AdminPanel.tsx`, `src/pages/AdminTickets.tsx` (saved replies + guard), `src/pages/Services.tsx` + `src/utils/serviceOrganizer.ts` + `src/hooks/useOrderKinds.tsx` (read from `services_public`), `src/hooks/useExchangeRates.tsx`, `src/components/CurrencySelector.tsx`, `src/pages/Dashboard.tsx` (timezone autoset), `supabase/functions/sync-order-status/index.ts`, `supabase/functions/sync-services/index.ts`, `supabase/functions/place-order/index.ts` (block admin orders).
+- New table `public.admin_totp` (user_id, encrypted_secret, verified_at, backup_codes[])
+- Edge functions: `admin-totp-enroll` (returns QR + provisional secret), `admin-totp-verify` (activates), `admin-totp-check` (verifies code during login)
+- Modify `admin-login` to require TOTP code once user has enrolled; unenrolled admins are forced to enroll on first login after this ships
+- UI: enroll flow in AdminPanel + 6-digit code input on AdminLogin
+- Library: `otpauth` (works in Deno + browser)
 
-**Migrations:**
-- `services.public_alias`, `services_public` view + grants/revokes.
-- `subscription_reservations` columns (`posts_delivered`, `posts_charged`, `per_post_reserved`).
-- `admin_saved_replies` table + RLS + grants.
+### 4. Blog / Help Center (ship now — scoped)
 
-### Verification
-- Reload `/services`, `/orders`, `/drip-feed`, `/subscriptions`, `/admin` on Vercel → no 404.
-- `/admin` shows isolated login with Turnstile; correct admin login succeeds, wrong/missing Turnstile fails, non-admin user fails.
-- Admin attempts to place an order → 403.
-- User lookup → balance top-up requires password + Turnstile → user's balance increases and transaction appears.
-- Services network response contains no `provider` or `api_service_id`.
-- Subscription delivers a post → balance debits exactly that slice.
+Given the scale, this turn ships the **foundation + 6 seed articles**, not 30+ articles.
+
+**Schema:**
+
+- `public.blog_posts` (id, slug, title, excerpt, cover_image_url, body_md, category, published, published_at, seo_title, seo_description)
+- `public.blog_categories` (slug, name, description)
+- RLS: public SELECT where `published = true`; admin full access
+
+**Routes:**
+
+- `/help` — category grid + search
+- `/help/:category` — article list
+- `/help/:category/:slug` — article page with JSON-LD Article schema
+- Sitemap auto-includes published posts
+
+**Admin UI:** new "Content" tab in AdminPanel — create/edit/publish posts with markdown editor + cover image upload to R2.
+
+**Seed content (I'll write & publish):**
+
+1. "How to find your Instagram profile link"
+2. "How to find your TikTok video URL"
+3. "How to find your YouTube channel/video link"
+4. "How to find your Facebook page URL"
+5. "How to find your Twitter/X post link"
+6. "How to place your first order on QuickFollowers"
+
+**Images:** I'll generate ultra-realistic screenshots via `imagegen` (premium tier for text legibility) showing the actual mobile app UI for each platform's share/copy-link flow.
+
+## What I need from you
+
+1. **Confirm:** Add the preview hostname to Turnstile allow-list yourself (I can't access your Cloudflare dashboard), OR tell me to generate a **new** Turnstile key with `*.lovable.app` included and paste it — I'll swap the secret.
+2. **Confirm:** Should the blog live at `/help` (help-center framing) or `/blog` (marketing framing)? Or both — `/blog` for marketing posts, `/help` for how-to guides?
+
+Reply with those two answers and I'll ship all four sections in the next turn. I'm not splitting this across more turns — one big shipment.
+
+&nbsp;
+
+Me the user, this is my reply: Do not worry, I have tried the Cloudflare Turnstile from the normal QuickFollowers domain and it works successfully, so no need to add any lovable preview domain 
+
+The answer to the second question, both blog and help should leave in one place.
+
+Also, from the Admin panel, remove the "sync service" button option from anywhere on the admin panel, and anywhere in my own [admin@quickfollowers.online](mailto:admin@quickfollowers.online) account, remove the "Payments" section from the Admin panel page, also when I tap the Tickets on the Admin panel which leads to the tickets page, I then see the hamburger icon option, which then displays other things like Dashboard, New Order, Orders, Transactions, please remove it so it doesn't show things like that except what is actually needed only for the support team on the admin panel. Also, in the support tickets I said you should add saved replies list add one small section inside the tickets chat that support can like search for the question and when they tap it for question they searched for or it's relation question they can see a simply tap it and then tap send it with the send button there, also add an edit button to the replies for maybe responses that looks like this "Your order id___ has been..." I hope you understand what I mean.
