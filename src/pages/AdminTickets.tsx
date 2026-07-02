@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import Header from "@/components/Header";
-import Footer from "@/components/Footer";
+import SavedRepliesPicker from "@/components/admin/SavedRepliesPicker";
+import { Link } from "react-router-dom";
 import FullPageLoader from "@/components/FullPageLoader";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -384,8 +384,13 @@ const AdminTickets = () => {
   }
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <Header />
+    <div className="min-h-screen flex flex-col bg-background">
+      <header className="border-b bg-card">
+        <div className="container mx-auto px-4 py-3 flex items-center justify-between">
+          <Link to="/admin/panel" className="text-sm font-semibold">← Admin Panel</Link>
+          <span className="text-xs text-muted-foreground truncate">{user?.email}</span>
+        </div>
+      </header>
       <main className="flex-grow container mx-auto px-3 sm:px-4 py-4 sm:py-8">
         <div className="mb-6 sm:mb-8 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
           <div className="flex items-center gap-3">
@@ -519,15 +524,16 @@ const AdminTickets = () => {
                         {msg.attachment_url && viewUrl && (
                           <div className="mt-2">
                             {isImage ? (
-                              <a href={viewUrl} target="_blank" rel="noopener noreferrer">
-                                <img 
-                                  src={viewUrl} 
-                                  alt="Attachment" 
-                                  loading="lazy"
-                                  onLoad={() => scrollToBottom()}
-                                  className="max-w-full rounded max-h-64 object-contain bg-background"
-                                />
-                              </a>
+              <img 
+                                src={viewUrl} 
+                                alt="Attachment" 
+                                loading="lazy"
+                                draggable={false}
+                                onContextMenu={(e) => e.preventDefault()}
+                                onLoad={() => scrollToBottom()}
+                                style={{ userSelect: 'none', WebkitUserSelect: 'none', WebkitTouchCallout: 'none' }}
+                                className="max-w-full rounded max-h-64 object-contain bg-background pointer-events-auto"
+                              />
                             ) : isPdf ? (
                               <div className="space-y-1">
                                 <object
@@ -602,6 +608,7 @@ const AdminTickets = () => {
                     <span><Paperclip className="h-4 w-4" /></span>
                   </Button>
                 </label>
+                <SavedRepliesPicker onSend={async (text) => { setNewMessage(text); }} />
                 <Textarea
                   placeholder="Type your reply..."
                   value={newMessage}
@@ -617,7 +624,6 @@ const AdminTickets = () => {
           </DialogContent>
         </Dialog>
       </main>
-      <Footer />
     </div>
   );
 };
