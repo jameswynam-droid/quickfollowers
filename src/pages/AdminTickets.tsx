@@ -177,7 +177,7 @@ const AdminTickets = () => {
       const { data: ticketsData, error: ticketsError } = await supabase
         .from("tickets")
         .select("*")
-        .order("updated_at", { ascending: false });
+        .order("last_message_at", { ascending: false, nullsFirst: false });
 
       if (ticketsError) throw ticketsError;
 
