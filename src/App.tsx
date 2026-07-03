@@ -28,6 +28,7 @@ import PaymentSuccess from "./pages/PaymentSuccess";
 import PaymentFailed from "./pages/PaymentFailed";
 import Account from "./pages/Account";
 import NotFound from "./pages/NotFound";
+import StaffRedirect from "./components/StaffRedirect";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -63,16 +64,16 @@ const App = () => (
                 <Route path="/help" element={<Help />} />
                 <Route path="/help/:slug" element={<HelpPost />} />
 
-                <Route path="/add-funds" element={<AddFunds />} />
-                <Route path="/payment/success" element={<PaymentSuccess />} />
-                <Route path="/payment/failed" element={<PaymentFailed />} />
+                <Route path="/add-funds" element={<StaffRedirect><AddFunds /></StaffRedirect>} />
+                <Route path="/payment/success" element={<StaffRedirect><PaymentSuccess /></StaffRedirect>} />
+                <Route path="/payment/failed" element={<StaffRedirect><PaymentFailed /></StaffRedirect>} />
 
-                <Route path="/dashboard" element={<Dashboard />} />
-                <Route path="/services" element={<Services />} />
-                <Route path="/orders" element={<Orders />} />
-                <Route path="/transactions" element={<Transactions />} />
-                <Route path="/tickets" element={<Tickets />} />
-                <Route path="/account" element={<Account />} />
+                <Route path="/dashboard" element={<StaffRedirect><Dashboard /></StaffRedirect>} />
+                <Route path="/services" element={<StaffRedirect><Services /></StaffRedirect>} />
+                <Route path="/orders" element={<StaffRedirect><Orders /></StaffRedirect>} />
+                <Route path="/transactions" element={<StaffRedirect><Transactions /></StaffRedirect>} />
+                <Route path="/tickets" element={<StaffRedirect><Tickets /></StaffRedirect>} />
+                <Route path="/account" element={<StaffRedirect><Account /></StaffRedirect>} />
                 <Route path="/admin" element={<AdminLogin />} />
                 <Route path="/admin/panel" element={<AdminPanel />} />
                 <Route path="/admin/tickets" element={<AdminTickets />} />

@@ -88,8 +88,14 @@ const AdminLogin = () => {
       }
       if (error || !data?.success) throw new Error(data?.error || error?.message || "Login failed");
       await supabase.auth.setSession({ access_token: data.session.access_token, refresh_token: data.session.refresh_token });
-      sessionStorage.setItem(ADMIN_SESSION_KEY, JSON.stringify({ user_id: data.user.id, email: data.user.email, admin_expires_at: data.admin_expires_at }));
-      toast.success("Welcome, admin");
+      sessionStorage.setItem(ADMIN_SESSION_KEY, JSON.stringify({
+        user_id: data.user.id,
+        email: data.user.email,
+        role: data.role || "admin",
+        admin_expires_at: data.admin_expires_at,
+        must_enroll_totp: !!data.must_enroll_totp,
+      }));
+      toast.success(data.must_enroll_totp ? "Please set up 2FA to continue" : "Welcome");
       navigate("/admin/panel", { replace: true });
     } catch (err: any) {
       toast.error(err.message || "Login failed");

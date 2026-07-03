@@ -8,8 +8,7 @@ import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-
-
+import { useCurrency } from "@/hooks/useCurrency";
 
 interface Profile {
   id: string;
@@ -20,12 +19,38 @@ interface Profile {
   created_at: string;
 }
 
-const UserLookup = () => {
+// Obfuscated provider hint from provider_service_id prefix
+function providerHint(providerServiceId: string | null | undefined): string {
+  if (!providerServiceId) return "—";
+  const s = String(providerServiceId);
+  if (s.startsWith("O-")) return "P-A";
+  if (s.startsWith("S-")) return "P-B";
+  if (s.startsWith("F-")) return "P-C";
+  return "P-X";
+}
+
+// Payment provider label
+function paymentHint(method: string | null | undefined): string {
+  if (!method) return "—";
+  const m = method.toLowerCase();
+  if (m.includes("paystack")) return "PS";
+  if (m.includes("flutterwave") || m.includes("flw")) return "FW";
+  if (m.includes("kora")) return "KO";
+  if (m.includes("admin")) return "MANUAL";
+  return method.slice(0, 6).toUpperCase();
+}
+
+const UserLookup = ({ isAdmin = true }: { isAdmin?: boolean }) => {
+  const { formatPrice, currencySymbol, convertToNGN } = useCurrency();
   const [query, setQuery] = useState("");
   const [searching, setSearching] = useState(false);
+  const [results, setResults] = useState<Profile[]>([]);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [role, setRole] = useState<string>("user");
   const [orders, setOrders] = useState<any[]>([]);
+  const [transactions, setTransactions] = useState<any[]>([]);
+  const [detailLoading, setDetailLoading] = useState(false);
+
   const [addOpen, setAddOpen] = useState(false);
   const [amount, setAmount] = useState("");
   const [adminPwd, setAdminPwd] = useState("");
@@ -35,32 +60,49 @@ const UserLookup = () => {
   const search = async () => {
     if (!query.trim()) return;
     setSearching(true);
+    setResults([]);
     setProfile(null);
-    setOrders([]);
     try {
       const q = query.trim();
       const { data, error } = await supabase
         .from("profiles")
         .select("id, email, full_name, username, balance, created_at")
-        .or(`email.ilike.%${q}%,username.ilike.%${q}%`)
-        .limit(1)
-        .maybeSingle();
+        .or(`email.ilike.%${q}%,username.ilike.%${q}%,full_name.ilike.%${q}%`)
+        .order("username", { ascending: true })
+        .limit(25);
       if (error) throw error;
-      if (!data) {
-        toast.error("No user found");
+      const list = (data || []) as Profile[];
+      if (list.length === 0) {
+        toast.error("No users found");
         return;
       }
-      setProfile(data as Profile);
-      const [{ data: roleData }, { data: orderData }] = await Promise.all([
-        supabase.from("user_roles").select("role").eq("user_id", data.id).maybeSingle(),
-        supabase.from("orders").select("id, service_name, charge, status, quantity, created_at").eq("user_id", data.id).order("created_at", { ascending: false }).limit(20),
-      ]);
-      setRole(roleData?.role || "user");
-      setOrders(orderData || []);
+      setResults(list);
+      if (list.length === 1) {
+        void openProfile(list[0]);
+      }
     } catch (e: any) {
       toast.error(e.message || "Lookup failed");
     } finally {
       setSearching(false);
+    }
+  };
+
+  const openProfile = async (p: Profile) => {
+    setProfile(p);
+    setDetailLoading(true);
+    try {
+      const [{ data: roleData }, { data: orderData }, { data: txData }] = await Promise.all([
+        supabase.from("user_roles").select("role").eq("user_id", p.id).maybeSingle(),
+        supabase.from("orders").select("id, short_id, service_name, charge, status, quantity, created_at, provider_service_id, provider_order_id").eq("user_id", p.id).order("created_at", { ascending: false }).limit(30),
+        supabase.from("transactions").select("id, short_id, type, amount, balance_after, description, payment_method, reference_id, created_at").eq("user_id", p.id).order("created_at", { ascending: false }).limit(30),
+      ]);
+      setRole(roleData?.role || "user");
+      setOrders(orderData || []);
+      setTransactions(txData || []);
+    } catch (e: any) {
+      toast.error(e.message || "Failed to load details");
+    } finally {
+      setDetailLoading(false);
     }
   };
 
@@ -106,34 +148,25 @@ const UserLookup = () => {
   const submitCredit = async () => {
     if (!profile) return;
     const amt = Number(amount);
-    if (!Number.isFinite(amt) || amt <= 0) {
-      toast.error("Invalid amount");
-      return;
-    }
-    if (!adminPwd) {
-      toast.error("Enter your admin password");
-      return;
-    }
-    if (!turnstileToken) {
-      toast.error("Complete the verification");
-      return;
-    }
+    if (!Number.isFinite(amt) || amt <= 0) { toast.error("Invalid amount"); return; }
+    if (!adminPwd) { toast.error("Enter your admin password"); return; }
+    if (!turnstileToken) { toast.error("Complete the verification"); return; }
+    // Convert entered amount (user's chosen currency) to NGN for backend
+    const ngnAmount = convertToNGN(amt);
     setCrediting(true);
     try {
       const { data, error } = await supabase.functions.invoke("admin-credit-user", {
         body: {
           target_user_id: profile.id,
-          amount_usd: amt,
+          amount_usd: ngnAmount, // backend field is named amount_usd but treats it as base currency (NGN)
           admin_password: adminPwd,
           turnstile_token: turnstileToken,
         },
       });
-      if (error || !data?.success) {
-        throw new Error(data?.error || error?.message || "Failed");
-      }
-      toast.success(`Credited ${amt} to ${profile.email}`);
+      if (error || !data?.success) throw new Error(data?.error || error?.message || "Failed");
+      toast.success(`Credited ${formatPrice(ngnAmount)} to ${profile.email}`);
       setAddOpen(false);
-      search();
+      openProfile(profile);
     } catch (e: any) {
       toast.error(e.message || "Failed");
     } finally {
@@ -150,70 +183,144 @@ const UserLookup = () => {
         <CardContent className="space-y-3">
           <div className="flex gap-2">
             <Input
-              placeholder="Search by email or username"
+              placeholder="Search by email, username, or name"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && search()}
             />
-            <Button onClick={search} disabled={searching}>
-              {searching ? "Searching..." : "Search"}
-            </Button>
+            <Button onClick={search} disabled={searching}>{searching ? "Searching..." : "Search"}</Button>
           </div>
         </CardContent>
       </Card>
 
-      {profile && (
+      {results.length > 1 && !profile && (
         <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center justify-between">
-              <span>{profile.full_name || profile.username || profile.email}</span>
-              <Badge variant={role === "admin" ? "default" : "secondary"}>{role}</Badge>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3 text-sm">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              <div><span className="text-muted-foreground">Email:</span> {profile.email}</div>
-              <div><span className="text-muted-foreground">Username:</span> {profile.username || "—"}</div>
-              <div><span className="text-muted-foreground">Balance:</span> ${Number(profile.balance).toFixed(2)}</div>
-              <div><span className="text-muted-foreground">Signed up:</span> {new Date(profile.created_at).toLocaleDateString()}</div>
-            </div>
-            <Button onClick={openAddFunds} size="sm">Add Funds</Button>
+          <CardHeader><CardTitle>{results.length} matches</CardTitle></CardHeader>
+          <CardContent className="space-y-1">
+            {results.map((r) => (
+              <button
+                key={r.id}
+                onClick={() => openProfile(r)}
+                className="w-full text-left border rounded-md p-2 hover:bg-accent transition-colors"
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="font-medium truncate">{r.username || r.full_name || r.email}</p>
+                    <p className="text-xs text-muted-foreground truncate">{r.email}</p>
+                  </div>
+                  <div className="text-right text-xs text-muted-foreground shrink-0">{formatPrice(Number(r.balance))}</div>
+                </div>
+              </button>
+            ))}
           </CardContent>
         </Card>
       )}
 
-      {profile && orders.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Recent Orders</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Service</TableHead>
-                    <TableHead>Qty</TableHead>
-                    <TableHead>Charge</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Date</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {orders.map((o) => (
-                    <TableRow key={o.id}>
-                      <TableCell className="max-w-[200px] truncate">{o.service_name}</TableCell>
-                      <TableCell>{o.quantity}</TableCell>
-                      <TableCell>${Number(o.charge).toFixed(2)}</TableCell>
-                      <TableCell><Badge variant="outline">{o.status}</Badge></TableCell>
-                      <TableCell>{new Date(o.created_at).toLocaleDateString()}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          </CardContent>
-        </Card>
+      {profile && (
+        <>
+          {results.length > 1 && (
+            <Button size="sm" variant="ghost" onClick={() => setProfile(null)}>← Back to results</Button>
+          )}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center justify-between">
+                <span className="truncate">{profile.full_name || profile.username || profile.email}</span>
+                <Badge variant={role === "admin" ? "default" : role === "support" ? "outline" : "secondary"}>{role}</Badge>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3 text-sm">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <div><span className="text-muted-foreground">Email:</span> {profile.email}</div>
+                <div><span className="text-muted-foreground">Username:</span> {profile.username || "—"}</div>
+                <div><span className="text-muted-foreground">Balance:</span> {formatPrice(Number(profile.balance))}</div>
+                <div><span className="text-muted-foreground">Signed up:</span> {new Date(profile.created_at).toLocaleDateString()}</div>
+              </div>
+              {isAdmin && <Button onClick={openAddFunds} size="sm">Add Funds</Button>}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader><CardTitle>Recent Orders</CardTitle></CardHeader>
+            <CardContent>
+              {detailLoading ? (
+                <p className="text-sm text-muted-foreground">Loading…</p>
+              ) : orders.length === 0 ? (
+                <p className="text-sm text-muted-foreground">No orders yet.</p>
+              ) : (
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>ID</TableHead>
+                        <TableHead>Src</TableHead>
+                        <TableHead>Service</TableHead>
+                        <TableHead>Qty</TableHead>
+                        <TableHead>Charge</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Date</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {orders.map((o) => (
+                        <TableRow key={o.id}>
+                          <TableCell className="font-mono text-xs">
+                            {o.short_id || o.provider_order_id || o.id.slice(0, 8)}
+                          </TableCell>
+                          <TableCell><Badge variant="outline" className="text-[10px]">{providerHint(o.provider_service_id)}</Badge></TableCell>
+                          <TableCell className="max-w-[200px] truncate">{o.service_name}</TableCell>
+                          <TableCell>{o.quantity}</TableCell>
+                          <TableCell>{formatPrice(Number(o.charge))}</TableCell>
+                          <TableCell><Badge variant="outline">{o.status}</Badge></TableCell>
+                          <TableCell className="whitespace-nowrap">{new Date(o.created_at).toLocaleDateString()}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader><CardTitle>Transaction History</CardTitle></CardHeader>
+            <CardContent>
+              {detailLoading ? (
+                <p className="text-sm text-muted-foreground">Loading…</p>
+              ) : transactions.length === 0 ? (
+                <p className="text-sm text-muted-foreground">No transactions.</p>
+              ) : (
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>ID</TableHead>
+                        <TableHead>Type</TableHead>
+                        <TableHead>Amount</TableHead>
+                        <TableHead>Balance</TableHead>
+                        <TableHead>Via</TableHead>
+                        <TableHead>Description</TableHead>
+                        <TableHead>Date</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {transactions.map((t) => (
+                        <TableRow key={t.id}>
+                          <TableCell className="font-mono text-xs">{t.short_id || t.reference_id?.slice(0, 10) || t.id.slice(0, 8)}</TableCell>
+                          <TableCell><Badge variant={t.type === "deposit" ? "default" : t.type === "refund" ? "secondary" : "outline"}>{t.type}</Badge></TableCell>
+                          <TableCell>{formatPrice(Number(t.amount))}</TableCell>
+                          <TableCell>{formatPrice(Number(t.balance_after))}</TableCell>
+                          <TableCell><Badge variant="outline" className="text-[10px]">{paymentHint(t.payment_method)}</Badge></TableCell>
+                          <TableCell className="max-w-[200px] truncate text-xs">{t.description || "—"}</TableCell>
+                          <TableCell className="whitespace-nowrap">{new Date(t.created_at).toLocaleDateString()}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </>
       )}
 
       <Dialog open={addOpen} onOpenChange={setAddOpen}>
@@ -223,8 +330,13 @@ const UserLookup = () => {
           </DialogHeader>
           <div className="space-y-3">
             <div className="space-y-1.5">
-              <Label>Amount (USD)</Label>
+              <Label>Amount ({currencySymbol})</Label>
               <Input type="number" step="0.01" min="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} />
+              {amount && Number(amount) > 0 && (
+                <p className="text-xs text-muted-foreground">
+                  Will credit ≈ ₦{convertToNGN(Number(amount)).toLocaleString(undefined, { maximumFractionDigits: 2 })} to their balance.
+                </p>
+              )}
             </div>
             <div className="space-y-1.5">
               <Label>Confirm your admin password</Label>
