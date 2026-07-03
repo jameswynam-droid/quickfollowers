@@ -18,6 +18,7 @@ export type Database = {
         Row: {
           backup_codes: string[] | null
           created_at: string
+          last_verified_at: string | null
           secret: string
           updated_at: string
           user_id: string
@@ -26,6 +27,7 @@ export type Database = {
         Insert: {
           backup_codes?: string[] | null
           created_at?: string
+          last_verified_at?: string | null
           secret: string
           updated_at?: string
           user_id: string
@@ -34,6 +36,7 @@ export type Database = {
         Update: {
           backup_codes?: string[] | null
           created_at?: string
+          last_verified_at?: string | null
           secret?: string
           updated_at?: string
           user_id?: string
@@ -732,6 +735,7 @@ export type Database = {
         Row: {
           created_at: string
           id: string
+          last_message_at: string | null
           priority: string
           status: string
           subject: string
@@ -741,6 +745,7 @@ export type Database = {
         Insert: {
           created_at?: string
           id?: string
+          last_message_at?: string | null
           priority?: string
           status?: string
           subject: string
@@ -750,6 +755,7 @@ export type Database = {
         Update: {
           created_at?: string
           id?: string
+          last_message_at?: string | null
           priority?: string
           status?: string
           subject?: string
