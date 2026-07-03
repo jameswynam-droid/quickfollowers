@@ -26,7 +26,7 @@ Deno.serve(async (req) => {
     const delta = totp.validate({ token: code, window: 1 });
     if (delta === null) return new Response(JSON.stringify({ error: 'Incorrect code — try again' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 
-    await admin.from('admin_totp').update({ verified: true, updated_at: new Date().toISOString() }).eq('user_id', user.id);
+    await admin.from('admin_totp').update({ verified: true, last_verified_at: new Date().toISOString(), updated_at: new Date().toISOString() }).eq('user_id', user.id);
     return new Response(JSON.stringify({ success: true }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
   } catch (e) {
     return new Response(JSON.stringify({ error: 'Verify failed' }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
