@@ -28,6 +28,7 @@ import PaymentSuccess from "./pages/PaymentSuccess";
 import PaymentFailed from "./pages/PaymentFailed";
 import Account from "./pages/Account";
 import NotFound from "./pages/NotFound";
+import StaffRedirect from "./components/StaffRedirect";
 
 const queryClient = new QueryClient({
   defaultOptions: {
