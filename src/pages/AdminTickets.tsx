@@ -45,6 +45,7 @@ const AdminTickets = () => {
   useNoIndex();
   const [user, setUser] = useState<any>(null);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [staffRole, setStaffRole] = useState<"admin" | "support">("support");
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
@@ -151,20 +152,21 @@ const AdminTickets = () => {
 
     setUser(session.user);
 
-    // Check if user is admin
+    // Check if user is staff
     const { data: roles } = await supabase
       .from("user_roles")
       .select("role")
       .eq("user_id", session.user.id)
-      .eq("role", "admin")
-      .maybeSingle();
+      .in("role", ["admin", "support"]);
 
-    if (!roles) {
-      toast.error("Access denied: Admin only");
-      navigate("/dashboard");
+    const roleList = (roles || []).map((r: any) => r.role);
+    if (!roleList.includes("admin") && !roleList.includes("support")) {
+      toast.error("Access denied: staff only");
+      navigate("/admin", { replace: true });
       return;
     }
 
+    setStaffRole(roleList.includes("admin") ? "admin" : "support");
     setIsAdmin(true);
     await fetchTickets();
   };
@@ -576,7 +578,7 @@ const AdminTickets = () => {
                         <p className={`text-xs mt-1 ${
                           msg.is_admin_reply ? 'text-primary-foreground/70' : 'text-muted-foreground'
                         }`}>
-                          {msg.is_admin_reply ? 'You (Admin)' : 'User'} • {formatDate(msg.created_at)}
+                          {msg.is_admin_reply ? `You (${staffRole === "admin" ? "Admin" : "Support"})` : 'User'} • {formatDate(msg.created_at)}
                         </p>
                       </div>
                     </div>
