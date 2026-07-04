@@ -31,7 +31,7 @@ function providerHint(seed: string | null | undefined): string {
 
 // Payment provider label
 function paymentHint(method: string | null | undefined): string {
-  if (!method) return "—";
+  if (!method) return "-";
   const m = method.toLowerCase();
   if (m.includes("paystack")) return "PS";
   if (m.includes("flutterwave") || m.includes("flw")) return "FW";
@@ -262,7 +262,7 @@ const UserLookup = ({ isAdmin = true }: { isAdmin?: boolean }) => {
             <CardContent className="space-y-3 text-sm">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 <div><span className="text-muted-foreground">Email:</span> {profile.email}</div>
-                <div><span className="text-muted-foreground">Username:</span> {profile.username || "—"}</div>
+                <div><span className="text-muted-foreground">Username:</span> {profile.username || "-"}</div>
                 <div><span className="text-muted-foreground">Balance:</span> {formatPrice(Number(profile.balance))}</div>
                 <div><span className="text-muted-foreground">Signed up:</span> {new Date(profile.created_at).toLocaleDateString()}</div>
               </div>
@@ -367,7 +367,7 @@ const UserLookup = ({ isAdmin = true }: { isAdmin?: boolean }) => {
                           <TableCell>{formatPrice(Number(t.amount))}</TableCell>
                           <TableCell>{formatPrice(Number(t.balance_after))}</TableCell>
                           <TableCell><Badge variant="outline" className="text-[10px]">{paymentHint(t.payment_method)}</Badge></TableCell>
-                          <TableCell className="max-w-[200px] truncate text-xs">{t.description || "—"}</TableCell>
+                          <TableCell className="max-w-[200px] truncate text-xs">{t.description || "-"}</TableCell>
                           <TableCell className="whitespace-nowrap">{new Date(t.created_at).toLocaleDateString()}</TableCell>
                         </TableRow>
                       ))}

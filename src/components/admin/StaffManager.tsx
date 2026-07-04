@@ -70,7 +70,7 @@ const StaffManager = ({ currentUserId }: { currentUserId?: string }) => {
         body: { action: "create", email: email.trim(), password: pwd, role },
       });
       if (error || !data?.success) throw new Error(await getFunctionErrorMessage(error, data, "Could not create staff account."));
-      toast.success(`${role === "admin" ? "Admin" : "Support"} account created. Copy the password now — it won't be shown again.`);
+      toast.success(`${role === "admin" ? "Admin" : "Support"} account created. Copy the password now. It won't be shown again.`);
       setOpen(false);
       await load();
     } catch (e: any) {
@@ -179,7 +179,7 @@ const StaffManager = ({ currentUserId }: { currentUserId?: string }) => {
                   <Copy className="h-4 w-4" />
                 </Button>
               </div>
-              <p className="text-xs text-muted-foreground mt-1">Copy this now — it won't be shown again.</p>
+              <p className="text-xs text-muted-foreground mt-1">Copy this now. It won't be shown again.</p>
             </div>
             <div>
               <Label>Role</Label>
@@ -190,7 +190,7 @@ const StaffManager = ({ currentUserId }: { currentUserId?: string }) => {
               <p className="text-xs text-muted-foreground mt-1">
                 {role === "support"
                   ? "Support can reply to tickets, use saved replies, and look up users. Cannot manage blog, pop-ups, or credit balances. Must set up 2FA on first login."
-                  : "Full admin — can do everything, including managing other staff."}
+                  : "Full admin. Can do everything, including managing other staff."}
               </p>
             </div>
           </div>

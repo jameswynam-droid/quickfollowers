@@ -100,7 +100,7 @@ Deno.serve(async (req) => {
 
       await admin.from('admin_totp').delete().eq('user_id', targetId);
       await admin.from('user_roles').delete().eq('user_id', targetId).in('role', ['admin', 'support']);
-      const { error: deleteErr } = await admin.auth.admin.deleteUser(targetId, true);
+      const { error: deleteErr } = await admin.auth.admin.deleteUser(targetId, false);
       if (deleteErr) return json({ success: false, error: 'Could not delete staff account.' });
       return json({ success: true });
     }
