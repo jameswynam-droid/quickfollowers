@@ -83,7 +83,9 @@ const AdminLogin = () => {
       const { data, error } = await supabase.functions.invoke("admin-login", { body });
       if (data?.requires_totp) {
         setNeedsTotp(true);
-        toast.info(data.error || "Enter your authenticator code");
+        const message = data.error || "Enter your authenticator code";
+        if (needsTotp) toast.error(message);
+        else toast.info(message);
         resetTurnstile();
         setLoading(false);
         return;
