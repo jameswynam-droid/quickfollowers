@@ -6,6 +6,8 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
 import { ShieldCheck, ShieldAlert } from "lucide-react";
+import { ADMIN_SESSION_KEY, getAdminSession } from "@/components/admin/AdminGuard";
+import { getFunctionErrorMessage } from "@/lib/functionErrors";
 
 const AdminTotpEnroll = () => {
   const [enrolled, setEnrolled] = useState<boolean | null>(null);
@@ -26,7 +28,7 @@ const AdminTotpEnroll = () => {
     setLoading(true);
     try {
       const { data, error } = await supabase.functions.invoke("admin-totp-enroll", { body: {} });
-      if (error || !data?.success) throw new Error(data?.error || error?.message || "Enroll failed");
+      if (error || !data?.success) throw new Error(await getFunctionErrorMessage(error, data, "2FA setup could not be started."));
       setQr(data.qr_data_url);
       setSecret(data.secret);
     } catch (e: any) { toast.error(e.message); } finally { setLoading(false); }
@@ -37,8 +39,12 @@ const AdminTotpEnroll = () => {
     setLoading(true);
     try {
       const { data, error } = await supabase.functions.invoke("admin-totp-verify", { body: { code } });
-      if (error || !data?.success) throw new Error(data?.error || error?.message || "Invalid code");
+      if (error || !data?.success) throw new Error(await getFunctionErrorMessage(error, data, "Invalid authenticator code."));
       toast.success("2FA enabled");
+      const sess = getAdminSession();
+      if (sess?.must_enroll_totp) {
+        sessionStorage.setItem(ADMIN_SESSION_KEY, JSON.stringify({ ...sess, must_enroll_totp: false }));
+      }
       setQr(null); setSecret(null); setCode("");
       load();
     } catch (e: any) { toast.error(e.message); } finally { setLoading(false); }
@@ -66,7 +72,7 @@ const AdminTotpEnroll = () => {
         {enrolled === null ? <p className="text-sm text-muted-foreground">Loading...</p>
           : enrolled ? (
             <>
-              <p className="text-sm">2FA is currently <strong>enabled</strong>. Every admin login requires a 6-digit code from your authenticator app.</p>
+              <p className="text-sm">2FA is currently <strong>enabled</strong>. Staff login will require a 6-digit authenticator code when verification is due.</p>
               <Button variant="destructive" size="sm" onClick={disable}>Disable 2FA</Button>
             </>
           ) : qr ? (
@@ -82,7 +88,7 @@ const AdminTotpEnroll = () => {
             </>
           ) : (
             <>
-              <p className="text-sm text-muted-foreground">Protect the admin account with an authenticator-app code required at every login.</p>
+              <p className="text-sm text-muted-foreground">Protect staff access with an authenticator-app code.</p>
               <Button onClick={startEnroll} disabled={loading}>{loading ? "Preparing..." : "Enable 2FA"}</Button>
             </>
           )}
