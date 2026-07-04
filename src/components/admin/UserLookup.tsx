@@ -96,7 +96,7 @@ const UserLookup = ({ isAdmin = true }: { isAdmin?: boolean }) => {
     setDetailLoading(true);
     try {
       const [{ data: roleData }, { data: orderData }, { data: txData }] = await Promise.all([
-        supabase.from("user_roles").select("role").eq("user_id", p.id).maybeSingle(),
+        supabase.from("user_roles").select("role").eq("user_id", p.id),
         supabase
           .from("orders")
           .select("id, api_order_id, service_id, charge, status, quantity, created_at, services(name, provider, category)")
@@ -111,7 +111,8 @@ const UserLookup = ({ isAdmin = true }: { isAdmin?: boolean }) => {
           .order("created_at", { ascending: false })
           .limit(50),
       ]);
-      setRole(roleData?.role || "user");
+      const roleList = (roleData || []).map((r: any) => r.role);
+      setRole(roleList.includes("admin") ? "admin" : roleList.includes("support") ? "support" : "user");
       setOrders(orderData || []);
       setTransactions(txData || []);
       setOrderIdQuery("");

@@ -10,6 +10,17 @@ const json = (body: any, status = 200) =>
 
 const isEmail = (value: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
 
+async function emailExists(admin: any, email: string) {
+  for (let page = 1; page <= 20; page++) {
+    const { data, error } = await admin.auth.admin.listUsers({ page, perPage: 1000 });
+    if (error) return false;
+    const users = data?.users || [];
+    if (users.some((u: any) => String(u.email || '').toLowerCase() === email && !u.deleted_at)) return true;
+    if (users.length < 1000) return false;
+  }
+  return false;
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
 
@@ -63,8 +74,7 @@ Deno.serve(async (req) => {
       if (!isEmail(email)) return json({ success: false, error: 'Enter a valid email address.' });
       if (!password || password.length < 12) return json({ success: false, error: 'Password must be at least 12 characters.' });
 
-      const { data: existing } = await admin.auth.admin.listUsers({ page: 1, perPage: 1000 });
-      if ((existing?.users || []).some((u: any) => String(u.email || '').toLowerCase() === email)) {
+      if (await emailExists(admin, email)) {
         return json({ success: false, error: 'This email is already in use.' });
       }
 
