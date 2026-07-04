@@ -44,6 +44,8 @@ const AdminTotpEnroll = () => {
       const sess = getAdminSession();
       if (sess?.must_enroll_totp) {
         sessionStorage.setItem(ADMIN_SESSION_KEY, JSON.stringify({ ...sess, must_enroll_totp: false }));
+        window.location.reload();
+        return;
       }
       setQr(null); setSecret(null); setCode("");
       load();
