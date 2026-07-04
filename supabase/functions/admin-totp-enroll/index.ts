@@ -7,19 +7,28 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+const json = (body: Record<string, unknown>, status = 200) =>
+  new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
   try {
     const jwt = (req.headers.get('Authorization') ?? '').replace('Bearer ', '');
-    if (!jwt) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
-    const supabaseAuth = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_ANON_KEY')!, { global: { headers: { Authorization: `Bearer ${jwt}` } } });
-    const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
+    if (!jwt) return json({ success: false, error: 'Please sign in again.' });
+
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    const anonKey = Deno.env.get('SUPABASE_ANON_KEY');
+    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    if (!supabaseUrl || !anonKey || !serviceRoleKey) return json({ success: false, error: '2FA setup is not configured. Please contact the site owner.' }, 500);
+
+    const supabaseAuth = createClient(supabaseUrl, anonKey, { global: { headers: { Authorization: `Bearer ${jwt}` } } });
+    const admin = createClient(supabaseUrl, serviceRoleKey);
 
     const { data: { user }, error } = await supabaseAuth.auth.getUser(jwt);
-    if (error || !user?.email) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    if (error || !user?.email) return json({ success: false, error: 'Please sign in again.' });
 
-    const { data: role } = await admin.from('user_roles').select('role').eq('user_id', user.id).eq('role', 'admin').maybeSingle();
-    if (!role) return new Response(JSON.stringify({ error: 'Forbidden' }), { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    const { data: roles } = await admin.from('user_roles').select('role').eq('user_id', user.id).in('role', ['admin', 'support']);
+    if (!(roles || []).length) return json({ success: false, error: 'This account is not allowed to set up staff 2FA.' });
 
     const secret = new OTPAuth.Secret({ size: 20 });
     const totp = new OTPAuth.TOTP({
@@ -36,8 +45,8 @@ Deno.serve(async (req) => {
     // Upsert unverified secret
     await admin.from('admin_totp').upsert({ user_id: user.id, secret: secret.base32, verified: false });
 
-    return new Response(JSON.stringify({ success: true, qr_data_url: qr, secret: secret.base32 }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    return json({ success: true, qr_data_url: qr, secret: secret.base32 });
   } catch (e) {
-    return new Response(JSON.stringify({ error: 'Enroll failed' }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    return json({ success: false, error: '2FA setup could not be started. Please try again.' }, 500);
   }
 });

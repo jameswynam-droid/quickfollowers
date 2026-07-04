@@ -8,6 +8,21 @@ const corsHeaders = {
 
 const TOTP_REPROMPT_HOURS = 12;
 
+const json = (body: Record<string, unknown>, status = 200) =>
+  new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+  });
+
+const staffSessionPayload = (signIn: any, role: 'admin' | 'support', mustEnrollTotp = false) => ({
+  success: true,
+  must_enroll_totp: mustEnrollTotp,
+  session: signIn.session,
+  user: { id: signIn.user.id, email: signIn.user.email },
+  role,
+  admin_expires_at: Date.now() + (mustEnrollTotp ? 30 * 60 * 1000 : 4 * 60 * 60 * 1000),
+});
+
 async function verifyTurnstile(token: string, ip?: string): Promise<boolean> {
   const secret = Deno.env.get('TURNSTILE_SECRET_KEY');
   if (!secret) return false;
@@ -26,27 +41,32 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
 
   if (req.method === 'GET') {
-    return new Response(JSON.stringify({ site_key: Deno.env.get('TURNSTILE_SITE_KEY') ?? '' }), {
-      status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    return json({ site_key: Deno.env.get('TURNSTILE_SITE_KEY') ?? '' });
   }
 
   try {
     const { email, password, turnstile_token, totp_code } = await req.json();
     if (!email || !password || !turnstile_token) {
-      return new Response(JSON.stringify({ error: 'Missing credentials or verification' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      return json({ success: false, error: 'Enter your email, password, and complete verification.' });
+    }
+
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    const anonKey = Deno.env.get('SUPABASE_ANON_KEY');
+    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    if (!supabaseUrl || !anonKey || !serviceRoleKey) {
+      return json({ success: false, error: 'Staff login is not configured. Please contact the site owner.' }, 500);
     }
 
     const ip = req.headers.get('cf-connecting-ip') || req.headers.get('x-forwarded-for') || undefined;
     const ok = await verifyTurnstile(turnstile_token, ip);
-    if (!ok) return new Response(JSON.stringify({ error: 'Verification failed. Please try again.' }), { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    if (!ok) return json({ success: false, error: 'Verification failed. Please refresh the check and try again.' });
 
-    const supabase = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_ANON_KEY')!);
-    const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
+    const supabase = createClient(supabaseUrl, anonKey);
+    const admin = createClient(supabaseUrl, serviceRoleKey);
 
     const { data: signIn, error: signInErr } = await supabase.auth.signInWithPassword({ email, password });
     if (signInErr || !signIn.session || !signIn.user) {
-      return new Response(JSON.stringify({ error: 'Invalid credentials' }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      return json({ success: false, error: 'Email or password is incorrect.' });
     }
 
     // Must be admin OR support
@@ -55,7 +75,7 @@ Deno.serve(async (req) => {
     const isStaff = roleList.includes('admin') || roleList.includes('support');
     if (!isStaff) {
       await supabase.auth.signOut();
-      return new Response(JSON.stringify({ error: 'Access denied' }), { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      return json({ success: false, error: 'This account is not allowed to use the staff panel.' });
     }
     const primaryRole = roleList.includes('admin') ? 'admin' : 'support';
 
@@ -66,17 +86,9 @@ Deno.serve(async (req) => {
       .eq('user_id', signIn.user.id)
       .maybeSingle();
 
-    // Support MUST enroll TOTP before first-time full access
-    if (primaryRole === 'support' && (!totp || !totp.verified)) {
-      // Allow session but signal must_enroll_totp on client-side
-      return new Response(JSON.stringify({
-        success: true,
-        must_enroll_totp: true,
-        session: signIn.session,
-        user: { id: signIn.user.id, email: signIn.user.email },
-        role: primaryRole,
-        admin_expires_at: Date.now() + 30 * 60 * 1000, // 30 min grace to enroll
-      }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    // All staff must enroll TOTP before full access.
+    if (!totp || !totp.verified) {
+      return json(staffSessionPayload(signIn, primaryRole, true));
     }
 
     if (totp?.verified) {
@@ -87,30 +99,24 @@ Deno.serve(async (req) => {
       if (needsCode) {
         if (!totp_code) {
           await supabase.auth.signOut();
-          return new Response(JSON.stringify({ error: 'TOTP required', requires_totp: true }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+          return json({ success: false, error: 'Authenticator code is required.', requires_totp: true });
         }
         if (!/^\d{6}$/.test(totp_code)) {
           await supabase.auth.signOut();
-          return new Response(JSON.stringify({ error: 'Invalid code format', requires_totp: true }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+          return json({ success: false, error: 'Enter the 6-digit authenticator code.', requires_totp: true });
         }
         const t = new OTPAuth.TOTP({ issuer: 'QuickFollowers', label: signIn.user.email || 'admin', secret: OTPAuth.Secret.fromBase32(totp.secret) });
         const delta = t.validate({ token: totp_code, window: 1 });
         if (delta === null) {
           await supabase.auth.signOut();
-          return new Response(JSON.stringify({ error: 'Incorrect authenticator code', requires_totp: true }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+          return json({ success: false, error: 'Incorrect authenticator code. Please try again.', requires_totp: true });
         }
         await admin.from('admin_totp').update({ last_verified_at: new Date().toISOString() }).eq('user_id', signIn.user.id);
       }
     }
 
-    return new Response(JSON.stringify({
-      success: true,
-      session: signIn.session,
-      user: { id: signIn.user.id, email: signIn.user.email },
-      role: primaryRole,
-      admin_expires_at: Date.now() + 4 * 60 * 60 * 1000,
-    }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    return json(staffSessionPayload(signIn, primaryRole));
   } catch (e) {
-    return new Response(JSON.stringify({ error: 'Login failed' }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    return json({ success: false, error: 'Login could not be completed. Please try again.' }, 500);
   }
 });

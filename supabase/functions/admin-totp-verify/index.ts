@@ -6,29 +6,40 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+const json = (body: Record<string, unknown>, status = 200) =>
+  new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
   try {
     const jwt = (req.headers.get('Authorization') ?? '').replace('Bearer ', '');
-    if (!jwt) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    if (!jwt) return json({ success: false, error: 'Please sign in again.' });
     const { code } = await req.json();
-    if (!code || !/^\d{6}$/.test(code)) return new Response(JSON.stringify({ error: 'Invalid code format' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    if (!code || !/^\d{6}$/.test(code)) return json({ success: false, error: 'Enter the 6-digit authenticator code.' });
 
-    const supabaseAuth = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_ANON_KEY')!, { global: { headers: { Authorization: `Bearer ${jwt}` } } });
-    const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    const anonKey = Deno.env.get('SUPABASE_ANON_KEY');
+    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    if (!supabaseUrl || !anonKey || !serviceRoleKey) return json({ success: false, error: '2FA verification is not configured. Please contact the site owner.' }, 500);
+
+    const supabaseAuth = createClient(supabaseUrl, anonKey, { global: { headers: { Authorization: `Bearer ${jwt}` } } });
+    const admin = createClient(supabaseUrl, serviceRoleKey);
     const { data: { user }, error } = await supabaseAuth.auth.getUser(jwt);
-    if (error || !user) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    if (error || !user) return json({ success: false, error: 'Please sign in again.' });
+
+    const { data: roles } = await admin.from('user_roles').select('role').eq('user_id', user.id).in('role', ['admin', 'support']);
+    if (!(roles || []).length) return json({ success: false, error: 'This account is not allowed to use staff 2FA.' });
 
     const { data: row } = await admin.from('admin_totp').select('secret').eq('user_id', user.id).maybeSingle();
-    if (!row?.secret) return new Response(JSON.stringify({ error: 'No enrollment in progress' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    if (!row?.secret) return json({ success: false, error: 'Start 2FA setup before verifying a code.' });
 
     const totp = new OTPAuth.TOTP({ issuer: 'QuickFollowers', label: user.email || 'admin', secret: OTPAuth.Secret.fromBase32(row.secret) });
     const delta = totp.validate({ token: code, window: 1 });
-    if (delta === null) return new Response(JSON.stringify({ error: 'Incorrect code — try again' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    if (delta === null) return json({ success: false, error: 'Incorrect code. Please try again.' });
 
     await admin.from('admin_totp').update({ verified: true, last_verified_at: new Date().toISOString(), updated_at: new Date().toISOString() }).eq('user_id', user.id);
-    return new Response(JSON.stringify({ success: true }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    return json({ success: true });
   } catch (e) {
-    return new Response(JSON.stringify({ error: 'Verify failed' }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    return json({ success: false, error: '2FA verification could not be completed. Please try again.' }, 500);
   }
 });
