@@ -79,16 +79,16 @@ const AdminPanelInner = () => {
           <AdminTotpEnroll />
         ) : (
           <Tabs defaultValue="users" className="space-y-4">
-            <TabsList className="flex w-full overflow-x-auto">
-              <TabsTrigger value="users">User Lookup</TabsTrigger>
-              <TabsTrigger value="replies">Saved Replies</TabsTrigger>
-              <TabsTrigger value="security">2FA</TabsTrigger>
-              {isAdmin && <TabsTrigger value="staff">Staff</TabsTrigger>}
-              {isAdmin && <TabsTrigger value="blog">Blog / Help</TabsTrigger>}
-              {isAdmin && <TabsTrigger value="notifications">Service Alerts</TabsTrigger>}
-              {isAdmin && <TabsTrigger value="bell">Header Bell</TabsTrigger>}
-              {isAdmin && <TabsTrigger value="floating">Info Bell</TabsTrigger>}
-              {isAdmin && <TabsTrigger value="popups">Pop-ups</TabsTrigger>}
+            <TabsList className="grid h-auto w-full grid-cols-2 gap-1 overflow-visible rounded-md bg-muted p-1 sm:grid-cols-3 lg:flex lg:flex-wrap lg:justify-start">
+              <TabsTrigger value="users" className="min-h-10 whitespace-normal text-center text-xs sm:text-sm">User Lookup</TabsTrigger>
+              <TabsTrigger value="replies" className="min-h-10 whitespace-normal text-center text-xs sm:text-sm">Saved Replies</TabsTrigger>
+              <TabsTrigger value="security" className="min-h-10 whitespace-normal text-center text-xs sm:text-sm">2FA</TabsTrigger>
+              {isAdmin && <TabsTrigger value="staff" className="min-h-10 whitespace-normal text-center text-xs sm:text-sm">Staff</TabsTrigger>}
+              {isAdmin && <TabsTrigger value="blog" className="min-h-10 whitespace-normal text-center text-xs sm:text-sm">Blog / Help</TabsTrigger>}
+              {isAdmin && <TabsTrigger value="notifications" className="min-h-10 whitespace-normal text-center text-xs sm:text-sm">Service Alerts</TabsTrigger>}
+              {isAdmin && <TabsTrigger value="bell" className="min-h-10 whitespace-normal text-center text-xs sm:text-sm">Header Bell</TabsTrigger>}
+              {isAdmin && <TabsTrigger value="floating" className="min-h-10 whitespace-normal text-center text-xs sm:text-sm">Info Bell</TabsTrigger>}
+              {isAdmin && <TabsTrigger value="popups" className="min-h-10 whitespace-normal text-center text-xs sm:text-sm">Pop-ups</TabsTrigger>}
             </TabsList>
 
             <TabsContent value="users"><UserLookup isAdmin={isAdmin} /></TabsContent>

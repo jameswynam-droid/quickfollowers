@@ -9,6 +9,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { useCurrency } from "@/hooks/useCurrency";
+import { Search } from "lucide-react";
+import { getFunctionErrorMessage } from "@/lib/functionErrors";
 
 interface Profile {
   id: string;
@@ -19,19 +21,17 @@ interface Profile {
   created_at: string;
 }
 
-// Obfuscated provider hint from provider_service_id prefix
-function providerHint(providerServiceId: string | null | undefined): string {
-  if (!providerServiceId) return "—";
-  const s = String(providerServiceId);
-  if (s.startsWith("O-")) return "P-A";
-  if (s.startsWith("S-")) return "P-B";
-  if (s.startsWith("F-")) return "P-C";
-  return "P-X";
+// Stable, subtle provider hint. Never shows provider names or raw IDs.
+function providerHint(seed: string | null | undefined): string {
+  if (!seed) return "S-00";
+  let hash = 0;
+  for (const ch of String(seed)) hash = (hash * 31 + ch.charCodeAt(0)) % 97;
+  return `S-${String(hash + 1).padStart(2, "0")}`;
 }
 
 // Payment provider label
 function paymentHint(method: string | null | undefined): string {
-  if (!method) return "—";
+  if (!method) return "-";
   const m = method.toLowerCase();
   if (m.includes("paystack")) return "PS";
   if (m.includes("flutterwave") || m.includes("flw")) return "FW";
@@ -49,6 +49,10 @@ const UserLookup = ({ isAdmin = true }: { isAdmin?: boolean }) => {
   const [role, setRole] = useState<string>("user");
   const [orders, setOrders] = useState<any[]>([]);
   const [transactions, setTransactions] = useState<any[]>([]);
+  const [orderIdQuery, setOrderIdQuery] = useState("");
+  const [activeOrderIdQuery, setActiveOrderIdQuery] = useState("");
+  const [transactionIdQuery, setTransactionIdQuery] = useState("");
+  const [activeTransactionIdQuery, setActiveTransactionIdQuery] = useState("");
   const [detailLoading, setDetailLoading] = useState(false);
 
   const [addOpen, setAddOpen] = useState(false);
@@ -92,13 +96,29 @@ const UserLookup = ({ isAdmin = true }: { isAdmin?: boolean }) => {
     setDetailLoading(true);
     try {
       const [{ data: roleData }, { data: orderData }, { data: txData }] = await Promise.all([
-        supabase.from("user_roles").select("role").eq("user_id", p.id).maybeSingle(),
-        supabase.from("orders").select("id, short_id, service_name, charge, status, quantity, created_at, provider_service_id, provider_order_id").eq("user_id", p.id).order("created_at", { ascending: false }).limit(30),
-        supabase.from("transactions").select("id, short_id, type, amount, balance_after, description, payment_method, reference_id, created_at").eq("user_id", p.id).order("created_at", { ascending: false }).limit(30),
+        supabase.from("user_roles").select("role").eq("user_id", p.id),
+        supabase
+          .from("orders")
+          .select("id, api_order_id, service_id, charge, status, quantity, created_at, services(name, provider, category)")
+          .eq("user_id", p.id)
+          .order("created_at", { ascending: false })
+          .limit(50),
+        supabase
+          .from("transactions")
+          .select("id, short_id, type, amount, balance_after, description, payment_method, reference_id, created_at")
+          .eq("user_id", p.id)
+          .in("type", ["deposit", "refund"])
+          .order("created_at", { ascending: false })
+          .limit(50),
       ]);
-      setRole(roleData?.role || "user");
+      const roleList = (roleData || []).map((r: any) => r.role);
+      setRole(roleList.includes("admin") ? "admin" : roleList.includes("support") ? "support" : "user");
       setOrders(orderData || []);
       setTransactions(txData || []);
+      setOrderIdQuery("");
+      setActiveOrderIdQuery("");
+      setTransactionIdQuery("");
+      setActiveTransactionIdQuery("");
     } catch (e: any) {
       toast.error(e.message || "Failed to load details");
     } finally {
@@ -163,7 +183,7 @@ const UserLookup = ({ isAdmin = true }: { isAdmin?: boolean }) => {
           turnstile_token: turnstileToken,
         },
       });
-      if (error || !data?.success) throw new Error(data?.error || error?.message || "Failed");
+      if (error || !data?.success) throw new Error(await getFunctionErrorMessage(error, data, "Could not credit user."));
       toast.success(`Credited ${formatPrice(ngnAmount)} to ${profile.email}`);
       setAddOpen(false);
       openProfile(profile);
@@ -173,6 +193,18 @@ const UserLookup = ({ isAdmin = true }: { isAdmin?: boolean }) => {
       setCrediting(false);
     }
   };
+
+  const displayedOrders = orders.filter((o) => {
+    const q = activeOrderIdQuery.trim().toLowerCase();
+    if (!q) return true;
+    return [o.api_order_id, o.id, o.id?.slice(0, 8)].some((v) => String(v || "").toLowerCase().includes(q));
+  });
+
+  const displayedTransactions = transactions.filter((t) => {
+    const q = activeTransactionIdQuery.trim().toLowerCase();
+    if (!q) return true;
+    return [t.short_id, t.reference_id, t.id, t.id?.slice(0, 8)].some((v) => String(v || "").toLowerCase().includes(q));
+  });
 
   return (
     <div className="space-y-4">
@@ -231,7 +263,7 @@ const UserLookup = ({ isAdmin = true }: { isAdmin?: boolean }) => {
             <CardContent className="space-y-3 text-sm">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 <div><span className="text-muted-foreground">Email:</span> {profile.email}</div>
-                <div><span className="text-muted-foreground">Username:</span> {profile.username || "—"}</div>
+                <div><span className="text-muted-foreground">Username:</span> {profile.username || "-"}</div>
                 <div><span className="text-muted-foreground">Balance:</span> {formatPrice(Number(profile.balance))}</div>
                 <div><span className="text-muted-foreground">Signed up:</span> {new Date(profile.created_at).toLocaleDateString()}</div>
               </div>
@@ -240,19 +272,32 @@ const UserLookup = ({ isAdmin = true }: { isAdmin?: boolean }) => {
           </Card>
 
           <Card>
-            <CardHeader><CardTitle>Recent Orders</CardTitle></CardHeader>
+            <CardHeader className="space-y-3">
+              <CardTitle>Order History</CardTitle>
+              <div className="flex flex-col gap-2 sm:flex-row">
+                <Input
+                  placeholder="Search order ID"
+                  value={orderIdQuery}
+                  onChange={(e) => setOrderIdQuery(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && setActiveOrderIdQuery(orderIdQuery)}
+                />
+                <Button type="button" variant="outline" onClick={() => setActiveOrderIdQuery(orderIdQuery)}>
+                  <Search className="mr-2 h-4 w-4" />Search
+                </Button>
+              </div>
+            </CardHeader>
             <CardContent>
               {detailLoading ? (
                 <p className="text-sm text-muted-foreground">Loading…</p>
-              ) : orders.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No orders yet.</p>
+              ) : displayedOrders.length === 0 ? (
+                <p className="text-sm text-muted-foreground">No matching orders.</p>
               ) : (
                 <div className="overflow-x-auto">
                   <Table>
                     <TableHeader>
                       <TableRow>
                         <TableHead>ID</TableHead>
-                        <TableHead>Src</TableHead>
+                        <TableHead>Hint</TableHead>
                         <TableHead>Service</TableHead>
                         <TableHead>Qty</TableHead>
                         <TableHead>Charge</TableHead>
@@ -261,13 +306,13 @@ const UserLookup = ({ isAdmin = true }: { isAdmin?: boolean }) => {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {orders.map((o) => (
+                      {displayedOrders.map((o) => (
                         <TableRow key={o.id}>
                           <TableCell className="font-mono text-xs">
-                            {o.short_id || o.provider_order_id || o.id.slice(0, 8)}
+                            {o.api_order_id || o.id.slice(0, 8)}
                           </TableCell>
-                          <TableCell><Badge variant="outline" className="text-[10px]">{providerHint(o.provider_service_id)}</Badge></TableCell>
-                          <TableCell className="max-w-[200px] truncate">{o.service_name}</TableCell>
+                          <TableCell><Badge variant="outline" className="text-[10px]">{providerHint(`${o.services?.provider || ""}:${o.service_id || ""}`)}</Badge></TableCell>
+                          <TableCell className="max-w-[200px] truncate">{o.services?.name || "Unknown service"}</TableCell>
                           <TableCell>{o.quantity}</TableCell>
                           <TableCell>{formatPrice(Number(o.charge))}</TableCell>
                           <TableCell><Badge variant="outline">{o.status}</Badge></TableCell>
@@ -282,12 +327,25 @@ const UserLookup = ({ isAdmin = true }: { isAdmin?: boolean }) => {
           </Card>
 
           <Card>
-            <CardHeader><CardTitle>Transaction History</CardTitle></CardHeader>
+            <CardHeader className="space-y-3">
+              <CardTitle>Transaction History</CardTitle>
+              <div className="flex flex-col gap-2 sm:flex-row">
+                <Input
+                  placeholder="Search transaction ID"
+                  value={transactionIdQuery}
+                  onChange={(e) => setTransactionIdQuery(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && setActiveTransactionIdQuery(transactionIdQuery)}
+                />
+                <Button type="button" variant="outline" onClick={() => setActiveTransactionIdQuery(transactionIdQuery)}>
+                  <Search className="mr-2 h-4 w-4" />Search
+                </Button>
+              </div>
+            </CardHeader>
             <CardContent>
               {detailLoading ? (
                 <p className="text-sm text-muted-foreground">Loading…</p>
-              ) : transactions.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No transactions.</p>
+              ) : displayedTransactions.length === 0 ? (
+                <p className="text-sm text-muted-foreground">No matching deposits or refunds.</p>
               ) : (
                 <div className="overflow-x-auto">
                   <Table>
@@ -303,14 +361,14 @@ const UserLookup = ({ isAdmin = true }: { isAdmin?: boolean }) => {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {transactions.map((t) => (
+                      {displayedTransactions.map((t) => (
                         <TableRow key={t.id}>
                           <TableCell className="font-mono text-xs">{t.short_id || t.reference_id?.slice(0, 10) || t.id.slice(0, 8)}</TableCell>
                           <TableCell><Badge variant={t.type === "deposit" ? "default" : t.type === "refund" ? "secondary" : "outline"}>{t.type}</Badge></TableCell>
                           <TableCell>{formatPrice(Number(t.amount))}</TableCell>
                           <TableCell>{formatPrice(Number(t.balance_after))}</TableCell>
                           <TableCell><Badge variant="outline" className="text-[10px]">{paymentHint(t.payment_method)}</Badge></TableCell>
-                          <TableCell className="max-w-[200px] truncate text-xs">{t.description || "—"}</TableCell>
+                          <TableCell className="max-w-[200px] truncate text-xs">{t.description || "-"}</TableCell>
                           <TableCell className="whitespace-nowrap">{new Date(t.created_at).toLocaleDateString()}</TableCell>
                         </TableRow>
                       ))}

@@ -59,7 +59,7 @@ const SavedRepliesPicker = ({ onSend }: Props) => {
             </div>
             <div className="max-h-64 overflow-y-auto space-y-1">
               {filtered.length === 0 ? (
-                <p className="text-xs text-muted-foreground text-center py-4">No saved replies match. Create some in Admin Panel → Saved Replies.</p>
+                <p className="text-xs text-muted-foreground text-center py-4">No saved replies match. Create some in Admin Panel &gt; Saved Replies.</p>
               ) : filtered.map(r => (
                 <button key={r.id} onClick={() => setDrafting(r.body)} className="w-full text-left p-2 rounded hover:bg-muted transition">
                   <p className="text-sm font-medium">{r.title}</p>

@@ -8,6 +8,7 @@ import { Card } from "@/components/ui/card";
 import { toast } from "sonner";
 import { useNoIndex } from "@/hooks/useNoIndex";
 import { ADMIN_SESSION_KEY, getAdminSession } from "@/components/admin/AdminGuard";
+import { getFunctionErrorMessage } from "@/lib/functionErrors";
 
 declare global {
   interface Window {
@@ -82,11 +83,14 @@ const AdminLogin = () => {
       const { data, error } = await supabase.functions.invoke("admin-login", { body });
       if (data?.requires_totp) {
         setNeedsTotp(true);
-        toast.info("Enter your authenticator code");
+        const message = data.error || "Enter your authenticator code";
+        if (needsTotp) toast.error(message);
+        else toast.info(message);
+        resetTurnstile();
         setLoading(false);
         return;
       }
-      if (error || !data?.success) throw new Error(data?.error || error?.message || "Login failed");
+      if (error || !data?.success) throw new Error(await getFunctionErrorMessage(error, data, "Login failed. Please check your details and try again."));
       await supabase.auth.setSession({ access_token: data.session.access_token, refresh_token: data.session.refresh_token });
       sessionStorage.setItem(ADMIN_SESSION_KEY, JSON.stringify({
         user_id: data.user.id,
@@ -100,7 +104,7 @@ const AdminLogin = () => {
     } catch (err: any) {
       toast.error(err.message || "Login failed");
       resetTurnstile();
-      if (!needsTotp) setTotpCode("");
+      setTotpCode("");
     } finally { setLoading(false); }
   };
 

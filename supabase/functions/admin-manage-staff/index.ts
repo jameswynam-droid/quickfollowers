@@ -8,24 +8,44 @@ const corsHeaders = {
 const json = (body: any, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 
+const isEmail = (value: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+
+async function emailExists(admin: any, email: string) {
+  for (let page = 1; page <= 20; page++) {
+    const { data, error } = await admin.auth.admin.listUsers({ page, perPage: 1000 });
+    if (error) return false;
+    const users = data?.users || [];
+    if (users.some((u: any) => String(u.email || '').toLowerCase() === email && !u.deleted_at)) return true;
+    if (users.length < 1000) return false;
+  }
+  return false;
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
 
   try {
     const jwt = (req.headers.get('Authorization') ?? '').replace('Bearer ', '');
-    if (!jwt) return json({ error: 'Unauthorized' }, 401);
+    if (!jwt) return json({ success: false, error: 'Please sign in again.' });
 
-    const supabaseAuth = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_ANON_KEY')!, {
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    const anonKey = Deno.env.get('SUPABASE_ANON_KEY');
+    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    if (!supabaseUrl || !anonKey || !serviceRoleKey) {
+      return json({ success: false, error: 'Staff management is not configured. Please contact the site owner.' }, 500);
+    }
+
+    const supabaseAuth = createClient(supabaseUrl, anonKey, {
       global: { headers: { Authorization: `Bearer ${jwt}` } },
     });
-    const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
+    const admin = createClient(supabaseUrl, serviceRoleKey);
 
     const { data: { user }, error: userErr } = await supabaseAuth.auth.getUser(jwt);
-    if (userErr || !user) return json({ error: 'Unauthorized' }, 401);
+    if (userErr || !user) return json({ success: false, error: 'Please sign in again.' });
 
     // Caller must be full admin
     const { data: myRoles } = await admin.from('user_roles').select('role').eq('user_id', user.id);
-    if (!(myRoles || []).some((r: any) => r.role === 'admin')) return json({ error: 'Admin required' }, 403);
+    if (!(myRoles || []).some((r: any) => r.role === 'admin')) return json({ success: false, error: 'Only admins can manage staff accounts.' });
 
     const body = await req.json().catch(() => ({}));
     const action = body.action as string;
@@ -51,13 +71,18 @@ Deno.serve(async (req) => {
       const email = String(body.email || '').trim().toLowerCase();
       const password = String(body.password || '');
       const role = body.role === 'admin' ? 'admin' : 'support';
-      if (!email || !password || password.length < 12) return json({ error: 'Email and 12+ char password required' }, 400);
+      if (!isEmail(email)) return json({ success: false, error: 'Enter a valid email address.' });
+      if (!password || password.length < 12) return json({ success: false, error: 'Password must be at least 12 characters.' });
+
+      if (await emailExists(admin, email)) {
+        return json({ success: false, error: 'This email is already in use.' });
+      }
 
       const { data: created, error: createErr } = await admin.auth.admin.createUser({
         email, password, email_confirm: true,
       });
       if (createErr || !created.user) {
-        return json({ error: createErr?.message || 'Could not create user' }, 400);
+        return json({ success: false, error: createErr?.message?.includes('already') ? 'This email is already in use.' : 'Could not create staff account.' });
       }
       const newId = created.user.id;
       await admin.from('user_roles').upsert({ user_id: newId, role }, { onConflict: 'user_id,role' });
@@ -69,25 +94,40 @@ Deno.serve(async (req) => {
     if (action === 'revoke') {
       const targetId = String(body.user_id || '');
       const role = body.role === 'admin' ? 'admin' : 'support';
-      if (!targetId) return json({ error: 'user_id required' }, 400);
-      if (targetId === user.id && role === 'admin') return json({ error: 'You cannot revoke your own admin role' }, 400);
+      if (!targetId) return json({ success: false, error: 'Choose a staff account first.' });
+      if (targetId === user.id && role === 'admin') return json({ success: false, error: 'You cannot remove your own admin role.' });
       await admin.from('user_roles').delete().eq('user_id', targetId).eq('role', role);
+      return json({ success: true });
+    }
+
+    if (action === 'delete') {
+      const targetId = String(body.user_id || '');
+      if (!targetId) return json({ success: false, error: 'Choose a staff account first.' });
+      if (targetId === user.id) return json({ success: false, error: 'You cannot delete your own staff account.' });
+
+      const { data: targetRoles } = await admin.from('user_roles').select('role').eq('user_id', targetId).in('role', ['admin', 'support']);
+      if (!(targetRoles || []).length) return json({ success: false, error: 'This account is not a staff account.' });
+
+      await admin.from('admin_totp').delete().eq('user_id', targetId);
+      await admin.from('user_roles').delete().eq('user_id', targetId).in('role', ['admin', 'support']);
+      const { error: deleteErr } = await admin.auth.admin.deleteUser(targetId, false);
+      if (deleteErr) return json({ success: false, error: 'Could not delete staff account.' });
       return json({ success: true });
     }
 
     if (action === 'reset_password') {
       const targetId = String(body.user_id || '');
       const password = String(body.password || '');
-      if (!targetId || password.length < 12) return json({ error: 'user_id and 12+ char password required' }, 400);
+      if (!targetId || password.length < 12) return json({ success: false, error: 'Choose a staff account and use a 12+ character password.' });
       const { error } = await admin.auth.admin.updateUserById(targetId, { password });
-      if (error) return json({ error: error.message }, 400);
+      if (error) return json({ success: false, error: 'Could not reset password.' });
       // Reset their TOTP so they re-enroll
       await admin.from('admin_totp').delete().eq('user_id', targetId);
       return json({ success: true });
     }
 
-    return json({ error: 'Unknown action' }, 400);
+    return json({ success: false, error: 'Unknown staff action.' });
   } catch (e: any) {
-    return json({ error: e?.message || 'Failed' }, 500);
+    return json({ success: false, error: 'Staff management request failed. Please try again.' }, 500);
   }
 });

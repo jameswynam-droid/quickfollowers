@@ -45,7 +45,7 @@ const SavedRepliesAdmin = () => {
       <CardContent className="space-y-3">
         <div><Label>Title (used for search)</Label><Input value={editing.title || ""} onChange={e => setEditing({ ...editing, title: e.target.value })} placeholder="Order started" /></div>
         <div><Label>Category (optional)</Label><Input value={editing.category || ""} onChange={e => setEditing({ ...editing, category: e.target.value })} placeholder="orders" /></div>
-        <div><Label>Body — use blanks like ___ that you'll fill in when sending</Label>
+        <div><Label>Body: use blanks like ___ that you'll fill in when sending</Label>
           <Textarea rows={6} value={editing.body || ""} onChange={e => setEditing({ ...editing, body: e.target.value })} placeholder="Your order ID ___ has been started and will complete within ___ hours." />
         </div>
         <div className="flex gap-2"><Button onClick={save}>Save</Button><Button variant="ghost" onClick={() => setEditing(null)}>Cancel</Button></div>

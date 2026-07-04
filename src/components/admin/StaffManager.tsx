@@ -7,7 +7,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Copy, RefreshCw, Trash2, UserPlus } from "lucide-react";
+import { Copy, RefreshCw, ShieldMinus, Trash2, UserPlus } from "lucide-react";
+import { getFunctionErrorMessage } from "@/lib/functionErrors";
 
 interface Staff {
   id: string;
@@ -38,7 +39,7 @@ const StaffManager = ({ currentUserId }: { currentUserId?: string }) => {
       const { data, error } = await supabase.functions.invoke("admin-manage-staff", {
         body: { action: "list" },
       });
-      if (error || !data?.success) throw new Error(data?.error || error?.message || "Failed");
+      if (error || !data?.success) throw new Error(await getFunctionErrorMessage(error, data, "Failed to load staff."));
       setStaff(data.staff || []);
     } catch (e: any) {
       toast.error(e.message || "Failed to load staff");
@@ -68,8 +69,8 @@ const StaffManager = ({ currentUserId }: { currentUserId?: string }) => {
       const { data, error } = await supabase.functions.invoke("admin-manage-staff", {
         body: { action: "create", email: email.trim(), password: pwd, role },
       });
-      if (error || !data?.success) throw new Error(data?.error || error?.message || "Failed");
-      toast.success(`${role === "admin" ? "Admin" : "Support"} account created. Copy the password now — it won't be shown again.`);
+      if (error || !data?.success) throw new Error(await getFunctionErrorMessage(error, data, "Could not create staff account."));
+      toast.success(`${role === "admin" ? "Admin" : "Support"} account created. Copy the password now. It won't be shown again.`);
       setOpen(false);
       await load();
     } catch (e: any) {
@@ -85,7 +86,7 @@ const StaffManager = ({ currentUserId }: { currentUserId?: string }) => {
       const { data, error } = await supabase.functions.invoke("admin-manage-staff", {
         body: { action: "revoke", user_id: s.id, role: r },
       });
-      if (error || !data?.success) throw new Error(data?.error || error?.message || "Failed");
+      if (error || !data?.success) throw new Error(await getFunctionErrorMessage(error, data, "Could not remove staff role."));
       toast.success("Role removed");
       await load();
     } catch (e: any) { toast.error(e.message || "Failed"); }
@@ -98,9 +99,22 @@ const StaffManager = ({ currentUserId }: { currentUserId?: string }) => {
       const { data, error } = await supabase.functions.invoke("admin-manage-staff", {
         body: { action: "reset_password", user_id: s.id, password: newPwd },
       });
-      if (error || !data?.success) throw new Error(data?.error || error?.message || "Failed");
+      if (error || !data?.success) throw new Error(await getFunctionErrorMessage(error, data, "Could not reset password."));
       await navigator.clipboard.writeText(newPwd);
       toast.success(`New password copied to clipboard for ${s.email}`);
+    } catch (e: any) { toast.error(e.message || "Failed"); }
+  };
+
+  const deleteStaff = async (s: Staff) => {
+    if (s.id === currentUserId) { toast.error("You cannot delete your own staff account"); return; }
+    if (!confirm(`Delete staff account ${s.email}? The email can be used again after deletion.`)) return;
+    try {
+      const { data, error } = await supabase.functions.invoke("admin-manage-staff", {
+        body: { action: "delete", user_id: s.id },
+      });
+      if (error || !data?.success) throw new Error(await getFunctionErrorMessage(error, data, "Could not delete staff account."));
+      toast.success("Staff account deleted");
+      await load();
     } catch (e: any) { toast.error(e.message || "Failed"); }
   };
 
@@ -130,10 +144,15 @@ const StaffManager = ({ currentUserId }: { currentUserId?: string }) => {
               {s.roles.map((r) => (
                 s.id === currentUserId && r === "admin" ? null : (
                   <Button key={r} size="sm" variant="ghost" onClick={() => revoke(s, r as any)}>
-                    <Trash2 className="h-3 w-3 mr-1" />Remove {r}
+                    <ShieldMinus className="h-3 w-3 mr-1" />Remove {r}
                   </Button>
                 )
               ))}
+              {s.id !== currentUserId && (
+                <Button size="sm" variant="destructive" onClick={() => deleteStaff(s)}>
+                  <Trash2 className="h-3 w-3 mr-1" />Delete
+                </Button>
+              )}
             </div>
           </div>
         ))}
@@ -160,7 +179,7 @@ const StaffManager = ({ currentUserId }: { currentUserId?: string }) => {
                   <Copy className="h-4 w-4" />
                 </Button>
               </div>
-              <p className="text-xs text-muted-foreground mt-1">Copy this now — it won't be shown again.</p>
+              <p className="text-xs text-muted-foreground mt-1">Copy this now. It won't be shown again.</p>
             </div>
             <div>
               <Label>Role</Label>
@@ -171,7 +190,7 @@ const StaffManager = ({ currentUserId }: { currentUserId?: string }) => {
               <p className="text-xs text-muted-foreground mt-1">
                 {role === "support"
                   ? "Support can reply to tickets, use saved replies, and look up users. Cannot manage blog, pop-ups, or credit balances. Must set up 2FA on first login."
-                  : "Full admin — can do everything, including managing other staff."}
+                  : "Full admin. Can do everything, including managing other staff."}
               </p>
             </div>
           </div>
