@@ -1,90 +1,53 @@
-## Immediate blocker: Turnstile "Unable to connect to website"
+I found the main cause of the support/admin issues:
 
-This error is **not a code bug**. Cloudflare Turnstile only accepts requests from the exact hostnames listed on the site key's allow-list in the Cloudflare dashboard. Your current key was configured for `quickfollowers.online`, so it rejects `id-preview--92633b06-ce4f-4cc5-accd-124a59937de2.lovable.app` (the preview URL you're testing on).
+- `support@quickfollowers.online` exists, but it currently only has the `user` role, not the `support` role.
+- The 2FA enrollment function currently allows only `admin`, so support accounts can hit a backend error instead of a clear setup flow.
+- The ticket page currently checks only for `admin`, so support would be blocked from tickets even after login.
+- User Lookup is currently showing all transaction rows, including order-related transactions, inside Transaction History.
 
-**What you need to do (2 minutes):**
+Plan:
 
-1. Cloudflare dashboard → Turnstile → your site key → **Settings**
-2. Under "Hostname Management" add:
-  - `id-preview--92633b06-ce4f-4cc5-accd-124a59937de2.lovable.app`
-  - `*.lovable.app` (or just the preview host above)
-3. Save. The widget will work instantly — no redeploy needed.
+1. Fix support account access
+   - Add the missing `support` role to `support@quickfollowers.online`.
+   - Keep normal users blocked from the admin panel.
+   - Allow both `admin` and `support` roles to sign in through the admin login.
+   - Allow support users to access tickets and user lookup, while keeping admin-only areas restricted.
 
-If you'd rather test only on the live domain, open `/admin` on `quickfollowers.online` — it already works there.
+2. Fix 2FA for admin and support
+   - Update 2FA enrollment so both `admin` and `support` staff can enroll.
+   - Keep 2FA required after setup, with the existing re-prompt interval.
+   - Make failed enrollment/login/verification return safe, understandable messages like “Your account is not allowed to use the staff panel” or “Authenticator code is required,” instead of “Edge Function returned a non-2xx status code.”
+   - Update the login UI to prefer backend-provided safe errors over generic function errors.
 
-## Vercel headers "still detected"
+3. Fix deleted staff email reuse and duplicate prevention
+   - Update staff creation to check whether an email already exists before creating a new staff account.
+   - If an active account exists, show “This email is already in use.”
+   - Add a proper staff delete action that removes the auth user and related staff records, so the same email can be used again after deletion.
+   - Keep “remove role” separate from “delete account” to avoid accidental deletion.
 
-Your app is deployed on **Netlify**, not Vercel (per project memory). `vercel.json` header rules have zero effect on Netlify responses. To strip `x-powered-by`, `server`, `x-vercel-*` etc. on Netlify I need to add a `netlify.toml` `[[headers]]` block, plus an `_headers` file as a safety net. I'll also add strict security headers (X-Frame-Options, Referrer-Policy, Permissions-Policy, HSTS).
+4. Fix User Lookup histories
+   - Order History will query only the orders table.
+   - Transaction History will show only deposits and refunds.
+   - Add an Order ID search field for orders using short ID, provider order ID, or internal ID fragment.
+   - Add a Transaction ID search field for deposits/refunds using short ID, reference ID, or internal ID fragment.
+   - Keep payment hints for Transaction History and separate subtle provider hints only for Order History.
 
-Note: Netlify doesn't send `x-vercel-*` at all — if the scanner is flagging those, it's scanning a **cached** copy or a different deployment. After my fix, re-scan with cache disabled.
+5. Make provider hints less obvious
+   - Replace direct-looking provider labels with subtle stable source codes generated from provider/service/order fields, such as `S-14`, `S-27`, etc.
+   - Do not expose raw provider names, provider IDs, or provider order IDs unless already intended for support tracking.
 
-&nbsp;
+6. Update saved reply wording
+   - Update “Order speed-up request” so support says the speed request has been escalated to the technical team/admin.
+   - Keep cancellation wording clear that orders already “In Progress” cannot be cancelled.
+   - Remove em dashes from saved reply text and affected UI copy.
 
-## Plan for this turn
+7. Fix admin panel tab visibility on mobile
+   - Replace the cramped horizontal tab bar with a mobile-friendly grid/wrapped tab layout so User Lookup, Saved Replies, 2FA, Staff, Blog/Help, and other tabs are fully visible.
+   - Keep desktop layout clean and scannable.
+   - Avoid text clipping and hidden active states.
 
-### 1. Turnstile + headers (ship now)
-
-- Add `netlify.toml` + `public/_headers` stripping server-identifying headers and adding CSP/HSTS/XFO/Referrer-Policy/Permissions-Policy
-- Remove obsolete `vercel.json` (or leave it inert — user's choice)
-
-User: No!! I told you previously that I moved to Vercel, I don't use Netlify anymore, please do the needful by doing what's asked
-
-### 2. Private storage bucket audit (ship now)
-
-- Verify `ticket-attachments` bucket is `public=false`
-- Confirm RLS on `storage.objects` restricts SELECT to ticket owner + admins
-- Confirm all client reads go through signed URLs (already done in `src/lib/ticketAttachments.ts`)
-- Add `oncontextmenu` block + `user-select:none` on attachment `<img>` tags so long-press/right-click can't reveal the signed URL directly in the ticket UI
-
-### 3. Admin TOTP 2FA (ship now)
-
-- New table `public.admin_totp` (user_id, encrypted_secret, verified_at, backup_codes[])
-- Edge functions: `admin-totp-enroll` (returns QR + provisional secret), `admin-totp-verify` (activates), `admin-totp-check` (verifies code during login)
-- Modify `admin-login` to require TOTP code once user has enrolled; unenrolled admins are forced to enroll on first login after this ships
-- UI: enroll flow in AdminPanel + 6-digit code input on AdminLogin
-- Library: `otpauth` (works in Deno + browser)
-
-### 4. Blog / Help Center (ship now — scoped)
-
-Given the scale, this turn ships the **foundation + 6 seed articles**, not 30+ articles.
-
-**Schema:**
-
-- `public.blog_posts` (id, slug, title, excerpt, cover_image_url, body_md, category, published, published_at, seo_title, seo_description)
-- `public.blog_categories` (slug, name, description)
-- RLS: public SELECT where `published = true`; admin full access
-
-**Routes:**
-
-- `/help` — category grid + search
-- `/help/:category` — article list
-- `/help/:category/:slug` — article page with JSON-LD Article schema
-- Sitemap auto-includes published posts
-
-**Admin UI:** new "Content" tab in AdminPanel — create/edit/publish posts with markdown editor + cover image upload to R2.
-
-**Seed content (I'll write & publish):**
-
-1. "How to find your Instagram profile link"
-2. "How to find your TikTok video URL"
-3. "How to find your YouTube channel/video link"
-4. "How to find your Facebook page URL"
-5. "How to find your Twitter/X post link"
-6. "How to place your first order on QuickFollowers"
-
-**Images:** I'll generate ultra-realistic screenshots via `imagegen` (premium tier for text legibility) showing the actual mobile app UI for each platform's share/copy-link flow.
-
-## What I need from you
-
-1. **Confirm:** Add the preview hostname to Turnstile allow-list yourself (I can't access your Cloudflare dashboard), OR tell me to generate a **new** Turnstile key with `*.lovable.app` included and paste it — I'll swap the secret.
-2. **Confirm:** Should the blog live at `/help` (help-center framing) or `/blog` (marketing framing)? Or both — `/blog` for marketing posts, `/help` for how-to guides?
-
-Reply with those two answers and I'll ship all four sections in the next turn. I'm not splitting this across more turns — one big shipment.
-
-&nbsp;
-
-Me the user, this is my reply: Do not worry, I have tried the Cloudflare Turnstile from the normal QuickFollowers domain and it works successfully, so no need to add any lovable preview domain 
-
-The answer to the second question, both blog and help should leave in one place.
-
-Also, from the Admin panel, remove the "sync service" button option from anywhere on the admin panel, and anywhere in my own [admin@quickfollowers.online](mailto:admin@quickfollowers.online) account, remove the "Payments" section from the Admin panel page, also when I tap the Tickets on the Admin panel which leads to the tickets page, I then see the hamburger icon option, which then displays other things like Dashboard, New Order, Orders, Transactions, please remove it so it doesn't show things like that except what is actually needed only for the support team on the admin panel. Also, in the support tickets I said you should add saved replies list add one small section inside the tickets chat that support can like search for the question and when they tap it for question they searched for or it's relation question they can see a simply tap it and then tap send it with the send button there, also add an edit button to the replies for maybe responses that looks like this "Your order id___ has been..." I hope you understand what I mean.
+8. Validate after implementation
+   - Test the admin login function response path.
+   - Test 2FA enroll/verify behavior for a staff account.
+   - Verify support can access tickets but not admin-only areas.
+   - Verify lookup histories are no longer mixed.
