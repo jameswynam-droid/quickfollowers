@@ -1053,6 +1053,25 @@ const Services = () => {
               </div>
             )}
 
+            {/* Help center link */}
+            {selectedService && (() => {
+              const help = getServiceHelp(selectedService);
+              if (!help) return null;
+              return (
+                <a
+                  href={`/help/${help.slug}`}
+                  target="_blank"
+                  rel="noreferrer noopener"
+                  className="flex items-center gap-2 p-3 rounded-md border border-primary/30 bg-primary/5 hover:bg-primary/10 transition-colors text-xs sm:text-sm text-foreground"
+                >
+                  <BookOpen className="h-4 w-4 text-primary shrink-0" />
+                  <span>
+                    Don't know how this service works? <span className="font-semibold text-primary underline">{help.label} →</span>
+                  </span>
+                </a>
+              );
+            })()}
+
             {/* Submit */}
             <Button
               onClick={handlePlaceOrder}
