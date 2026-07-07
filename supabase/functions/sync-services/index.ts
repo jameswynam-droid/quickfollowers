@@ -1362,10 +1362,11 @@ Deno.serve(async (req) => {
       throw new Error('No services fetched from any provider');
     }
     
-    // CRITICAL SAFETY: Block sync entirely if ANY provider returned 0 services
-    // This prevents mass deletions when API keys are invalid/expired
+    // CRITICAL SAFETY: Block sync entirely if ANY unrestricted provider returned 0 services.
+    // Providers using an allow-list are exempt (they legitimately return a small fixed set).
+    const restrictedProviderNames = new Set(providers.filter(p => p.allowedServiceIds && p.allowedServiceIds.length).map(p => p.name));
     const failedProviders = Object.entries(providerResults)
-      .filter(([_, count]) => count === 0)
+      .filter(([name, count]) => count === 0 && !restrictedProviderNames.has(name))
       .map(([name]) => name);
     
     if (failedProviders.length > 0) {
