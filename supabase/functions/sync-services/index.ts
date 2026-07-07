@@ -46,6 +46,8 @@ interface Provider {
   name: string;
   url: string;
   apiKey: string;
+  // Optional whitelist: only keep services whose numeric ID appears here.
+  allowedServiceIds?: number[];
 }
 
 interface SyncResult {
@@ -1195,6 +1197,13 @@ Deno.serve(async (req) => {
         url: 'https://smmfollows.com/api/v2',
         apiKey: Deno.env.get('SMMFOLLOWS_API_KEY') || '',
       },
+      {
+        name: 'followspanel',
+        url: 'https://followspanel.com/api/v2',
+        apiKey: Deno.env.get('FOLLOWSPANEL_API_KEY') || '',
+        // Only sync these specific services from Followspanel
+        allowedServiceIds: [33472, 33449, 30923, 31841, 33297, 33295],
+      },
     ];
 
     // Validate API keys
@@ -1277,7 +1286,8 @@ Deno.serve(async (req) => {
           }
           
           // Validate minimum service count to detect incomplete responses
-          if (responseData.length < 10) {
+          // (skip this guard when we're using an allow-list — most services will be filtered out anyway)
+          if (responseData.length < 10 && !provider.allowedServiceIds) {
             lastError = `Suspiciously low service count: ${responseData.length}`;
             console.warn(`${provider.name} ${lastError}`);
             retries--;
@@ -1285,6 +1295,12 @@ Deno.serve(async (req) => {
           }
           
           services = responseData as SMMService[];
+          // Apply provider-level allow-list if configured
+          if (provider.allowedServiceIds && provider.allowedServiceIds.length) {
+            const allow = new Set(provider.allowedServiceIds.map(String));
+            services = services.filter(s => allow.has(String(s.service)));
+            console.log(`${provider.name}: allow-list filtered to ${services.length} services`);
+          }
           console.log(`Successfully fetched ${services.length} services from ${provider.name}`);
           break;
         } catch (error) {
@@ -1346,10 +1362,11 @@ Deno.serve(async (req) => {
       throw new Error('No services fetched from any provider');
     }
     
-    // CRITICAL SAFETY: Block sync entirely if ANY provider returned 0 services
-    // This prevents mass deletions when API keys are invalid/expired
+    // CRITICAL SAFETY: Block sync entirely if ANY unrestricted provider returned 0 services.
+    // Providers using an allow-list are exempt (they legitimately return a small fixed set).
+    const restrictedProviderNames = new Set(providers.filter(p => p.allowedServiceIds && p.allowedServiceIds.length).map(p => p.name));
     const failedProviders = Object.entries(providerResults)
-      .filter(([_, count]) => count === 0)
+      .filter(([name, count]) => count === 0 && !restrictedProviderNames.has(name))
       .map(([name]) => name);
     
     if (failedProviders.length > 0) {

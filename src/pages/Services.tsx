@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { RefreshCw, Search, ChevronDown, X } from "lucide-react";
+import { RefreshCw, Search, ChevronDown, X, BookOpen } from "lucide-react";
 import { toast } from "sonner";
 import { organizeServices, OrganizedService, ServiceCategory, getDisplayServiceId } from "@/utils/serviceOrganizer";
 import { useNoIndex } from "@/hooks/useNoIndex";
@@ -18,6 +18,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useCurrency } from "@/hooks/useCurrency";
 import { ServiceNotifications } from "@/components/ServiceNotifications";
 import { FunctionsHttpError } from "@supabase/supabase-js";
+import { getServiceHelp } from "@/lib/serviceHelp";
 
 const Services = () => {
   useNoIndex();
@@ -1052,6 +1053,25 @@ const Services = () => {
                 </div>
               </div>
             )}
+
+            {/* Help center link */}
+            {selectedService && (() => {
+              const help = getServiceHelp(selectedService);
+              if (!help) return null;
+              return (
+                <a
+                  href={`/help/${help.slug}`}
+                  target="_blank"
+                  rel="noreferrer noopener"
+                  className="flex items-center gap-2 p-3 rounded-md border border-primary/30 bg-primary/5 hover:bg-primary/10 transition-colors text-xs sm:text-sm text-foreground"
+                >
+                  <BookOpen className="h-4 w-4 text-primary shrink-0" />
+                  <span>
+                    Don't know how this service works? <span className="font-semibold text-primary underline">{help.label} →</span>
+                  </span>
+                </a>
+              );
+            })()}
 
             {/* Submit */}
             <Button

@@ -57,6 +57,7 @@ const UserLookup = ({ isAdmin = true }: { isAdmin?: boolean }) => {
 
   const [addOpen, setAddOpen] = useState(false);
   const [amount, setAmount] = useState("");
+  const [balanceMode, setBalanceMode] = useState<"add" | "deduct" | "set">("add");
   const [adminPwd, setAdminPwd] = useState("");
   const [crediting, setCrediting] = useState(false);
   const [turnstileToken, setTurnstileToken] = useState("");
@@ -168,23 +169,25 @@ const UserLookup = ({ isAdmin = true }: { isAdmin?: boolean }) => {
   const submitCredit = async () => {
     if (!profile) return;
     const amt = Number(amount);
-    if (!Number.isFinite(amt) || amt <= 0) { toast.error("Invalid amount"); return; }
+    if (!Number.isFinite(amt) || amt < 0) { toast.error("Invalid amount"); return; }
+    if (balanceMode !== "set" && amt <= 0) { toast.error("Enter an amount greater than zero"); return; }
     if (!adminPwd) { toast.error("Enter your admin password"); return; }
     if (!turnstileToken) { toast.error("Complete the verification"); return; }
-    // Convert entered amount (user's chosen currency) to NGN for backend
     const ngnAmount = convertToNGN(amt);
     setCrediting(true);
     try {
       const { data, error } = await supabase.functions.invoke("admin-credit-user", {
         body: {
           target_user_id: profile.id,
-          amount_usd: ngnAmount, // backend field is named amount_usd but treats it as base currency (NGN)
+          amount_usd: ngnAmount,
           admin_password: adminPwd,
           turnstile_token: turnstileToken,
+          mode: balanceMode,
         },
       });
-      if (error || !data?.success) throw new Error(await getFunctionErrorMessage(error, data, "Could not credit user."));
-      toast.success(`Credited ${formatPrice(ngnAmount)} to ${profile.email}`);
+      if (error || !data?.success) throw new Error(await getFunctionErrorMessage(error, data, "Could not update balance."));
+      const verb = balanceMode === "add" ? "Credited" : balanceMode === "deduct" ? "Deducted" : "Set balance to";
+      toast.success(`${verb} ${formatPrice(ngnAmount)} for ${profile.email}`);
       setAddOpen(false);
       openProfile(profile);
     } catch (e: any) {
@@ -267,7 +270,7 @@ const UserLookup = ({ isAdmin = true }: { isAdmin?: boolean }) => {
                 <div><span className="text-muted-foreground">Balance:</span> {formatPrice(Number(profile.balance))}</div>
                 <div><span className="text-muted-foreground">Signed up:</span> {new Date(profile.created_at).toLocaleDateString()}</div>
               </div>
-              {isAdmin && <Button onClick={openAddFunds} size="sm">Add Funds</Button>}
+              {isAdmin && <Button onClick={openAddFunds} size="sm">Edit Balance</Button>}
             </CardContent>
           </Card>
 
@@ -384,15 +387,36 @@ const UserLookup = ({ isAdmin = true }: { isAdmin?: boolean }) => {
       <Dialog open={addOpen} onOpenChange={setAddOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Add funds to {profile?.email}</DialogTitle>
+            <DialogTitle>Edit balance for {profile?.email}</DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
             <div className="space-y-1.5">
+              <Label>Action</Label>
+              <div className="grid grid-cols-3 gap-2">
+                {(["add", "deduct", "set"] as const).map((m) => (
+                  <Button
+                    key={m}
+                    type="button"
+                    size="sm"
+                    variant={balanceMode === m ? "default" : "outline"}
+                    onClick={() => setBalanceMode(m)}
+                  >
+                    {m === "add" ? "Add" : m === "deduct" ? "Deduct" : "Set to"}
+                  </Button>
+                ))}
+              </div>
+              <p className="text-[11px] text-muted-foreground">
+                Current balance: {formatPrice(Number(profile?.balance || 0))}
+              </p>
+            </div>
+            <div className="space-y-1.5">
               <Label>Amount ({currencySymbol})</Label>
-              <Input type="number" step="0.01" min="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} />
-              {amount && Number(amount) > 0 && (
+              <Input type="number" step="0.01" min="0" value={amount} onChange={(e) => setAmount(e.target.value)} />
+              {amount && Number(amount) >= 0 && (
                 <p className="text-xs text-muted-foreground">
-                  Will credit ≈ ₦{convertToNGN(Number(amount)).toLocaleString(undefined, { maximumFractionDigits: 2 })} to their balance.
+                  {balanceMode === "add" && `Will add ≈ ₦${convertToNGN(Number(amount)).toLocaleString(undefined, { maximumFractionDigits: 2 })}`}
+                  {balanceMode === "deduct" && `Will remove ≈ ₦${convertToNGN(Number(amount)).toLocaleString(undefined, { maximumFractionDigits: 2 })}`}
+                  {balanceMode === "set" && `Will set balance to ≈ ₦${convertToNGN(Number(amount)).toLocaleString(undefined, { maximumFractionDigits: 2 })}`}
                 </p>
               )}
             </div>
@@ -405,7 +429,7 @@ const UserLookup = ({ isAdmin = true }: { isAdmin?: boolean }) => {
           <DialogFooter>
             <Button variant="outline" onClick={() => setAddOpen(false)}>Cancel</Button>
             <Button onClick={submitCredit} disabled={crediting || !turnstileToken}>
-              {crediting ? "Processing..." : "Credit User"}
+              {crediting ? "Processing..." : balanceMode === "add" ? "Add Funds" : balanceMode === "deduct" ? "Deduct" : "Set Balance"}
             </Button>
           </DialogFooter>
         </DialogContent>

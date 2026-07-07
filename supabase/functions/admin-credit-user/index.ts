@@ -12,9 +12,7 @@ async function verifyTurnstile(token: string): Promise<boolean> {
   body.append('secret', secret);
   body.append('response', token);
   try {
-    const r = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
-      method: 'POST', body,
-    });
+    const r = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', { method: 'POST', body });
     const j = await r.json();
     return !!j.success;
   } catch { return false; }
@@ -23,24 +21,31 @@ async function verifyTurnstile(token: string): Promise<boolean> {
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
 
+  const json = (status: number, body: any) =>
+    new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+
   try {
     const authHeader = req.headers.get('Authorization') ?? '';
     const jwt = authHeader.replace('Bearer ', '');
-    if (!jwt) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    if (!jwt) return json(401, { error: 'Not signed in.' });
 
-    const { target_user_id, amount_usd, admin_password, turnstile_token, description } = await req.json();
-    if (!target_user_id || !amount_usd || !admin_password || !turnstile_token) {
-      return new Response(JSON.stringify({ error: 'Missing fields' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    const { target_user_id, amount_usd, admin_password, turnstile_token, description, mode } = await req.json();
+    // mode: 'add' (default) | 'deduct' | 'set'
+    const action: 'add' | 'deduct' | 'set' = mode === 'deduct' || mode === 'set' ? mode : 'add';
+
+    if (!target_user_id || amount_usd === undefined || !admin_password || !turnstile_token) {
+      return json(400, { error: 'Missing required fields.' });
     }
     const amt = Number(amount_usd);
-    if (!Number.isFinite(amt) || amt <= 0 || amt > 100000) {
-      return new Response(JSON.stringify({ error: 'Invalid amount' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    if (!Number.isFinite(amt) || amt < 0 || amt > 100000) {
+      return json(400, { error: 'Invalid amount.' });
+    }
+    if (action !== 'set' && amt <= 0) {
+      return json(400, { error: 'Amount must be greater than zero.' });
     }
 
     const ok = await verifyTurnstile(turnstile_token);
-    if (!ok) {
-      return new Response(JSON.stringify({ error: 'Verification failed' }), { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
-    }
+    if (!ok) return json(403, { error: 'Verification failed. Please retry.' });
 
     const supabaseAuth = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
@@ -53,41 +58,72 @@ Deno.serve(async (req) => {
     );
 
     const { data: { user }, error: userErr } = await supabaseAuth.auth.getUser(jwt);
-    if (userErr || !user?.email) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    if (userErr || !user?.email) return json(401, { error: 'Not signed in.' });
 
-    // Verify admin role
-    const { data: role } = await admin
-      .from('user_roles')
-      .select('role')
-      .eq('user_id', user.id)
-      .eq('role', 'admin')
-      .maybeSingle();
-    if (!role) return new Response(JSON.stringify({ error: 'Forbidden' }), { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    const { data: role } = await admin.from('user_roles').select('role').eq('user_id', user.id).eq('role', 'admin').maybeSingle();
+    if (!role) return json(403, { error: 'Only admins can edit balances.' });
 
-    // Re-verify password
     const verifier = createClient(Deno.env.get('SUPABASE_URL') ?? '', Deno.env.get('SUPABASE_ANON_KEY') ?? '');
     const { error: pwErr } = await verifier.auth.signInWithPassword({ email: user.email, password: admin_password });
-    if (pwErr) {
-      return new Response(JSON.stringify({ error: 'Password incorrect' }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    if (pwErr) return json(401, { error: 'Password incorrect.' });
+
+    // Load current balance
+    const { data: target, error: targetErr } = await admin
+      .from('profiles')
+      .select('balance')
+      .eq('id', target_user_id)
+      .maybeSingle();
+    if (targetErr || !target) return json(404, { error: 'User not found.' });
+
+    const currentBalance = Number(target.balance) || 0;
+    let delta = 0;
+    let txnType: 'deposit' | 'refund' = 'deposit';
+    let defaultDesc = '';
+
+    if (action === 'add') {
+      delta = amt;
+      txnType = 'deposit';
+      defaultDesc = `Admin top-up by ${user.email}`;
+    } else if (action === 'deduct') {
+      delta = -amt;
+      txnType = 'refund'; // shown as adjustment in history; keeps existing UI filters happy
+      defaultDesc = `Admin deduction by ${user.email}`;
+      if (currentBalance + delta < 0) {
+        return json(400, { error: `Cannot deduct: user balance is only ${currentBalance}.` });
+      }
+    } else { // set
+      delta = amt - currentBalance;
+      if (delta === 0) return json(400, { error: 'New balance is the same as the current balance.' });
+      txnType = delta > 0 ? 'deposit' : 'refund';
+      defaultDesc = `Admin balance set to ${amt} by ${user.email}`;
     }
 
-    const reference = `admin-credit-${user.id.slice(0, 8)}-${Date.now()}`;
-    const desc = description || `Admin top-up by ${user.email}`;
+    const desc = description || defaultDesc;
+    const newBalance = currentBalance + delta;
+    const reference = `admin-${action}-${target_user_id.slice(0, 8)}-${Date.now()}`;
 
-    const { data: result, error: rpcErr } = await admin.rpc('process_deposit', {
-      p_reference_id: reference,
-      p_user_id: target_user_id,
-      p_amount: amt,
-      p_payment_method: 'admin_credit',
-      p_description: desc,
+    // Update balance
+    const { error: updErr } = await admin.from('profiles').update({ balance: newBalance }).eq('id', target_user_id);
+    if (updErr) return json(500, { error: 'Balance update failed.' });
+
+    // Insert transaction row
+    const { error: txErr } = await admin.from('transactions').insert({
+      user_id: target_user_id,
+      type: txnType,
+      amount: Math.abs(delta),
+      balance_after: newBalance,
+      description: desc,
+      reference_id: reference,
+      payment_method: 'admin_credit',
     });
-
-    if (rpcErr) {
-      return new Response(JSON.stringify({ error: 'Credit failed: ' + rpcErr.message }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    if (txErr) {
+      // Roll back balance if transaction insert fails
+      await admin.from('profiles').update({ balance: currentBalance }).eq('id', target_user_id);
+      return json(500, { error: 'Could not record transaction.' });
     }
 
-    return new Response(JSON.stringify({ success: true, result }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    return json(200, { success: true, new_balance: newBalance, delta });
   } catch (e: any) {
-    return new Response(JSON.stringify({ error: 'Internal error' }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    return json(500, { error: 'Internal error.' });
   }
 });
