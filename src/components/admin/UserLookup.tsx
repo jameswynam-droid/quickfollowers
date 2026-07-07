@@ -387,15 +387,36 @@ const UserLookup = ({ isAdmin = true }: { isAdmin?: boolean }) => {
       <Dialog open={addOpen} onOpenChange={setAddOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Add funds to {profile?.email}</DialogTitle>
+            <DialogTitle>Edit balance for {profile?.email}</DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
             <div className="space-y-1.5">
+              <Label>Action</Label>
+              <div className="grid grid-cols-3 gap-2">
+                {(["add", "deduct", "set"] as const).map((m) => (
+                  <Button
+                    key={m}
+                    type="button"
+                    size="sm"
+                    variant={balanceMode === m ? "default" : "outline"}
+                    onClick={() => setBalanceMode(m)}
+                  >
+                    {m === "add" ? "Add" : m === "deduct" ? "Deduct" : "Set to"}
+                  </Button>
+                ))}
+              </div>
+              <p className="text-[11px] text-muted-foreground">
+                Current balance: {formatPrice(Number(profile?.balance || 0))}
+              </p>
+            </div>
+            <div className="space-y-1.5">
               <Label>Amount ({currencySymbol})</Label>
-              <Input type="number" step="0.01" min="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} />
-              {amount && Number(amount) > 0 && (
+              <Input type="number" step="0.01" min="0" value={amount} onChange={(e) => setAmount(e.target.value)} />
+              {amount && Number(amount) >= 0 && (
                 <p className="text-xs text-muted-foreground">
-                  Will credit ≈ ₦{convertToNGN(Number(amount)).toLocaleString(undefined, { maximumFractionDigits: 2 })} to their balance.
+                  {balanceMode === "add" && `Will add ≈ ₦${convertToNGN(Number(amount)).toLocaleString(undefined, { maximumFractionDigits: 2 })}`}
+                  {balanceMode === "deduct" && `Will remove ≈ ₦${convertToNGN(Number(amount)).toLocaleString(undefined, { maximumFractionDigits: 2 })}`}
+                  {balanceMode === "set" && `Will set balance to ≈ ₦${convertToNGN(Number(amount)).toLocaleString(undefined, { maximumFractionDigits: 2 })}`}
                 </p>
               )}
             </div>
@@ -408,7 +429,7 @@ const UserLookup = ({ isAdmin = true }: { isAdmin?: boolean }) => {
           <DialogFooter>
             <Button variant="outline" onClick={() => setAddOpen(false)}>Cancel</Button>
             <Button onClick={submitCredit} disabled={crediting || !turnstileToken}>
-              {crediting ? "Processing..." : "Credit User"}
+              {crediting ? "Processing..." : balanceMode === "add" ? "Add Funds" : balanceMode === "deduct" ? "Deduct" : "Set Balance"}
             </Button>
           </DialogFooter>
         </DialogContent>
