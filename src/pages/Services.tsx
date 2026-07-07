@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { RefreshCw, Search, ChevronDown, X } from "lucide-react";
+import { RefreshCw, Search, ChevronDown, X, BookOpen } from "lucide-react";
 import { toast } from "sonner";
 import { organizeServices, OrganizedService, ServiceCategory, getDisplayServiceId } from "@/utils/serviceOrganizer";
 import { useNoIndex } from "@/hooks/useNoIndex";
@@ -18,6 +18,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useCurrency } from "@/hooks/useCurrency";
 import { ServiceNotifications } from "@/components/ServiceNotifications";
 import { FunctionsHttpError } from "@supabase/supabase-js";
+import { getServiceHelp } from "@/lib/serviceHelp";
 
 const Services = () => {
   useNoIndex();
