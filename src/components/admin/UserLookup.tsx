@@ -270,7 +270,7 @@ const UserLookup = ({ isAdmin = true }: { isAdmin?: boolean }) => {
                 <div><span className="text-muted-foreground">Balance:</span> {formatPrice(Number(profile.balance))}</div>
                 <div><span className="text-muted-foreground">Signed up:</span> {new Date(profile.created_at).toLocaleDateString()}</div>
               </div>
-              {isAdmin && <Button onClick={openAddFunds} size="sm">Add Funds</Button>}
+              {isAdmin && <Button onClick={openAddFunds} size="sm">Edit Balance</Button>}
             </CardContent>
           </Card>
 
