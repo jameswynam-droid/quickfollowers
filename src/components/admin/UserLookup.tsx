@@ -57,6 +57,7 @@ const UserLookup = ({ isAdmin = true }: { isAdmin?: boolean }) => {
 
   const [addOpen, setAddOpen] = useState(false);
   const [amount, setAmount] = useState("");
+  const [balanceMode, setBalanceMode] = useState<"add" | "deduct" | "set">("add");
   const [adminPwd, setAdminPwd] = useState("");
   const [crediting, setCrediting] = useState(false);
   const [turnstileToken, setTurnstileToken] = useState("");
@@ -168,23 +169,25 @@ const UserLookup = ({ isAdmin = true }: { isAdmin?: boolean }) => {
   const submitCredit = async () => {
     if (!profile) return;
     const amt = Number(amount);
-    if (!Number.isFinite(amt) || amt <= 0) { toast.error("Invalid amount"); return; }
+    if (!Number.isFinite(amt) || amt < 0) { toast.error("Invalid amount"); return; }
+    if (balanceMode !== "set" && amt <= 0) { toast.error("Enter an amount greater than zero"); return; }
     if (!adminPwd) { toast.error("Enter your admin password"); return; }
     if (!turnstileToken) { toast.error("Complete the verification"); return; }
-    // Convert entered amount (user's chosen currency) to NGN for backend
     const ngnAmount = convertToNGN(amt);
     setCrediting(true);
     try {
       const { data, error } = await supabase.functions.invoke("admin-credit-user", {
         body: {
           target_user_id: profile.id,
-          amount_usd: ngnAmount, // backend field is named amount_usd but treats it as base currency (NGN)
+          amount_usd: ngnAmount,
           admin_password: adminPwd,
           turnstile_token: turnstileToken,
+          mode: balanceMode,
         },
       });
-      if (error || !data?.success) throw new Error(await getFunctionErrorMessage(error, data, "Could not credit user."));
-      toast.success(`Credited ${formatPrice(ngnAmount)} to ${profile.email}`);
+      if (error || !data?.success) throw new Error(await getFunctionErrorMessage(error, data, "Could not update balance."));
+      const verb = balanceMode === "add" ? "Credited" : balanceMode === "deduct" ? "Deducted" : "Set balance to";
+      toast.success(`${verb} ${formatPrice(ngnAmount)} for ${profile.email}`);
       setAddOpen(false);
       openProfile(profile);
     } catch (e: any) {
