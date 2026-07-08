@@ -21,12 +21,12 @@ interface Profile {
   created_at: string;
 }
 
-// Stable, subtle provider hint. Never shows provider names or raw IDs.
-function providerHint(seed: string | null | undefined): string {
-  if (!seed) return "S-00";
-  let hash = 0;
-  for (const ch of String(seed)) hash = (hash * 31 + ch.charCodeAt(0)) % 97;
-  return `S-${String(hash + 1).padStart(2, "0")}`;
+// Stable, subtle provider hint — one fixed code per upstream provider.
+// Admin can decode using the legend on the Admin Panel; the letter is unrelated
+// to the provider name so it stays subtle in the UI.
+import { PROVIDER_HINT } from "@/lib/providerHint";
+function providerHint(providerName: string | null | undefined): string {
+  return PROVIDER_HINT.codeFor(providerName);
 }
 
 // Payment provider label
