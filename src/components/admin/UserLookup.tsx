@@ -315,7 +315,7 @@ const UserLookup = ({ isAdmin = true }: { isAdmin?: boolean }) => {
                           <TableCell className="font-mono text-xs">
                             {o.api_order_id || o.id.slice(0, 8)}
                           </TableCell>
-                          <TableCell><Badge variant="outline" className="text-[10px]">{providerHint(`${o.services?.provider || ""}:${o.service_id || ""}`)}</Badge></TableCell>
+                          <TableCell><Badge variant="outline" className="text-[10px]">{providerHint(o.services?.provider)}</Badge></TableCell>
                           <TableCell className="max-w-[200px] truncate">{o.services?.name || "Unknown service"}</TableCell>
                           <TableCell>{o.quantity}</TableCell>
                           <TableCell>{formatPrice(Number(o.charge))}</TableCell>
