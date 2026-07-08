@@ -131,6 +131,7 @@ const UserLookup = ({ isAdmin = true }: { isAdmin?: boolean }) => {
     setAmount("");
     setAdminPwd("");
     setTurnstileToken("");
+    setBalanceMode("add");
     setAddOpen(true);
     let siteKey = "";
     try {
