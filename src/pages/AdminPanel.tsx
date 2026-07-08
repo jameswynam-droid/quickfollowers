@@ -15,6 +15,7 @@ import BlogAdmin from "@/components/admin/BlogAdmin";
 import SavedRepliesAdmin from "@/components/admin/SavedRepliesAdmin";
 import AdminTotpEnroll from "@/components/admin/AdminTotpEnroll";
 import StaffManager from "@/components/admin/StaffManager";
+import ProviderLegend from "@/components/admin/ProviderLegend";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { ShieldAlert } from "lucide-react";
 
@@ -89,6 +90,7 @@ const AdminPanelInner = () => {
               {isAdmin && <TabsTrigger value="bell" className="min-h-10 whitespace-normal text-center text-xs sm:text-sm">Header Bell</TabsTrigger>}
               {isAdmin && <TabsTrigger value="floating" className="min-h-10 whitespace-normal text-center text-xs sm:text-sm">Info Bell</TabsTrigger>}
               {isAdmin && <TabsTrigger value="popups" className="min-h-10 whitespace-normal text-center text-xs sm:text-sm">Pop-ups</TabsTrigger>}
+              {isAdmin && <TabsTrigger value="providers" className="min-h-10 whitespace-normal text-center text-xs sm:text-sm">Providers</TabsTrigger>}
             </TabsList>
 
             <TabsContent value="users"><UserLookup isAdmin={isAdmin} /></TabsContent>
@@ -100,6 +102,7 @@ const AdminPanelInner = () => {
             {isAdmin && <TabsContent value="bell"><AdminBellNotifications /></TabsContent>}
             {isAdmin && <TabsContent value="floating"><AdminFloatingBellNotifications /></TabsContent>}
             {isAdmin && <TabsContent value="popups"><AdminDailyPopups /></TabsContent>}
+            {isAdmin && <TabsContent value="providers"><ProviderLegend /></TabsContent>}
           </Tabs>
         )}
       </main>

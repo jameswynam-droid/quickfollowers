@@ -21,12 +21,12 @@ interface Profile {
   created_at: string;
 }
 
-// Stable, subtle provider hint. Never shows provider names or raw IDs.
-function providerHint(seed: string | null | undefined): string {
-  if (!seed) return "S-00";
-  let hash = 0;
-  for (const ch of String(seed)) hash = (hash * 31 + ch.charCodeAt(0)) % 97;
-  return `S-${String(hash + 1).padStart(2, "0")}`;
+// Stable, subtle provider hint — one fixed code per upstream provider.
+// Admin can decode using the legend on the Admin Panel; the letter is unrelated
+// to the provider name so it stays subtle in the UI.
+import { PROVIDER_HINT } from "@/lib/providerHint";
+function providerHint(providerName: string | null | undefined): string {
+  return PROVIDER_HINT.codeFor(providerName);
 }
 
 // Payment provider label
@@ -315,7 +315,7 @@ const UserLookup = ({ isAdmin = true }: { isAdmin?: boolean }) => {
                           <TableCell className="font-mono text-xs">
                             {o.api_order_id || o.id.slice(0, 8)}
                           </TableCell>
-                          <TableCell><Badge variant="outline" className="text-[10px]">{providerHint(`${o.services?.provider || ""}:${o.service_id || ""}`)}</Badge></TableCell>
+                          <TableCell><Badge variant="outline" className="text-[10px]">{providerHint(o.services?.provider)}</Badge></TableCell>
                           <TableCell className="max-w-[200px] truncate">{o.services?.name || "Unknown service"}</TableCell>
                           <TableCell>{o.quantity}</TableCell>
                           <TableCell>{formatPrice(Number(o.charge))}</TableCell>
