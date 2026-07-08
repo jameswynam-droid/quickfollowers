@@ -15,6 +15,7 @@ import BlogAdmin from "@/components/admin/BlogAdmin";
 import SavedRepliesAdmin from "@/components/admin/SavedRepliesAdmin";
 import AdminTotpEnroll from "@/components/admin/AdminTotpEnroll";
 import StaffManager from "@/components/admin/StaffManager";
+import ProviderLegend from "@/components/admin/ProviderLegend";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { ShieldAlert } from "lucide-react";
 
