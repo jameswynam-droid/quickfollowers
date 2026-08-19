@@ -33,6 +33,9 @@ verify_jwt = false
 [functions.sync-order-status]
 verify_jwt = false
 
+[functions.sync-subscriptions]
+verify_jwt = false
+
 [functions.sync-services]
 verify_jwt = false
 
