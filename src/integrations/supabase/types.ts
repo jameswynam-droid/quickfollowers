@@ -244,6 +244,54 @@ export type Database = {
         }
         Relationships: []
       }
+      internal_messages: {
+        Row: {
+          body: string
+          created_at: string
+          id: string
+          read_by_admin: boolean
+          read_by_sender: boolean
+          replied_at: string | null
+          replied_by: string | null
+          reply: string | null
+          sender_email: string
+          sender_id: string
+          status: string
+          subject: string
+          updated_at: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          id?: string
+          read_by_admin?: boolean
+          read_by_sender?: boolean
+          replied_at?: string | null
+          replied_by?: string | null
+          reply?: string | null
+          sender_email: string
+          sender_id: string
+          status?: string
+          subject: string
+          updated_at?: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          id?: string
+          read_by_admin?: boolean
+          read_by_sender?: boolean
+          replied_at?: string | null
+          replied_by?: string | null
+          reply?: string | null
+          sender_email?: string
+          sender_id?: string
+          status?: string
+          subject?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       notifications: {
         Row: {
           created_at: string
@@ -289,6 +337,8 @@ export type Database = {
           id: string
           interval_minutes: number | null
           link: string
+          parent_order_id: string | null
+          provider_child_id: string | null
           quantity: number
           remains: number | null
           runs: number | null
@@ -306,6 +356,8 @@ export type Database = {
           id?: string
           interval_minutes?: number | null
           link: string
+          parent_order_id?: string | null
+          provider_child_id?: string | null
           quantity: number
           remains?: number | null
           runs?: number | null
@@ -323,6 +375,8 @@ export type Database = {
           id?: string
           interval_minutes?: number | null
           link?: string
+          parent_order_id?: string | null
+          provider_child_id?: string | null
           quantity?: number
           remains?: number | null
           runs?: number | null
@@ -333,6 +387,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "orders_parent_order_id_fkey"
+            columns: ["parent_order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "orders_service_id_fkey"
             columns: ["service_id"]
@@ -614,10 +675,12 @@ export type Database = {
         Row: {
           api_subscription_id: string | null
           charged_so_far: number
+          completed_at: string | null
           created_at: string
           estimated_max: number
           id: string
           order_id: string | null
+          released: number
           status: string
           updated_at: string
           user_id: string
@@ -625,10 +688,12 @@ export type Database = {
         Insert: {
           api_subscription_id?: string | null
           charged_so_far?: number
+          completed_at?: string | null
           created_at?: string
           estimated_max: number
           id?: string
           order_id?: string | null
+          released?: number
           status?: string
           updated_at?: string
           user_id: string
@@ -636,10 +701,12 @@ export type Database = {
         Update: {
           api_subscription_id?: string | null
           charged_so_far?: number
+          completed_at?: string | null
           created_at?: string
           estimated_max?: number
           id?: string
           order_id?: string | null
+          released?: number
           status?: string
           updated_at?: string
           user_id?: string
