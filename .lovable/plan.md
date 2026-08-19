@@ -1,53 +1,80 @@
-I found the main cause of the support/admin issues:
+# Subscriptions, Drip Feed, and the remaining deferred work
 
-- `support@quickfollowers.online` exists, but it currently only has the `user` role, not the `support` role.
-- The 2FA enrollment function currently allows only `admin`, so support accounts can hit a backend error instead of a clear setup flow.
-- The ticket page currently checks only for `admin`, so support would be blocked from tickets even after login.
-- User Lookup is currently showing all transaction rows, including order-related transactions, inside Transaction History.
+## What I verified with the provider before writing this
 
-Plan:
+Querying the provider status endpoint with a subscription ID returns the child orders it created:
 
-1. Fix support account access
-   - Add the missing `support` role to `support@quickfollowers.online`.
-   - Keep normal users blocked from the admin panel.
-   - Allow both `admin` and `support` roles to sign in through the admin login.
-   - Allow support users to access tickets and user lookup, while keeping admin-only areas restricted.
+```text
+status(38407572) -> {"status":"Completed","expiry":"2026-07-20","posts":"1","orders":["38407727"],"old_orders":[]}
+status(38407727) -> {"charge":"16.6509","start_count":"","status":"In progress","remains":"25","currency":"NGN"}
+```
 
-2. Fix 2FA for admin and support
-   - Update 2FA enrollment so both `admin` and `support` staff can enroll.
-   - Keep 2FA required after setup, with the existing re-prompt interval.
-   - Make failed enrollment/login/verification return safe, understandable messages like “Your account is not allowed to use the staff panel” or “Authenticator code is required,” instead of “Edge Function returned a non-2xx status code.”
-   - Update the login UI to prefer backend-provided safe errors over generic function errors.
+Drip feed parents behave the same way:
 
-3. Fix deleted staff email reuse and duplicate prevention
-   - Update staff creation to check whether an email already exists before creating a new staff account.
-   - If an active account exists, show “This email is already in use.”
-   - Add a proper staff delete action that removes the auth user and related staff records, so the same email can be used again after deletion.
-   - Keep “remove role” separate from “delete account” to avoid accidental deletion.
+```text
+status(37595769) -> {"status":"Completed","runs":"2","orders":["37595771","37596003"]}
+```
 
-4. Fix User Lookup histories
-   - Order History will query only the orders table.
-   - Transaction History will show only deposits and refunds.
-   - Add an Order ID search field for orders using short ID, provider order ID, or internal ID fragment.
-   - Add a Transaction ID search field for deposits/refunds using short ID, reference ID, or internal ID fragment.
-   - Keep payment hints for Transaction History and separate subtle provider hints only for Order History.
+So both subscriptions and drip feeds expose their real child order IDs and each child exposes its real charge. That is the missing link needed to bill subscriptions correctly.
 
-5. Make provider hints less obvious
-   - Replace direct-looking provider labels with subtle stable source codes generated from provider/service/order fields, such as `S-14`, `S-27`, etc.
-   - Do not expose raw provider names, provider IDs, or provider order IDs unless already intended for support tracking.
+I also confirmed in the database that the three existing subscription rows have `charge = 0` and `charged_so_far = 0`, so nothing was ever debited even though the provider already delivered and completed them. Reserved balance was held but never converted into a real charge.
 
-6. Update saved reply wording
-   - Update “Order speed-up request” so support says the speed request has been escalated to the technical team/admin.
-   - Keep cancellation wording clear that orders already “In Progress” cannot be cancelled.
-   - Remove em dashes from saved reply text and affected UI copy.
+## 1. Subscription billing (the actual bug)
 
-7. Fix admin panel tab visibility on mobile
-   - Replace the cramped horizontal tab bar with a mobile-friendly grid/wrapped tab layout so User Lookup, Saved Replies, 2FA, Staff, Blog/Help, and other tabs are fully visible.
-   - Keep desktop layout clean and scannable.
-   - Avoid text clipping and hidden active states.
+New background function `sync-subscriptions`, run alongside the existing order sync:
 
-8. Validate after implementation
-   - Test the admin login function response path.
-   - Test 2FA enroll/verify behavior for a staff account.
-   - Verify support can access tickets but not admin-only areas.
-   - Verify lookup histories are no longer mixed.
+- For every active reservation, poll the parent subscription ID.
+- For each child order ID returned that is not yet recorded, poll the child, read its provider charge, apply the same markup the service uses, and record it.
+- Debit the user's balance by that amount, write a transaction row, increase `charged_so_far`, and release the same amount from `reserved_balance`.
+- Each child is billed once, keyed by the child's provider order ID, so repeated polling never double charges.
+- When the subscription reaches Completed, Canceled or expired, release any leftover reservation back to available balance and mark the reservation finished.
+- Backfill: the three existing subscriptions get billed on the first run using the same path.
+
+Estimate rule stays as you described: required balance before placing a subscription is max quantity x (new posts + old posts) x rate with markup. That is already what the code reserves, so no change there.
+
+## 2. Child orders become visible
+
+Each child order the provider creates is written into `orders` as its own row, linked to the parent, with its real quantity, charge, status, start count and remains. Result:
+
+- Orders page shows the delivered child orders like any normal order.
+- Subscriptions page shows the parent with its own detail.
+
+## 3. Subscriptions page and Drip Feed page
+
+Two new routes, `/subscriptions` and `/drip-feed`, each hidden until the user has at least one of that order type (the detection hook for this already exists and will be wired into the header and the mobile menu).
+
+Subscriptions page shows: subscription ID, username, service, quantity range (min to max), new posts and old posts progress, delay, expiry, status, amount reserved, amount charged so far, and the list of delivered child orders with their charges.
+
+Drip Feed page shows: parent order, service, link, runs completed out of total, interval, per run quantity, total charged, and each run's child order with its status.
+
+## 4. Admin route hardening and Support to Admin messaging
+
+- Every admin and support route wrapped by the existing guard with an explicit role requirement, so Support cannot reach admin-only surfaces even by typing the URL.
+- New internal messages table plus an Inbox tab: Support can send a request to Admin (for example "credit this user"), Admin sees an unread badge, replies, and marks it resolved.
+
+## 5. Cloudflare R2 for ticket attachments
+
+- Upload proxy edge function signs and stores objects in R2 using the existing R2 secrets, so the browser never sees a bucket URL.
+- Viewing goes through short lived signed URLs only.
+- 15 day lifecycle cleanup for old attachments.
+- Existing attachments migrated across, with the old storage path kept as a fallback until migration completes.
+
+## 6. Blog and help centre expansion
+
+- New articles covering every service category still missing one, including subscriptions and drip feed, all full Markdown.
+- Photoreal imagery, limited to one or two generated images for the highest value articles to keep credit use low; the rest use clean typographic headers rather than filler stock.
+- Service pages keep linking straight to the matching article.
+
+## 7. Web Push for support
+
+Service worker, subscription storage, and a sender triggered on new ticket messages so Support is notified without keeping the panel open.
+
+## 8. Copy and icon cleanup
+
+Sweep the whole site to remove long dashes and any sparkle icons, replacing them with plain punctuation and neutral icons.
+
+## Technical notes
+
+- New columns: `orders.parent_order_id`, `orders.provider_child_id`, plus indexes; `subscription_reservations` gains released tracking.
+- Billing math: user charge = provider child charge x (1 + markup for that service tier), matching how order pricing already works.
+- All balance movement happens in the edge function with the service role, never client side.
