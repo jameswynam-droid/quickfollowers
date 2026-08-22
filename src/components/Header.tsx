@@ -220,6 +220,24 @@ const Header = ({ onAuthClick }: HeaderProps) => {
               >
                 Orders
               </Link>
+              {hasSubscriptions && (
+                <Link
+                  to="/subscriptions"
+                  className="block py-2 text-foreground/80 hover:text-primary"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  Subscriptions
+                </Link>
+              )}
+              {hasDripFeed && (
+                <Link
+                  to="/drip-feed"
+                  className="block py-2 text-foreground/80 hover:text-primary"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  Drip Feed
+                </Link>
+              )}
               <Link
                 to="/transactions"
                 className="block py-2 text-foreground/80 hover:text-primary"
