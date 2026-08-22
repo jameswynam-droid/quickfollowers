@@ -7,6 +7,7 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import { NotificationBell } from "@/components/NotificationBell";
 import { CurrencySelector } from "@/components/CurrencySelector";
 import { useUnreadTickets } from "@/hooks/useUnreadTickets";
+import { useOrderKinds } from "@/hooks/useOrderKinds";
 import logoImg from "@/assets/logo.png";
 
 interface HeaderProps {
@@ -18,6 +19,7 @@ const Header = ({ onAuthClick }: HeaderProps) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
   const { unreadCount } = useUnreadTickets(userId);
+  const { hasDripFeed, hasSubscriptions } = useOrderKinds(userId);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -108,6 +110,16 @@ const Header = ({ onAuthClick }: HeaderProps) => {
               <Link to="/orders" className="text-foreground/80 hover:text-primary transition">
                 Orders
               </Link>
+              {hasSubscriptions && (
+                <Link to="/subscriptions" className="text-foreground/80 hover:text-primary transition">
+                  Subscriptions
+                </Link>
+              )}
+              {hasDripFeed && (
+                <Link to="/drip-feed" className="text-foreground/80 hover:text-primary transition">
+                  Drip Feed
+                </Link>
+              )}
               <TicketLink className="text-foreground/80 hover:text-primary transition inline-flex items-center" />
               <Link to="/account" className="text-foreground/80 hover:text-primary transition">
                 Account
@@ -208,6 +220,24 @@ const Header = ({ onAuthClick }: HeaderProps) => {
               >
                 Orders
               </Link>
+              {hasSubscriptions && (
+                <Link
+                  to="/subscriptions"
+                  className="block py-2 text-foreground/80 hover:text-primary"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  Subscriptions
+                </Link>
+              )}
+              {hasDripFeed && (
+                <Link
+                  to="/drip-feed"
+                  className="block py-2 text-foreground/80 hover:text-primary"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  Drip Feed
+                </Link>
+              )}
               <Link
                 to="/transactions"
                 className="block py-2 text-foreground/80 hover:text-primary"
