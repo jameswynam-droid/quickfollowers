@@ -7,6 +7,7 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import { NotificationBell } from "@/components/NotificationBell";
 import { CurrencySelector } from "@/components/CurrencySelector";
 import { useUnreadTickets } from "@/hooks/useUnreadTickets";
+import { useOrderKinds } from "@/hooks/useOrderKinds";
 import logoImg from "@/assets/logo.png";
 
 interface HeaderProps {
@@ -18,6 +19,7 @@ const Header = ({ onAuthClick }: HeaderProps) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
   const { unreadCount } = useUnreadTickets(userId);
+  const { hasDripFeed, hasSubscriptions } = useOrderKinds(userId);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
