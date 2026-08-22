@@ -110,6 +110,16 @@ const Header = ({ onAuthClick }: HeaderProps) => {
               <Link to="/orders" className="text-foreground/80 hover:text-primary transition">
                 Orders
               </Link>
+              {hasSubscriptions && (
+                <Link to="/subscriptions" className="text-foreground/80 hover:text-primary transition">
+                  Subscriptions
+                </Link>
+              )}
+              {hasDripFeed && (
+                <Link to="/drip-feed" className="text-foreground/80 hover:text-primary transition">
+                  Drip Feed
+                </Link>
+              )}
               <TicketLink className="text-foreground/80 hover:text-primary transition inline-flex items-center" />
               <Link to="/account" className="text-foreground/80 hover:text-primary transition">
                 Account
