@@ -15,9 +15,8 @@ export default {
     extend: {
       backgroundImage: {
         "gradient-primary": "var(--gradient-primary)",
-        "gradient-secondary": "var(--gradient-secondary)",
         "gradient-hero": "var(--gradient-hero)",
-        "gradient-accent": "var(--gradient-accent)",
+        "gradient-card": "var(--gradient-card)",
       },
       colors: {
         border: "hsl(var(--border))",
