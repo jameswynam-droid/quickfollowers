@@ -24,6 +24,7 @@ import Transactions from "./pages/Transactions";
 import AdminLogin from "./pages/AdminLogin";
 import AdminPanel from "./pages/AdminPanel";
 import AdminTickets from "./pages/AdminTickets";
+import StaffMessages from "./pages/StaffMessages";
 import Tickets from "./pages/Tickets";
 import AddFunds from "./pages/AddFunds";
 import PaymentSuccess from "./pages/PaymentSuccess";
@@ -81,6 +82,7 @@ const App = () => (
                 <Route path="/admin" element={<AdminLogin />} />
                 <Route path="/admin/panel" element={<AdminPanel />} />
                 <Route path="/admin/tickets" element={<AdminTickets />} />
+                <Route path="/admin/messages" element={<StaffMessages />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </BrowserRouter>

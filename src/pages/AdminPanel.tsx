@@ -60,6 +60,7 @@ const AdminPanelInner = () => {
           </div>
           <div className="flex gap-2">
             <Button onClick={() => navigate("/admin/tickets")} variant="outline" size="sm">Tickets</Button>
+            <Button onClick={() => navigate("/admin/messages")} variant="outline" size="sm">Messages</Button>
             <Button onClick={handleLogout} size="sm" variant="ghost">Logout</Button>
           </div>
         </div>
