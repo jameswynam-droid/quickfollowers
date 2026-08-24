@@ -389,7 +389,10 @@ const AdminTickets = () => {
     <div className="min-h-screen flex flex-col bg-background">
       <header className="border-b bg-card">
         <div className="container mx-auto px-4 py-3 flex items-center justify-between">
-          <Link to="/admin/panel" className="text-sm font-semibold">← Admin Panel</Link>
+          <div className="flex items-center gap-4">
+            <Link to="/admin/panel" className="text-sm font-semibold">← Admin Panel</Link>
+            <Link to="/admin/messages" className="text-sm font-semibold text-primary">Messages</Link>
+          </div>
           <span className="text-xs text-muted-foreground truncate">{user?.email}</span>
         </div>
       </header>
