@@ -292,7 +292,7 @@ const Services = () => {
     return organizedCategories.flatMap(c => c.services);
   }, [organizedCategories]);
 
-  // Global search results — across ALL services by name OR id
+  // Global search results, across ALL services by name OR id
   const globalSearchResults = useMemo(() => {
     const q = debouncedGlobalSearch.trim().toLowerCase();
     if (!q) return [] as OrganizedService[];
@@ -361,7 +361,7 @@ const Services = () => {
     }
   }, [searchParams, allServices, selectedService]);
 
-  // Charge calculation — handles Auto-services (avg(min,max) * posts) and standard
+  // Charge calculation, handles Auto-services (avg(min,max) * posts) and standard
   const charge = useMemo(() => {
     if (!selectedService) return 0;
     const rate = selectedService.markedUpRate;
@@ -634,7 +634,7 @@ const Services = () => {
                           <div className="flex items-start justify-between gap-2">
                             <span className="flex-1 leading-snug">
                               <span className="text-muted-foreground">ID {getDisplayServiceId(service.id)}</span>
-                              {' — '}
+                              {', '}
                               {service.name}
                             </span>
                             <span className="text-xs font-medium text-primary whitespace-nowrap mt-0.5">
@@ -736,7 +736,7 @@ const Services = () => {
                 >
                   <span className={selectedService ? "" : "text-muted-foreground truncate"}>
                     {selectedService
-                      ? `ID ${getDisplayServiceId(selectedService.id)} — ${selectedService.name}`
+                      ? `ID ${getDisplayServiceId(selectedService.id)}, ${selectedService.name}`
                       : selectedCategory
                         ? "Select a service"
                         : "Select a category first"}
@@ -761,7 +761,7 @@ const Services = () => {
                           <div className="flex items-start justify-between gap-2">
                             <span className="flex-1 leading-snug">
                               <span className="text-muted-foreground">ID {getDisplayServiceId(service.id)}</span>
-                              {' — '}
+                              {', '}
                               {service.name}
                             </span>
                             <span className="text-xs font-medium text-primary whitespace-nowrap mt-0.5">
@@ -780,7 +780,7 @@ const Services = () => {
                 <div className="mt-2 p-3 bg-muted/50 rounded-md border text-sm">
                   <div className="font-medium">
                     <span className="text-muted-foreground">ID {getDisplayServiceId(selectedService.id)}</span>
-                    {' — '}
+                    {', '}
                     {selectedService.name}
                   </div>
                   <div className="flex flex-wrap gap-x-4 gap-y-1 mt-1.5 text-xs text-muted-foreground">
@@ -916,14 +916,14 @@ const Services = () => {
                         ? "Enter a single hashtag. No need to include the # symbol. Example: 'yourbrand+france' targets your brand in that country."
                         : isBrandSearchesService(selectedService)
                           ? "Enter a single brand or username. Example: 'yourbrand'. Real people will search this term in Google."
-                          : "A single keyword/phrase — visitors arrive via this search term."}
+                          : "A single keyword/phrase, visitors arrive via this search term."}
                     </p>
                   </div>
                 )}
 
 
 
-                {/* Quantity — hidden for custom comments and fixed-quantity packages */}
+                {/* Quantity, hidden for custom comments and fixed-quantity packages */}
                 {!isCustomCommentService(selectedService) && !isFixedQuantityService(selectedService) && (
                   <div className="space-y-1.5">
                     <Label className="text-sm font-medium">Quantity</Label>
@@ -931,7 +931,7 @@ const Services = () => {
                       type="number"
                       value={orderQuantity}
                       onChange={(e) => setOrderQuantity(e.target.value)}
-                      placeholder={selectedService ? `Min: ${selectedService.min_order} — Max: ${selectedService.max_order}` : "Select a service first"}
+                      placeholder={selectedService ? `Min: ${selectedService.min_order}, Max: ${selectedService.max_order}` : "Select a service first"}
                       min={selectedService?.min_order}
                       max={selectedService?.max_order}
                       className="text-sm"
@@ -942,7 +942,7 @@ const Services = () => {
                 {/* Fixed-quantity packages: show informational note instead of input */}
                 {isFixedQuantityService(selectedService) && (
                   <p className="text-xs text-muted-foreground">
-                    This is a fixed package — quantity is set automatically by the service ({selectedService!.min_order}).
+                    This is a fixed package, quantity is set automatically by the service ({selectedService!.min_order}).
                   </p>
                 )}
 
@@ -1004,7 +1004,7 @@ const Services = () => {
               </div>
             )}
 
-            {/* Charge — Auto-services bill on detection */}
+            {/* Charge, Auto-services bill on detection */}
             {charge > 0 && isAutoService(selectedService) && (
               <div className="p-3 sm:p-4 bg-primary/10 border border-primary/20 rounded-lg space-y-1.5">
                 <div className="flex justify-between items-center text-sm sm:text-base">
@@ -1012,7 +1012,7 @@ const Services = () => {
                   <span className="font-bold text-lg text-primary">{formatPrice(charge)}</span>
                 </div>
                 <p className="text-xs text-foreground">
-                  When you place this subscription, the <span className="font-semibold">maximum possible cost</span> (max × posts) is reserved from your balance so it cannot be spent elsewhere. You are only actually charged each time a new post is detected and delivered — any unused reservation is released back to your balance when the subscription ends.
+                  When you place this subscription, the <span className="font-semibold">maximum possible cost</span> (max × posts) is reserved from your balance so it cannot be spent elsewhere. You are only actually charged each time a new post is detected and delivered, any unused reservation is released back to your balance when the subscription ends.
                 </p>
               </div>
             )}
@@ -1031,20 +1031,20 @@ const Services = () => {
               <div className="p-3 sm:p-4 rounded-lg border bg-muted/30 text-foreground space-y-2 text-xs sm:text-sm">
                 <p className="font-semibold text-primary">How auto-services work</p>
                 <ul className="space-y-1.5 list-disc pl-5">
-                  <li><span className="font-medium">Username</span> — your public profile handle. The system watches it for new posts.</li>
-                  <li><span className="font-medium">Min / Max per post</span> — random range delivered to each new post (e.g. 100–300 likes per post).</li>
-                  <li><span className="font-medium">New posts</span> — how many future uploads this subscription covers.</li>
+                  <li><span className="font-medium">Username</span>, your public profile handle. The system watches it for new posts.</li>
+                  <li><span className="font-medium">Min / Max per post</span>, random range delivered to each new post (e.g. 100-300 likes per post).</li>
+                  <li><span className="font-medium">New posts</span>, how many future uploads this subscription covers.</li>
                   {isInstagramAutoService(selectedService) && (
-                    <li><span className="font-medium">Old posts</span> — apply the service to that many recent existing posts on the profile too.</li>
+                    <li><span className="font-medium">Old posts</span>, apply the service to that many recent existing posts on the profile too.</li>
                   )}
-                  <li><span className="font-medium">Delay</span> — wait time (in minutes) after a new post is detected before delivery starts.</li>
-                  <li><span className="font-medium">Expiry</span> — optional date when the subscription auto-stops.</li>
+                  <li><span className="font-medium">Delay</span>, wait time (in minutes) after a new post is detected before delivery starts.</li>
+                  <li><span className="font-medium">Expiry</span>, optional date when the subscription auto-stops.</li>
                 </ul>
                 <p className="pt-1"><span className="font-semibold">Billing:</span> the max possible cost is reserved up-front. Real charges happen per detected post. Unused reservation is released when the subscription ends. Account must stay public.</p>
               </div>
             )}
 
-            {/* Description — full text, no scroll/truncation */}
+            {/* Description, full text, no scroll/truncation */}
             {selectedService?.description && (
               <div className="space-y-1.5">
                 <Label className="text-sm font-medium text-muted-foreground">Description</Label>

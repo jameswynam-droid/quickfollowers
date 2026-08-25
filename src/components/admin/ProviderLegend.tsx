@@ -3,7 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { PROVIDER_HINT } from "@/lib/providerHint";
 
 // Admin-only legend that maps the subtle "P-XX" badge shown next to
-// each order back to the real upstream provider name — so admins know
+// each order back to the real upstream provider name, so admins know
 // where to open a support ticket without exposing the vendor in the UI.
 const ProviderLegend = () => {
   const rows = PROVIDER_HINT.legend();

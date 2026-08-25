@@ -16,14 +16,14 @@ export const PLATFORM_LANDINGS: Record<string, PlatformLandingData> = {
     slug: "instagram",
     platform: "Instagram",
     brandColor: "#E1306C",
-    tagline: "Cheap Instagram followers, likes, views and reels promotion — delivered fast.",
-    metaTitle: "Buy Instagram Followers, Likes & Views — Cheapest SMM Panel",
+    tagline: "Cheap Instagram followers, likes, views and reels promotion, delivered fast.",
+    metaTitle: "Buy Instagram Followers, Likes & Views, Cheapest SMM Panel",
     metaDescription:
       "QuickFollowers SMM panel: buy real-looking Instagram followers, likes, views, story views and reels promotion at the lowest prices. Instant start, secure checkout.",
     keywords: ["buy instagram followers", "cheap instagram likes", "instagram smm panel", "reels views", "instagram growth panel"],
     services: [
       "Instagram followers (instant & gradual)",
-      "Instagram likes — photos & reels",
+      "Instagram likes, photos & reels",
       "Reels views and impressions",
       "Story views and reach",
       "Comments and saves",
@@ -34,7 +34,7 @@ export const PLATFORM_LANDINGS: Record<string, PlatformLandingData> = {
       { title: "Drip-feed available", body: "Spread followers over hours or days for a natural growth pattern." },
     ],
     faqs: [
-      { q: "Are these followers safe for my Instagram account?", a: "Yes — we use service providers that send accounts that match Instagram's normal traffic patterns. We do not request your password." },
+      { q: "Are these followers safe for my Instagram account?", a: "Yes, we use service providers that send accounts that match Instagram's normal traffic patterns. We do not request your password." },
       { q: "How do I order?", a: "Sign up, add funds, pick the Instagram service, paste your profile or post link, choose a quantity and submit." },
       { q: "What if some drop?", a: "Some Instagram services include a refill period. If your order drops below the start count within that window, we apply an automatic refund proportional to the loss." },
     ],
@@ -43,10 +43,10 @@ export const PLATFORM_LANDINGS: Record<string, PlatformLandingData> = {
     slug: "tiktok",
     platform: "TikTok",
     brandColor: "#010101",
-    tagline: "TikTok followers, likes, views and shares — built for creators going viral.",
-    metaTitle: "Buy TikTok Followers, Likes & Views — Cheap SMM Panel",
+    tagline: "TikTok followers, likes, views and shares, built for creators going viral.",
+    metaTitle: "Buy TikTok Followers, Likes & Views, Cheap SMM Panel",
     metaDescription:
-      "Boost your TikTok with cheap followers, likes, video views and shares. QuickFollowers SMM panel — instant delivery, global coverage, secure payments.",
+      "Boost your TikTok with cheap followers, likes, video views and shares. QuickFollowers SMM panel, instant delivery, global coverage, secure payments.",
     keywords: ["buy tiktok followers", "tiktok likes cheap", "tiktok views smm panel", "tiktok growth", "tiktok promotion"],
     services: [
       "TikTok followers",
@@ -58,12 +58,12 @@ export const PLATFORM_LANDINGS: Record<string, PlatformLandingData> = {
     benefits: [
       { title: "Built for the algorithm", body: "Views and likes start fast to push your video into the For You page rotation." },
       { title: "Bulk pricing", body: "Order millions of TikTok views at fractions of a cent each." },
-      { title: "Works on any link", body: "Just paste the video URL — no login required." },
+      { title: "Works on any link", body: "Just paste the video URL, no login required." },
     ],
     faqs: [
       { q: "Will buying TikTok views ban my account?", a: "No. Views are processed via established providers and look like normal traffic." },
-      { q: "How long does delivery take?", a: "Standard TikTok view orders begin within 0–60 minutes." },
-      { q: "Do you support TikTok live viewers?", a: "Yes — order live viewers shortly before going live for best results." },
+      { q: "How long does delivery take?", a: "Standard TikTok view orders begin within 0-60 minutes." },
+      { q: "Do you support TikTok live viewers?", a: "Yes, order live viewers shortly before going live for best results." },
     ],
   },
   youtube: {
@@ -71,9 +71,9 @@ export const PLATFORM_LANDINGS: Record<string, PlatformLandingData> = {
     platform: "YouTube",
     brandColor: "#FF0000",
     tagline: "YouTube views, subscribers, likes and watch time at panel prices.",
-    metaTitle: "Buy YouTube Views, Subscribers & Watch Time — SMM Panel",
+    metaTitle: "Buy YouTube Views, Subscribers & Watch Time, SMM Panel",
     metaDescription:
-      "Grow your YouTube channel with cheap views, subscribers, likes and watch hours. AdSense-safe traffic from QuickFollowers — the trusted SMM panel.",
+      "Grow your YouTube channel with cheap views, subscribers, likes and watch hours. AdSense-safe traffic from QuickFollowers, the trusted SMM panel.",
     keywords: ["buy youtube views", "youtube subscribers cheap", "youtube watch time", "youtube smm panel", "monetization watch hours"],
     services: [
       "YouTube views (high-retention available)",
@@ -97,10 +97,10 @@ export const PLATFORM_LANDINGS: Record<string, PlatformLandingData> = {
     slug: "facebook",
     platform: "Facebook",
     brandColor: "#1877F2",
-    tagline: "Facebook page likes, post engagement and video views — all in one panel.",
-    metaTitle: "Buy Facebook Page Likes, Followers & Video Views — SMM Panel",
+    tagline: "Facebook page likes, post engagement and video views, all in one panel.",
+    metaTitle: "Buy Facebook Page Likes, Followers & Video Views, SMM Panel",
     metaDescription:
-      "Grow your Facebook page with cheap likes, followers, post reactions and video views. QuickFollowers SMM panel — instant delivery, global reach.",
+      "Grow your Facebook page with cheap likes, followers, post reactions and video views. QuickFollowers SMM panel, instant delivery, global reach.",
     keywords: ["buy facebook page likes", "facebook followers", "facebook video views", "facebook smm panel", "facebook post reactions"],
     services: [
       "Page likes and follows",
@@ -110,12 +110,12 @@ export const PLATFORM_LANDINGS: Record<string, PlatformLandingData> = {
       "Live stream viewers",
     ],
     benefits: [
-      { title: "Global delivery", body: "Order from any country — we route to the right regional providers." },
+      { title: "Global delivery", body: "Order from any country, we route to the right regional providers." },
       { title: "Page or post", body: "Boost your entire page or a single viral post." },
       { title: "Mixed reactions", body: "Add love, wow and haha reactions for natural-looking engagement." },
     ],
     faqs: [
-      { q: "Do you support Facebook Reels?", a: "Yes — Reels views and likes are listed under our Facebook category." },
+      { q: "Do you support Facebook Reels?", a: "Yes, Reels views and likes are listed under our Facebook category." },
       { q: "Can I boost a private group?", a: "No, the link must be a public page, post or video." },
       { q: "How fast is delivery?", a: "Most Facebook orders begin within 30 minutes." },
     ],
@@ -125,9 +125,9 @@ export const PLATFORM_LANDINGS: Record<string, PlatformLandingData> = {
     platform: "Twitter / X",
     brandColor: "#000000",
     tagline: "X (Twitter) followers, likes, retweets and impressions at panel prices.",
-    metaTitle: "Buy Twitter / X Followers, Likes & Retweets — SMM Panel",
+    metaTitle: "Buy Twitter / X Followers, Likes & Retweets, SMM Panel",
     metaDescription:
-      "Grow your X (Twitter) account with cheap followers, likes, retweets and tweet impressions. QuickFollowers SMM panel — fast and reliable.",
+      "Grow your X (Twitter) account with cheap followers, likes, retweets and tweet impressions. QuickFollowers SMM panel, fast and reliable.",
     keywords: ["buy twitter followers", "x followers cheap", "twitter likes panel", "tweet impressions", "twitter smm panel"],
     services: [
       "X (Twitter) followers",
@@ -143,7 +143,7 @@ export const PLATFORM_LANDINGS: Record<string, PlatformLandingData> = {
     ],
     faqs: [
       { q: "Will my account get suspended?", a: "We use established providers that mimic normal X engagement patterns. We never need your password." },
-      { q: "How do I order tweet impressions?", a: "Paste the tweet URL — not your profile — and choose a quantity." },
+      { q: "How do I order tweet impressions?", a: "Paste the tweet URL, not your profile, and choose a quantity." },
       { q: "Are blue check followers available?", a: "We offer mixed-quality followers; some include verified-style profiles depending on the package." },
     ],
   },
@@ -151,10 +151,10 @@ export const PLATFORM_LANDINGS: Record<string, PlatformLandingData> = {
     slug: "telegram",
     platform: "Telegram",
     brandColor: "#229ED9",
-    tagline: "Telegram channel members, post views and reactions — instant delivery.",
-    metaTitle: "Buy Telegram Members, Post Views & Reactions — SMM Panel",
+    tagline: "Telegram channel members, post views and reactions, instant delivery.",
+    metaTitle: "Buy Telegram Members, Post Views & Reactions, SMM Panel",
     metaDescription:
-      "Grow your Telegram channel or group with cheap members, post views and reactions. QuickFollowers SMM panel — instant start, no login required.",
+      "Grow your Telegram channel or group with cheap members, post views and reactions. QuickFollowers SMM panel, instant start, no login required.",
     keywords: ["buy telegram members", "telegram channel members", "telegram post views", "telegram smm panel", "telegram subscribers"],
     services: [
       "Channel and group members",
@@ -169,7 +169,7 @@ export const PLATFORM_LANDINGS: Record<string, PlatformLandingData> = {
       { title: "Cheap reactions", body: "Add reactions in any emoji combination." },
     ],
     faqs: [
-      { q: "Do members leave?", a: "Telegram natural drop is around 5–15%. We offer refill packages on most member services." },
+      { q: "Do members leave?", a: "Telegram natural drop is around 5-15%. We offer refill packages on most member services." },
       { q: "Can I order for a private channel?", a: "The channel must be public or have a join link we can subscribe to." },
       { q: "How fast?", a: "Members start within minutes; views are usually instant." },
     ],
@@ -179,7 +179,7 @@ export const PLATFORM_LANDINGS: Record<string, PlatformLandingData> = {
     platform: "Spotify",
     brandColor: "#1DB954",
     tagline: "Spotify plays, monthly listeners, followers and saves for artists & playlists.",
-    metaTitle: "Buy Spotify Plays, Followers & Monthly Listeners — SMM Panel",
+    metaTitle: "Buy Spotify Plays, Followers & Monthly Listeners, SMM Panel",
     metaDescription:
       "Grow as a Spotify artist with cheap plays, monthly listeners, followers and playlist saves. Royalty-eligible streams from QuickFollowers SMM panel.",
     keywords: ["buy spotify plays", "spotify monthly listeners", "spotify followers", "spotify smm panel", "playlist promotion"],
@@ -198,7 +198,7 @@ export const PLATFORM_LANDINGS: Record<string, PlatformLandingData> = {
     faqs: [
       { q: "Is this allowed by Spotify?", a: "We use long-running, established providers. Buying plays is at your own risk; choose the slow drip packages for maximum safety." },
       { q: "How long until plays show?", a: "Spotify counters update every 24 hours, so plays appear in your dashboard the next day." },
-      { q: "Do you support podcasts?", a: "Yes — podcast plays and follows are available under the Spotify category." },
+      { q: "Do you support podcasts?", a: "Yes, podcast plays and follows are available under the Spotify category." },
     ],
   },
 };

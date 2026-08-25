@@ -284,7 +284,7 @@ const Orders = () => {
                 <div className="flex items-center justify-between gap-2 p-3 sm:p-4 border-t">
                   <p className="text-xs sm:text-sm text-muted-foreground">
                     Page {currentPage} of {totalPages} · Showing {(currentPage - 1) * PAGE_SIZE + 1}
-                    –{Math.min(currentPage * PAGE_SIZE, filteredOrders.length)} of {filteredOrders.length}
+                    -{Math.min(currentPage * PAGE_SIZE, filteredOrders.length)} of {filteredOrders.length}
                   </p>
                   <div className="flex gap-2">
                     <Button variant="outline" size="sm" disabled={currentPage <= 1} onClick={() => setPage((p) => Math.max(1, p - 1))}>

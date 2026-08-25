@@ -92,7 +92,7 @@ const PlatformLanding = () => {
         >
           <div className="max-w-5xl mx-auto text-center">
             <h1 className="text-4xl md:text-5xl font-bold text-foreground mb-4">
-              Buy {data.platform} Followers, Likes & Views — Cheapest Panel
+              Buy {data.platform} Followers, Likes & Views, Cheapest Panel
             </h1>
             <p className="text-lg md:text-xl text-foreground/80 mb-8 max-w-3xl mx-auto">
               {data.tagline}

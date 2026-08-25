@@ -127,7 +127,7 @@ Deno.serve(async (req) => {
     const { data: { user }, error: userError } = await supabaseClient.auth.getUser(jwt);
     if (userError || !user) throw new Error('Not authenticated');
 
-    // Note: admin restriction removed — only the standalone Admin Panel
+    // Note: admin restriction removed, only the standalone Admin Panel
     // (separate from normal user accounts) is restricted from ordering.
 
 
@@ -245,7 +245,7 @@ Deno.serve(async (req) => {
       if (comments) orderPayload.comments = comments;
     }
 
-    // Balance check — auto-services check available (balance - reserved) against RESERVATION amount,
+    // Balance check, auto-services check available (balance - reserved) against RESERVATION amount,
     // not the avg charge, so user can't overspend reserved funds.
     const { data: profile, error: profileError } = await supabaseClient
       .from('profiles').select('id, balance, reserved_balance').eq('id', user.id).single();
@@ -307,7 +307,7 @@ Deno.serve(async (req) => {
     }
 
     if (isAuto) {
-      // Reserve funds — do NOT debit balance. Insert reservation row.
+      // Reserve funds, do NOT debit balance. Insert reservation row.
       const newReserved = Number(profile.reserved_balance || 0) + reservationAmount;
       await supabaseAdmin.from('profiles').update({ reserved_balance: newReserved }).eq('id', profile.id);
       await supabaseAdmin.from('subscription_reservations').insert({

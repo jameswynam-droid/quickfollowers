@@ -21,7 +21,7 @@ interface Profile {
   created_at: string;
 }
 
-// Stable, subtle provider hint — one fixed code per upstream provider.
+// Stable, subtle provider hint, one fixed code per upstream provider.
 // Admin can decode using the legend on the Admin Panel; the letter is unrelated
 // to the provider name so it stays subtle in the UI.
 import { PROVIDER_HINT } from "@/lib/providerHint";

@@ -27,7 +27,7 @@ const Help = () => {
   useEffect(() => {
     document.title = "Help Center & Blog | QuickFollowers";
     const meta = document.querySelector('meta[name="description"]');
-    if (meta) meta.setAttribute('content', 'Guides, tutorials, and answers for placing SMM orders — Instagram, TikTok, YouTube and more.');
+    if (meta) meta.setAttribute('content', 'Guides, tutorials, and answers for placing SMM orders, Instagram, TikTok, YouTube and more.');
 
     (async () => {
       const [{ data: p }, { data: c }] = await Promise.all([

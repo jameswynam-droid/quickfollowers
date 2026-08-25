@@ -7,7 +7,7 @@ const Terms = () => {
   useEffect(() => {
     document.title = "Terms of Service | QuickFollowers";
     const meta = document.querySelector('meta[name="description"]');
-    if (meta) meta.setAttribute("content", "Terms of Service for QuickFollowers — rules for using our SMM panel, payments, refunds, and acceptable use.");
+    if (meta) meta.setAttribute("content", "Terms of Service for QuickFollowers, rules for using our SMM panel, payments, refunds, and acceptable use.");
   }, []);
 
   const updated = "May 5, 2026";

@@ -7,7 +7,7 @@ const Privacy = () => {
   useEffect(() => {
     document.title = "Privacy Policy | QuickFollowers";
     const meta = document.querySelector('meta[name="description"]');
-    if (meta) meta.setAttribute("content", "Privacy Policy for QuickFollowers — how we collect, use, and protect your personal data on our SMM panel.");
+    if (meta) meta.setAttribute("content", "Privacy Policy for QuickFollowers, how we collect, use, and protect your personal data on our SMM panel.");
   }, []);
 
   const updated = "May 5, 2026";
@@ -26,7 +26,7 @@ const Privacy = () => {
               <ul className="list-disc pl-6 space-y-1">
                 <li><strong>Account data:</strong> email, username, full name (if provided), hashed password.</li>
                 <li><strong>Order data:</strong> the public links/usernames you submit, quantities, and chosen services.</li>
-                <li><strong>Payment data:</strong> handled by Flutterwave and Paystack. We only store transaction references and amounts — never card numbers or banking credentials.</li>
+                <li><strong>Payment data:</strong> handled by Flutterwave and Paystack. We only store transaction references and amounts, never card numbers or banking credentials.</li>
                 <li><strong>Technical data:</strong> IP address, browser, device, and usage logs for security and abuse prevention.</li>
               </ul>
             </section>

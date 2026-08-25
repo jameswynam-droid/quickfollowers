@@ -179,7 +179,7 @@ export const organizeServices = (rawServices: any[]): ServiceCategory[] => {
   });
 
   // Deduplicate only by exact id (keep all visually similar services so each unique
-  // provider service ID remains searchable — e.g. owlet-6596 and owlet-6599 may share
+  // provider service ID remains searchable, e.g. owlet-6596 and owlet-6599 may share
   // a display name but are distinct provider services and users may search for either).
   const seenServices = new Map<string, boolean>();
   const deduplicatedServices = validServices.filter(service => {
