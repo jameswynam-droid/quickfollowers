@@ -44,30 +44,34 @@ function encodeKey(key: string) {
   return key.split("/").map(encodeURIComponent).join("/");
 }
 
-/** Presign a GET URL valid for `expires` seconds. */
-async function presignGet(key: string, expires: number): Promise<string> {
-  const { amz, stamp } = amzDate(new Date());
-  const credential = `${ACCESS_KEY}/${stamp}/${REGION}/${SERVICE}/aws4_request`;
-  const params = new URLSearchParams({
-    "X-Amz-Algorithm": "AWS4-HMAC-SHA256",
-    "X-Amz-Credential": credential,
-    "X-Amz-Date": amz,
-    "X-Amz-Expires": String(expires),
-    "X-Amz-SignedHeaders": "host",
-  });
-  const canonicalUri = `/${BUCKET}/${encodeKey(key)}`;
-  const canonical = [
-    "GET",
-    canonicalUri,
-    params.toString(),
-    `host:${HOST}\n`,
-    "host",
-    "UNSIGNED-PAYLOAD",
-  ].join("\n");
-  const sts = ["AWS4-HMAC-SHA256", amz, `${stamp}/${REGION}/${SERVICE}/aws4_request`, await sha256Hex(canonical)].join("\n");
-  const sig = hex(await hmac(await signingKey(stamp), sts));
-  return `https://${HOST}${canonicalUri}?${params.toString()}&X-Amz-Signature=${sig}`;
+const TOKEN_SECRET = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "fallback-secret";
+
+function b64url(bytes: Uint8Array) {
+  return btoa(String.fromCharCode(...bytes)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 }
+
+/** Mint a short lived opaque view token for an object key. */
+async function mintToken(key: string, ttlSeconds: number): Promise<string> {
+  const exp = Math.floor(Date.now() / 1000) + ttlSeconds;
+  const payload = b64url(enc.encode(JSON.stringify({ k: key, e: exp })));
+  const sig = b64url(new Uint8Array(await hmac(enc.encode(TOKEN_SECRET), payload)));
+  return `${payload}.${sig}`;
+}
+
+async function readToken(token: string): Promise<string | null> {
+  const [payload, sig] = token.split(".");
+  if (!payload || !sig) return null;
+  const expected = b64url(new Uint8Array(await hmac(enc.encode(TOKEN_SECRET), payload)));
+  if (expected !== sig) return null;
+  try {
+    const json = JSON.parse(atob(payload.replace(/-/g, "+").replace(/_/g, "/")));
+    if (!json?.k || !json?.e || json.e < Math.floor(Date.now() / 1000)) return null;
+    return String(json.k);
+  } catch {
+    return null;
+  }
+}
+
 
 /** Signed request against R2 (PUT object, lifecycle config, etc). */
 async function signedFetch(method: string, path: string, body: Uint8Array, extraHeaders: Record<string, string> = {}) {
