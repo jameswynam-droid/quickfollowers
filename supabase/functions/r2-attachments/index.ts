@@ -127,12 +127,6 @@ Deno.serve(async (req) => {
       });
     }
 
-    if (req.method === "GET" && url.searchParams.has("probe")) {
-      const k = url.searchParams.get("probe")!;
-      const r = await signedFetch("GET", `/${BUCKET}/${encodeKey(k)}`, new Uint8Array());
-      return json({ status: r.status, type: r.headers.get("content-type") });
-    }
-
     const authHeader = req.headers.get("Authorization") || "";
     if (!authHeader.startsWith("Bearer ")) return json({ error: "You need to be logged in." }, 401);
 
