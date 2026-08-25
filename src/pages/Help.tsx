@@ -41,13 +41,19 @@ const Help = () => {
 
   const filtered = useMemo(() => {
     let list = posts;
-    if (activeCat !== "all") list = list.filter(p => p.category_slug === activeCat);
-    if (q.trim()) {
-      const s = q.toLowerCase();
-      list = list.filter(p => p.title.toLowerCase().includes(s) || (p.excerpt || "").toLowerCase().includes(s));
+    if (activeCat !== "all") {
+      list = list.filter(p => (p.category_slugs?.length ? p.category_slugs : [p.category_slug]).includes(activeCat));
     }
-    return list;
+    const s = q.trim().toLowerCase();
+    if (!s) return list;
+
+    const scored = list
+      .map(p => ({ p, score: fuzzyScore(s, `${p.title} ${p.excerpt || ""} ${(p.category_slugs || []).join(" ")}`.toLowerCase()) }))
+      .filter(x => x.score > 0)
+      .sort((a, b) => b.score - a.score);
+    return scored.map(x => x.p);
   }, [posts, q, activeCat]);
+
 
   return (
     <div className="min-h-screen flex flex-col">
