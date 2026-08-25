@@ -109,6 +109,24 @@ Deno.serve(async (req) => {
     new Response(JSON.stringify(payload), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
   try {
+    const url = new URL(req.url);
+
+    // Public streaming endpoint: the token itself is the capability.
+    if (req.method === "GET" && url.searchParams.has("t")) {
+      const key = await readToken(url.searchParams.get("t")!);
+      if (!key) return new Response("Link expired", { status: 403, headers: corsHeaders });
+      const res = await signedFetch("GET", `/${BUCKET}/${encodeKey(key)}`, new Uint8Array());
+      if (!res.ok) return new Response("File not found", { status: 404, headers: corsHeaders });
+      return new Response(res.body, {
+        status: 200,
+        headers: {
+          ...corsHeaders,
+          "Content-Type": res.headers.get("content-type") || "application/octet-stream",
+          "Cache-Control": "private, max-age=600",
+        },
+      });
+    }
+
     const authHeader = req.headers.get("Authorization") || "";
     if (!authHeader.startsWith("Bearer ")) return json({ error: "You need to be logged in." }, 401);
 
@@ -117,6 +135,7 @@ Deno.serve(async (req) => {
     });
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return json({ error: "Your session expired. Please log in again." }, 401);
+
 
     const contentType = req.headers.get("content-type") || "";
 
