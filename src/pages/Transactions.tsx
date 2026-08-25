@@ -90,13 +90,13 @@ const Transactions = () => {
 
   const getTransactionId = (tx: any) => {
     if (tx.type === 'deposit') {
-      return tx.short_id ? `#${tx.short_id}` : '—';
+      return tx.short_id ? `#${tx.short_id}` : '-';
     }
     if (tx.type === 'refund') {
       const refundOrderId = getRefundOrderId(tx);
-      return refundOrderId ? `#${refundOrderId}` : '—';
+      return refundOrderId ? `#${refundOrderId}` : '-';
     }
-    return '—';
+    return '-';
   };
 
   if (loading) {

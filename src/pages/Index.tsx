@@ -247,7 +247,7 @@ const Index = () => {
               </summary>
               <p className="text-muted-foreground mt-3 sm:mt-4 leading-relaxed text-xs sm:text-base">
                 Yes. If an order fails, is cancelled, or only partially delivered, your account is automatically
-                refunded the unused portion of your balance — no need to open a ticket.
+                refunded the unused portion of your balance, no need to open a ticket.
               </p>
             </details>
             <details className="group bg-card/80 dark:bg-card/60 backdrop-blur-sm rounded-xl sm:rounded-2xl shadow-lg px-4 sm:px-8 py-4 sm:py-6 open:shadow-xl transition-all border border-border dark:border-border/80 hover:border-primary/50">
@@ -256,7 +256,7 @@ const Index = () => {
                 <i className="fa-solid fa-chevron-down text-primary group-open:rotate-180 transition-transform text-xs sm:text-base"></i>
               </summary>
               <p className="text-muted-foreground mt-3 sm:mt-4 leading-relaxed text-xs sm:text-base">
-                Absolutely. We never ask for your password — we only need the public link to your post or profile to
+                Absolutely. We never ask for your password, we only need the public link to your post or profile to
                 deliver engagement safely. Sessions are encrypted end-to-end.
               </p>
             </details>
@@ -267,7 +267,7 @@ const Index = () => {
               </summary>
               <p className="text-muted-foreground mt-3 sm:mt-4 leading-relaxed text-xs sm:text-base">
                 Instagram, TikTok, YouTube, X (Twitter), Facebook, Spotify, Telegram, Snapchat, Threads, SoundCloud,
-                Twitch and many more — followers, likes, views, subscribers, plays and shares for all of them.
+                Twitch and many more, followers, likes, views, subscribers, plays and shares for all of them.
               </p>
             </details>
             <details className="group bg-card/80 dark:bg-card/60 backdrop-blur-sm rounded-xl sm:rounded-2xl shadow-lg px-4 sm:px-8 py-4 sm:py-6 open:shadow-xl transition-all border border-border dark:border-border/80 hover:border-primary/50">

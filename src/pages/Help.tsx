@@ -14,9 +14,27 @@ interface Post {
   excerpt: string | null;
   cover_image_url: string | null;
   category_slug: string | null;
+  category_slugs: string[] | null;
   published_at: string | null;
 }
 interface Category { slug: string; name: string; description: string | null; sort_order: number; }
+
+/** Lightweight fuzzy matcher: exact substring, word prefixes, then subsequence. */
+function fuzzyScore(query: string, text: string): number {
+  if (!query) return 1;
+  if (text.includes(query)) return 100 - text.indexOf(query) / 100;
+  const words = query.split(/\s+/).filter(Boolean);
+  let score = 0;
+  for (const w of words) {
+    if (text.includes(w)) { score += 40; continue; }
+    // subsequence match allows typos and partial spellings
+    let i = 0;
+    for (const ch of text) { if (ch === w[i]) i++; if (i === w.length) break; }
+    if (i === w.length) score += 12;
+    else if (i / w.length > 0.75) score += 4;
+  }
+  return score;
+}
 
 const Help = () => {
   const [posts, setPosts] = useState<Post[]>([]);
@@ -27,11 +45,11 @@ const Help = () => {
   useEffect(() => {
     document.title = "Help Center & Blog | QuickFollowers";
     const meta = document.querySelector('meta[name="description"]');
-    if (meta) meta.setAttribute('content', 'Guides, tutorials, and answers for placing SMM orders — Instagram, TikTok, YouTube and more.');
+    if (meta) meta.setAttribute('content', 'Guides, tutorials, and answers for placing SMM orders, Instagram, TikTok, YouTube and more.');
 
     (async () => {
       const [{ data: p }, { data: c }] = await Promise.all([
-        supabase.from("blog_posts").select("slug,title,excerpt,cover_image_url,category_slug,published_at").eq("published", true).order("published_at", { ascending: false }),
+        supabase.from("blog_posts").select("slug,title,excerpt,cover_image_url,category_slug,category_slugs,published_at").eq("published", true).order("published_at", { ascending: false }),
         supabase.from("blog_categories").select("*").order("sort_order"),
       ]);
       setPosts(p || []);
@@ -41,13 +59,19 @@ const Help = () => {
 
   const filtered = useMemo(() => {
     let list = posts;
-    if (activeCat !== "all") list = list.filter(p => p.category_slug === activeCat);
-    if (q.trim()) {
-      const s = q.toLowerCase();
-      list = list.filter(p => p.title.toLowerCase().includes(s) || (p.excerpt || "").toLowerCase().includes(s));
+    if (activeCat !== "all") {
+      list = list.filter(p => (p.category_slugs?.length ? p.category_slugs : [p.category_slug]).includes(activeCat));
     }
-    return list;
+    const s = q.trim().toLowerCase();
+    if (!s) return list;
+
+    const scored = list
+      .map(p => ({ p, score: fuzzyScore(s, `${p.title} ${p.excerpt || ""} ${(p.category_slugs || []).join(" ")}`.toLowerCase()) }))
+      .filter(x => x.score > 0)
+      .sort((a, b) => b.score - a.score);
+    return scored.map(x => x.p);
   }, [posts, q, activeCat]);
+
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -80,7 +104,7 @@ const Help = () => {
                 <Card className="hover:shadow-lg transition h-full overflow-hidden">
                   {p.cover_image_url && (
                     <div className="aspect-video bg-muted overflow-hidden">
-                      <img src={p.cover_image_url} alt={p.title} loading="lazy" className="w-full h-full object-cover" />
+                      <img src={p.cover_image_url} alt={p.title} loading="lazy" className="w-full h-full object-contain bg-muted" />
                     </div>
                   )}
                   <CardContent className="p-4 space-y-2">

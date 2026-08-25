@@ -1286,7 +1286,7 @@ Deno.serve(async (req) => {
           }
           
           // Validate minimum service count to detect incomplete responses
-          // (skip this guard when we're using an allow-list — most services will be filtered out anyway)
+          // (skip this guard when we're using an allow-list, most services will be filtered out anyway)
           if (responseData.length < 10 && !provider.allowedServiceIds) {
             lastError = `Suspiciously low service count: ${responseData.length}`;
             console.warn(`${provider.name} ${lastError}`);
@@ -1353,7 +1353,7 @@ Deno.serve(async (req) => {
       allServicesData = allServicesData.concat(providerServicesData);
     }
 
-    // No filtering — sync ALL services exactly as the API providers return them
+    // No filtering, sync ALL services exactly as the API providers return them
     // Categories and service names are kept as-is from the provider (with only brand name replacement)
     console.log(`Total services to sync (no filtering): ${allServicesData.length}`);
 

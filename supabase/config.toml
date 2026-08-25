@@ -73,3 +73,6 @@ content_path = "./templates/recovery.html"
 [auth.email.template.magic_link]
 subject = "Your Login Code"
 content_path = "./templates/magic_link.html"
+
+[functions.r2-attachments]
+verify_jwt = false
