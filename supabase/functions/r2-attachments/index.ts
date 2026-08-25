@@ -170,7 +170,9 @@ Deno.serve(async (req) => {
       if (!isStaff && !key.startsWith(`tickets/${user.id}/`)) {
         return json({ error: "You cannot view this attachment." }, 403);
       }
-      return json({ url: await presignGet(key, 60 * 10) });
+      const token = await mintToken(key, 60 * 30);
+      const base = `${Deno.env.get("SUPABASE_URL")}/functions/v1/r2-attachments`;
+      return json({ url: `${base}?t=${encodeURIComponent(token)}` });
     }
 
     if (action === "init-lifecycle") {
