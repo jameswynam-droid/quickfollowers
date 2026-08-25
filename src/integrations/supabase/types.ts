@@ -106,6 +106,7 @@ export type Database = {
           author_id: string | null
           body_md: string
           category_slug: string | null
+          category_slugs: string[]
           cover_image_url: string | null
           created_at: string
           excerpt: string | null
@@ -122,6 +123,7 @@ export type Database = {
           author_id?: string | null
           body_md?: string
           category_slug?: string | null
+          category_slugs?: string[]
           cover_image_url?: string | null
           created_at?: string
           excerpt?: string | null
@@ -138,6 +140,7 @@ export type Database = {
           author_id?: string | null
           body_md?: string
           category_slug?: string | null
+          category_slugs?: string[]
           cover_image_url?: string | null
           created_at?: string
           excerpt?: string | null
@@ -590,6 +593,36 @@ export type Database = {
           reserved_balance?: number
           updated_at?: string
           username?: string | null
+        }
+        Relationships: []
+      }
+      push_subscriptions: {
+        Row: {
+          auth: string
+          created_at: string
+          endpoint: string
+          id: string
+          p256dh: string
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          auth: string
+          created_at?: string
+          endpoint: string
+          id?: string
+          p256dh: string
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          auth?: string
+          created_at?: string
+          endpoint?: string
+          id?: string
+          p256dh?: string
+          user_agent?: string | null
+          user_id?: string
         }
         Relationships: []
       }
