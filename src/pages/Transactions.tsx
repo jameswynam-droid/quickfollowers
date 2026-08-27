@@ -88,15 +88,6 @@ const Transactions = () => {
     return match?.[1] || null;
   };
 
-  // Internal adjustment wording and references are never shown to the customer.
-  const publicDescription = (tx: any) => {
-    const d = String(tx.description || '');
-    if (/^admin/i.test(d) || /admin/i.test(String(tx.reference_id || ''))) {
-      return Number(tx.amount) >= 0 && tx.type === 'deposit' ? 'Wallet credit' : 'Wallet adjustment';
-    }
-    return d;
-  };
-
   // Internal adjustment references are never shown to the customer.
   const isInternalRef = (ref: string | null) => !!ref && /^admin[-_]/i.test(ref);
 
