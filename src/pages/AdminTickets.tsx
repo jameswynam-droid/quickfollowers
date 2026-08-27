@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { enableStaffPush, pushPermission } from "@/lib/staffPush";
 import SavedRepliesPicker from "@/components/admin/SavedRepliesPicker";
 import { Link } from "react-router-dom";
 import FullPageLoader from "@/components/FullPageLoader";
@@ -54,6 +55,7 @@ const AdminTickets = () => {
   const [newMessage, setNewMessage] = useState("");
   const [attachment, setAttachment] = useState<File | null>(null);
   const [sending, setSending] = useState(false);
+  const [pushEnabled, setPushEnabled] = useState(pushPermission() === "granted");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const navigate = useNavigate();
   const scrollViewportRef = useRef<HTMLDivElement | null>(null);
@@ -407,7 +409,19 @@ const AdminTickets = () => {
               <p className="text-muted-foreground mt-1 sm:mt-2 text-sm sm:text-base">Manage user support requests</p>
             </div>
           </div>
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
+          <div className="flex items-center gap-2">
+            <Button
+              variant={pushEnabled ? "secondary" : "outline"}
+              size="sm"
+              onClick={async () => {
+                const r = await enableStaffPush();
+                if (r.ok) setPushEnabled(true);
+                r.ok ? toast.success(r.message) : toast.error(r.message);
+              }}
+            >
+              {pushEnabled ? "Alerts on" : "Enable alerts"}
+            </Button>
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
             <SelectTrigger className="w-[150px]">
               <SelectValue placeholder="Filter" />
             </SelectTrigger>
@@ -419,6 +433,7 @@ const AdminTickets = () => {
               <SelectItem value="closed">Closed</SelectItem>
             </SelectContent>
           </Select>
+          </div>
         </div>
 
         {filteredTickets.length === 0 ? (
