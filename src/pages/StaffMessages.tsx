@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { notifyStaff, enableStaffPush, pushPermission } from "@/lib/staffPush";
+import { notifyStaff } from "@/lib/staffPush";
 import AdminGuard, { getAdminSession } from "@/components/admin/AdminGuard";
 import FullPageLoader from "@/components/FullPageLoader";
 import { Button } from "@/components/ui/button";
