@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { notifyStaff } from "@/lib/staffPush";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { TicketsSkeleton } from "@/components/LoadingSkeleton";
@@ -220,6 +221,7 @@ const Tickets = () => {
 
       if (messageError) throw messageError;
 
+      notifyStaff("ticket");
       toast.success("Ticket created successfully");
       setShowNewTicket(false);
       setNewTicketSubject("");
@@ -264,6 +266,7 @@ const Tickets = () => {
 
       if (error) throw error;
 
+      notifyStaff("ticket");
       setNewMessage("");
       setAttachment(null);
       isAtBottomRef.current = true;

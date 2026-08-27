@@ -88,16 +88,22 @@ const Transactions = () => {
     return match?.[1] || null;
   };
 
+  // Internal adjustment references are never shown to the customer.
+  const isInternalRef = (ref: string | null) => !!ref && /^admin[-_]/i.test(ref);
+
   const getTransactionId = (tx: any) => {
-    if (tx.type === 'deposit') {
-      return tx.short_id ? `#${tx.short_id}` : '-';
-    }
+    if (tx.short_id) return `#${tx.short_id}`;
+    if (tx.type === 'deposit') return '-';
     if (tx.type === 'refund') {
       const refundOrderId = getRefundOrderId(tx);
-      return refundOrderId ? `#${refundOrderId}` : '-';
+      if (!refundOrderId || isInternalRef(refundOrderId)) {
+        return `#${String(tx.id).replace(/-/g, '').slice(0, 8).toUpperCase()}`;
+      }
+      return `#${refundOrderId}`;
     }
     return '-';
   };
+
 
   if (loading) {
     return (

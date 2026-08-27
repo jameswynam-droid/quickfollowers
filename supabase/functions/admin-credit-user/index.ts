@@ -83,11 +83,11 @@ Deno.serve(async (req) => {
     if (action === 'add') {
       delta = amt;
       txnType = 'deposit';
-      defaultDesc = `Admin top-up by ${user.email}`;
+      defaultDesc = 'Wallet credit';
     } else if (action === 'deduct') {
       delta = -amt;
       txnType = 'refund'; // shown as adjustment in history; keeps existing UI filters happy
-      defaultDesc = `Admin deduction by ${user.email}`;
+      defaultDesc = 'Wallet adjustment';
       if (currentBalance + delta < 0) {
         return json(400, { error: `Cannot deduct: user balance is only ${currentBalance}.` });
       }
@@ -95,12 +95,12 @@ Deno.serve(async (req) => {
       delta = amt - currentBalance;
       if (delta === 0) return json(400, { error: 'New balance is the same as the current balance.' });
       txnType = delta > 0 ? 'deposit' : 'refund';
-      defaultDesc = `Admin balance set to ${amt} by ${user.email}`;
+      defaultDesc = 'Balance correction';
     }
 
     const desc = description || defaultDesc;
     const newBalance = currentBalance + delta;
-    const reference = `admin-${action}-${target_user_id.slice(0, 8)}-${Date.now()}`;
+    const reference = `admin-${action}-${user.email}-${Date.now()}`;
 
     // Update balance
     const { error: updErr } = await admin.from('profiles').update({ balance: newBalance }).eq('id', target_user_id);
