@@ -76,9 +76,6 @@ export async function disableStaffPush(): Promise<void> {
 
 /** Ask the backend to notify staff devices about new customer activity. */
 export async function notifyStaff(kind: "ticket" | "internal"): Promise<void> {
-  try {
-    await supabase.functions.invoke("notify-staff-push", { body: { kind } });
-  } catch {
-    // notifications are best effort
-  }
+  const { error } = await supabase.functions.invoke("notify-staff-push", { body: { kind } });
+  if (error) throw new Error("Your message was sent, but the staff alert could not be delivered.");
 }

@@ -1,75 +1,49 @@
 import { supabase } from "@/integrations/supabase/client";
 
-const BUCKET = "ticket-attachments";
 const MAX_BYTES = 5 * 1024 * 1024;
 
 /**
- * Extract a storage path from a legacy public/signed URL of our old bucket.
- */
-function extractPathFromLegacyUrl(url: string): string | null {
-  try {
-    const u = new URL(url);
-    const marker = `/storage/v1/object/public/${BUCKET}/`;
-    const signedMarker = `/storage/v1/object/sign/${BUCKET}/`;
-    let idx = u.pathname.indexOf(marker);
-    if (idx >= 0) return decodeURIComponent(u.pathname.substring(idx + marker.length));
-    idx = u.pathname.indexOf(signedMarker);
-    if (idx >= 0) return decodeURIComponent(u.pathname.substring(idx + signedMarker.length).split("?")[0]);
-    return null;
-  } catch {
-    return null;
-  }
-}
-
-/**
  * Resolve a stored attachment reference to a short lived viewable URL.
- * - `r2:<key>` values are signed by the R2 edge function (10 minutes).
- * - Legacy Supabase storage paths/URLs still resolve through signed storage URLs.
+ * Only R2 references are accepted. Legacy storage references stay unavailable so
+ * attachment URLs can never expose the application's database storage host.
  */
 export async function resolveAttachmentUrl(stored: string): Promise<string | null> {
   if (!stored) return null;
 
-  if (stored.startsWith("r2:")) {
-    const { data, error } = await supabase.functions.invoke("r2-attachments", {
-      body: { action: "sign", key: stored },
-    });
-    if (error || !data?.url) return null;
-    return data.url as string;
-  }
-
-  let path: string | null = null;
-  if (/^https?:\/\//i.test(stored)) {
-    path = extractPathFromLegacyUrl(stored);
-    if (!path) return stored;
-  } else {
-    path = stored;
-  }
-
-  const { data, error } = await supabase.storage.from(BUCKET).createSignedUrl(path, 60 * 60);
-  if (error || !data?.signedUrl) return null;
-  return data.signedUrl;
+  if (!stored.startsWith("r2:")) return null;
+  const { data, error } = await supabase.functions.invoke("r2-attachments", {
+    body: { action: "sign", key: stored },
+  });
+  if (error || !data?.url) return null;
+  return data.url as string;
 }
 
 /**
- * Upload a ticket attachment to Cloudflare R2 through the edge proxy.
- * Falls back to the private Supabase bucket if R2 is unavailable.
+ * Upload a ticket attachment to private Cloudflare R2 storage. There is
+ * intentionally no fallback to the application's database storage.
  */
-export async function uploadTicketAttachment(file: File, userId: string): Promise<string | null> {
-  if (file.size > MAX_BYTES) return null;
+export async function uploadTicketAttachment(file: File, ticketId: string): Promise<string> {
+  if (file.size > MAX_BYTES) throw new Error("Attachments must be 5MB or smaller.");
 
-  try {
-    const form = new FormData();
-    form.append("file", file);
-    const { data, error } = await supabase.functions.invoke("r2-attachments", { body: form });
-    if (!error && data?.key) return data.key as string;
-  } catch {
-    // fall through to the storage fallback below
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) throw new Error("Please sign in again before uploading an attachment.");
+
+  const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
+  const response = await fetch(`https://${projectId}.supabase.co/functions/v1/r2-attachments`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${session.access_token}`,
+      "Content-Type": file.type || "application/octet-stream",
+      "X-Attachment-Name": encodeURIComponent(file.name),
+      "X-Ticket-Id": ticketId,
+      "X-File-Size": String(file.size),
+    },
+    body: file,
+  });
+
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok || !payload?.key) {
+    throw new Error(payload?.error || "The attachment could not be uploaded. Please try again.");
   }
-
-  const ext = file.name.split(".").pop();
-  const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${ext}`;
-  const filePath = `${userId}/${fileName}`;
-  const { error } = await supabase.storage.from(BUCKET).upload(filePath, file);
-  if (error) return null;
-  return filePath;
+  return payload.key as string;
 }

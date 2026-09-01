@@ -90,7 +90,7 @@ const StaffMessagesInner = () => {
     }
     setSubject("");
     setBody("");
-    notifyStaff("internal");
+    await notifyStaff("internal");
     toast.success("Message sent to the admin team");
     load();
   };
