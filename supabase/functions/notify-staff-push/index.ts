@@ -1,28 +1,6 @@
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { createClient } from "npm:@supabase/supabase-js@2";
-
-const enc = new TextEncoder();
-
-function b64url(bytes: Uint8Array) {
-  let bin = "";
-  bytes.forEach((b) => (bin += String.fromCharCode(b)));
-  return btoa(bin).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
-}
-
-async function vapidHeader(audience: string): Promise<string | null> {
-  const jwkRaw = Deno.env.get("VAPID_PRIVATE_JWK");
-  const subject = Deno.env.get("VAPID_SUBJECT") || "mailto:support@quickfollowers.online";
-  if (!jwkRaw) return null;
-
-  const key = await crypto.subtle.importKey("jwk", JSON.parse(jwkRaw), { name: "ECDSA", namedCurve: "P-256" }, false, ["sign"]);
-  const header = b64url(enc.encode(JSON.stringify({ typ: "JWT", alg: "ES256" })));
-  const claims = b64url(
-    enc.encode(JSON.stringify({ aud: audience, exp: Math.floor(Date.now() / 1000) + 12 * 60 * 60, sub: subject })),
-  );
-  const data = `${header}.${claims}`;
-  const sig = new Uint8Array(await crypto.subtle.sign({ name: "ECDSA", hash: "SHA-256" }, key, enc.encode(data)));
-  return `${data}.${b64url(sig)}`;
-}
+import webpush from "npm:web-push@3.6.7";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
@@ -51,28 +29,37 @@ Deno.serve(async (req) => {
     const staffIds = [...new Set((staff || []).map((s: { user_id: string }) => s.user_id))].filter((id) => id !== user.id);
     if (staffIds.length === 0) return json({ sent: 0 });
 
-    const { data: subs } = await admin.from("push_subscriptions").select("id, endpoint").in("user_id", staffIds);
+    const { data: subs } = await admin.from("push_subscriptions").select("id, endpoint, p256dh, auth").in("user_id", staffIds);
     if (!subs?.length) return json({ sent: 0 });
+
+    const publicKey = Deno.env.get("VAPID_PUBLIC_KEY");
+    const privateJwkRaw = Deno.env.get("VAPID_PRIVATE_JWK");
+    if (!publicKey || !privateJwkRaw) return json({ error: "Push notifications are not configured." }, 503);
+    const privateJwk = JSON.parse(privateJwkRaw);
+    if (!privateJwk?.d) return json({ error: "Push notifications are not configured." }, 503);
+    webpush.setVapidDetails(Deno.env.get("VAPID_SUBJECT") || "mailto:support@quickfollowers.online", publicKey, privateJwk.d);
+
+    const payload = JSON.stringify({
+      title: kind === "ticket" ? "New support message" : "New staff request",
+      body: kind === "ticket" ? "A customer sent a new ticket message." : "A staff member sent a new request.",
+      tag: kind === "ticket" ? "support-ticket" : "staff-request",
+      url: kind === "ticket" ? "/admin/tickets" : "/admin/messages",
+    });
 
     let sent = 0;
     const dead: string[] = [];
 
     for (const sub of subs) {
       try {
-        const url = new URL(sub.endpoint);
-        const jwt = await vapidHeader(`${url.protocol}//${url.host}`);
-        if (!jwt) break;
-        const res = await fetch(sub.endpoint, {
-          method: "POST",
-          headers: {
-            TTL: "3600",
-            Authorization: `vapid t=${jwt}, k=${Deno.env.get("VAPID_PUBLIC_KEY")}`,
-            "Content-Length": "0",
-          },
-        });
-        if (res.status === 404 || res.status === 410) dead.push(sub.id);
-        else if (res.ok) sent++;
-      } catch {
+        await webpush.sendNotification(
+          { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
+          payload,
+          { TTL: 3600 },
+        );
+        sent++;
+      } catch (error) {
+        const statusCode = Number((error as { statusCode?: number })?.statusCode || 0);
+        if (statusCode === 404 || statusCode === 410) dead.push(sub.id);
         // Ignore a single failing endpoint and keep notifying the rest.
       }
     }
