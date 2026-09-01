@@ -254,7 +254,7 @@ const AdminTickets = () => {
     }
   };
 
-  const uploadAttachment = (file: File) => uploadTicketAttachment(file, 'admin');
+  const uploadAttachment = (file: File, ticketId: string) => uploadTicketAttachment(file, ticketId);
 
   const handleSendMessage = async () => {
     if (!newMessage.trim() && !attachment) {
@@ -269,7 +269,7 @@ const AdminTickets = () => {
       let attachmentUrl = null;
       let attachmentName = null;
       if (attachment) {
-        attachmentUrl = await uploadAttachment(attachment);
+        attachmentUrl = await uploadAttachment(attachment, selectedTicket.id);
         attachmentName = attachment.name;
       }
 

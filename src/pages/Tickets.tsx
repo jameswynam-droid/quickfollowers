@@ -177,7 +177,7 @@ const Tickets = () => {
     }
   };
 
-  const uploadAttachment = (file: File) => uploadTicketAttachment(file, user.id);
+  const uploadAttachment = (file: File, ticketId: string) => uploadTicketAttachment(file, ticketId);
 
   const handleCreateTicket = async () => {
     if (!newTicketSubject.trim() || !newTicketMessage.trim()) {
@@ -203,7 +203,7 @@ const Tickets = () => {
       let attachmentUrl = null;
       let attachmentName = null;
       if (newTicketAttachment) {
-        attachmentUrl = await uploadAttachment(newTicketAttachment);
+        attachmentUrl = await uploadAttachment(newTicketAttachment, ticket.id);
         attachmentName = newTicketAttachment.name;
       }
 
@@ -221,7 +221,7 @@ const Tickets = () => {
 
       if (messageError) throw messageError;
 
-      notifyStaff("ticket");
+      await notifyStaff("ticket");
       toast.success("Ticket created successfully");
       setShowNewTicket(false);
       setNewTicketSubject("");
@@ -249,7 +249,7 @@ const Tickets = () => {
       let attachmentUrl = null;
       let attachmentName = null;
       if (attachment) {
-        attachmentUrl = await uploadAttachment(attachment);
+        attachmentUrl = await uploadAttachment(attachment, selectedTicket.id);
         attachmentName = attachment.name;
       }
 
@@ -266,7 +266,7 @@ const Tickets = () => {
 
       if (error) throw error;
 
-      notifyStaff("ticket");
+      await notifyStaff("ticket");
       setNewMessage("");
       setAttachment(null);
       isAtBottomRef.current = true;
